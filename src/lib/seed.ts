@@ -318,6 +318,35 @@ export const seed: SeedData = {
       inflacion: 0.02,
       eventoIds: ["evt-b-traspaso", "evt-b-rescate"],
     },
+    // Clientes ligeros — stubs solo para la columna Escenarios de P1 (ANEXO F)
+    {
+      id: "esc-beltran-base",
+      clienteId: "cliente-beltran",
+      nombre: "Situación actual",
+      esPlanBase: true,
+      eventoIds: [],
+    },
+    {
+      id: "esc-requena-base",
+      clienteId: "cliente-requena",
+      nombre: "Situación actual",
+      esPlanBase: true,
+      eventoIds: [],
+    },
+    {
+      id: "esc-requena-alt",
+      clienteId: "cliente-requena",
+      nombre: "A · Alternativa",
+      esPlanBase: false,
+      eventoIds: [],
+    },
+    {
+      id: "esc-server-base",
+      clienteId: "cliente-server",
+      nombre: "Situación actual",
+      esPlanBase: true,
+      eventoIds: [],
+    },
   ],
 
   eventos: [
