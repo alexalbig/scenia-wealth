@@ -1,11 +1,15 @@
-import { PlaceholderScreen } from "@/components/shell/PlaceholderScreen";
+import { notFound } from "next/navigation";
+import { FiscalidadView } from "@/components/fiscalidad/FiscalidadView";
+import { getCliente } from "@/lib/seed";
 
-export default function FiscalidadPage() {
-  return (
-    <PlaceholderScreen
-      code="P4"
-      title="Fiscalidad"
-      note="Pendiente — tras validar P1 y P3."
-    />
-  );
+export default async function FiscalidadPage({
+  params,
+}: {
+  params: Promise<{ clienteId: string }>;
+}) {
+  const { clienteId } = await params;
+  const cliente = getCliente(clienteId);
+  if (!cliente) notFound();
+
+  return <FiscalidadView cliente={cliente} />;
 }
