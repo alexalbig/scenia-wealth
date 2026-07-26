@@ -1,0 +1,12 @@
+---
+description: Idioma del código vs UI, formato de números, nomenclatura de dominio
+alwaysApply: true
+---
+
+# Idioma
+
+- **Código, nombres de variables y funciones: inglés.**
+- **Todo el texto visible por el usuario: español (es-ES).** Ningún "Save", "Search" ni "Dashboard" suelto en la interfaz.
+- **Números en formato español:** `14.200,00 €` · usar `Intl.NumberFormat('es-ES', { style:'currency', currency:'EUR' })`.
+- Los nombres de dominio pueden ir en español (`FilaFiscal`, `FichaPersona`) — coherente con la especificación. Los componentes genéricos, en inglés (`Card`, `Button`, `Table`).
+- **Nunca usar la voz de Wealthabout** ("Lo que tengo / lo que gano / lo que gasto"). Los nombres son neutrales: Activos, Pasivos, Ingresos, Gastos, Ahorro.

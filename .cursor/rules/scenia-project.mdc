@@ -1,0 +1,19 @@
+---
+description: Qué es Scenia Wealth, fuente de verdad y alcance CORE/MVP
+alwaysApply: true
+---
+
+# Scenia Wealth — alcance del proyecto
+
+Mockup clicable del MVP de **Scenia Wealth**: SaaS de planificación patrimonial y fiscal para asesores financieros independientes (EAF) en España.
+
+## Fuente de verdad
+
+- Funcionalidades y pantallas: `docs/spec/scenia-wealth-funcionalidades.md` (v12)
+- Sistema de diseño: `docs/spec/scenia-wealth-design-tokens.md`
+
+**Construir solo lo marcado CORE y MVP.** Lo marcado V2 y Futura no se construye, pero la navegación queda preparada para que quepa.
+
+**Si algo no está en el maestro, PREGUNTA antes de inventarlo.** Lo que queda fuera suele estar fuera por una decisión, no por olvido.
+
+Si algo en la conversación contradice estas reglas, mandan las reglas del proyecto.

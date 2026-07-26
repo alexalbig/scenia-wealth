@@ -1,0 +1,16 @@
+---
+description: Tokens Estilo G, tipografía, superficies y FilaFiscal con firewall
+alwaysApply: true
+---
+
+# Diseño
+
+Usar **exactamente** los tokens de `docs/spec/scenia-wealth-design-tokens.md` (Estilo G · "Papel frío").
+
+- **Doble plano:** fondo de app azul-noche `#0C1424`; contenido en superficies de papel claro `#FBFCFE` con tinta oscura encima.
+- **Sin sombras.** Las superficies se separan por color y borde, nunca por elevación.
+- **DM Sans**, densidad alta (11px es el tamaño de trabajo), labels en mayúsculas con tracking, `font-variant-numeric: tabular-nums` SIEMPRE en columnas de cifras.
+- Radio de trabajo **8px**; bordes `1px solid var(--line-2)`.
+- **Prohibido el aspecto genérico de IA:** ni Inter, ni degradados violeta-índigo, ni glassmorphism, ni sombras marcadas.
+
+**El componente `FilaFiscal` (CT2) debe llevar el firewall incorporado por diseño** — que sea imposible pintarla en verde/rojo/ámbar desde fuera.

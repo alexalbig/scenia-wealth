@@ -1,0 +1,17 @@
+---
+description: Stack Next.js/Tailwind y límites estrictos del mockup
+alwaysApply: true
+---
+
+# Stack y límites del mockup
+
+**Next.js (App Router) + TypeScript + Tailwind.** Se eligió Next.js aunque sea un mockup porque migrará a producto real: el salto debe ser *rellenar*, no reconstruir.
+
+**Esto es un MOCKUP. NO construir:**
+
+- Backend, rutas API (`app/api/...`), Server Actions, fetching real.
+- Base de datos ni Supabase. El seed vive hardcodeado en `/lib/seed.ts`.
+- Autenticación, variables de entorno, deployment.
+- Motor fiscal real: se simula con funciones puras que devuelven las cifras fijas del seed (A ≈ 14.200 € / B ≈ 9.800 €).
+
+Client components (`'use client'`) donde haga falta interactividad: pestañas, selectores, clic-en-año, modales.

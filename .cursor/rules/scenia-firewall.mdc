@@ -1,0 +1,19 @@
+---
+description: Firewall MiFID — Scenia muestra cálculo fiscal, nunca recomienda
+alwaysApply: true
+---
+
+# EL FIREWALL — 8 reglas innegociables
+
+Scenia *muestra* el cálculo fiscal; **nunca recomienda**. Esa línea es su posición legal (MiFID) y vive en la interfaz. Ninguna se rompe por ningún motivo.
+
+1. **Tinta neutra en toda comparación fiscal.** Nunca verde/rojo/ámbar para señalar qué opción es mejor. **Nunca coronar un ganador.**
+2. **"orientativo"** acompaña siempre a cualquier cifra fiscal.
+3. **Verde** (`--green` `#0E7C4A`) y **ámbar** (`#B5732A`): solo para hechos objetivos de un activo (plusvalía latente, semáforo de liquidez). **Rojo** (`--coral-deep` `#D14A38`): solo para errores de validación de formulario. Nada más.
+4. **Nota del asesor obligatoria** en el modal antes de generar cualquier informe PDF.
+5. **El asesor no puede editar parámetros fiscales** (tramos, tipos, reglas). Viven en la tabla del motor.
+6. **Cifra calculada ≠ cifra introducida.** Lo que calcula el motor nunca tiene el mismo aspecto visual que lo que teclea el asesor. Marcar "introducido por el asesor, no calculado".
+7. **CCAA sin cobertura → aviso explícito.** Solo la Comunitat Valenciana tiene parámetros fiscales. Si se elige otra: *"el cálculo fiscal solo está disponible para la Comunitat Valenciana"*. **Nunca mostrar cifras de CV para otra comunidad.**
+8. **NO construir el liquidador de Impuesto de Sociedades.** F4 Sociedad sí (datos, participación, eventos); el cálculo societario queda marcado "pendiente de definir". **No inventar cifras.**
+
+**Regla de oro:** ante la duda, no inventes un número. Un hueco marcado es correcto; una cifra fiscal inventada es un fallo grave.

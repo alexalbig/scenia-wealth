@@ -1,0 +1,10 @@
+---
+description: Arquitectura de navegación, escenarios y plan base
+alwaysApply: true
+---
+
+# Arquitectura — 3 reglas que no se negocian
+
+1. **Las fichas NO son entradas de menú.** Se abren pinchando el elemento en el treemap o en las pestañas de Patrimonio. La barra de nivel 1 tiene exactamente 5 entradas: `Patrimonio · Fiscalidad · Proyección · Escenarios · Historial`.
+2. **El escenario es del CLIENTE, no del activo.** Dentro de un escenario, el menú de eventos aparece **completo** (cualquier activo), no limitado al elemento por el que se entró.
+3. **El plan base es el primer escenario** ("Situación actual"), no un caso especial: aparece en la lista, es comparable y editable como cualquier otro.
