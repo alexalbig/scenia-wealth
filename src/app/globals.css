@@ -1,0 +1,98 @@
+@import "tailwindcss";
+
+:root {
+  /* Tinta — escala de 7 niveles */
+  --ink: #0c1424;
+  --ink-2: #1a2438;
+  --ink-3: #3a4660;
+  --slate: #6e7a92;
+  --mute: #8a95a8;
+  --faint: #9aa4b6;
+  --faintest: #b8c0ce;
+
+  /* Papel y líneas */
+  --paper: #fbfcfe;
+  --paper-2: #f4f6fa;
+  --line: #eef1f6;
+  --line-2: #e2e6ee;
+
+  /* Acentos */
+  --blue: #3a5bc8;
+  --blue-2: #3a5bc8;
+  --coral: #ff6b5a;
+  --coral-deep: #d14a38;
+  --green: #0e7c4a;
+  --green-bg: #e3f5ec;
+
+  /* Contextuales */
+  --blue-soft: #e7ecfb;
+  --coral-soft: #fbeae7;
+  --amber: #b5732a;
+  --amber-bg: #fbf1e7;
+  --dark-line: #1e2a42;
+  --dark-border: #2a3650;
+  --dark-text: #e8ecf4;
+  --green-light: #5fd89a;
+}
+
+@theme inline {
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-slate: var(--slate);
+  --color-mute: var(--mute);
+  --color-faint: var(--faint);
+  --color-faintest: var(--faintest);
+  --color-paper: var(--paper);
+  --color-paper-2: var(--paper-2);
+  --color-line: var(--line);
+  --color-line-2: var(--line-2);
+  --color-blue: var(--blue);
+  --color-blue-2: var(--blue-2);
+  --color-coral: var(--coral);
+  --color-coral-deep: var(--coral-deep);
+  --color-green: var(--green);
+  --color-green-bg: var(--green-bg);
+  --color-blue-soft: var(--blue-soft);
+  --color-coral-soft: var(--coral-soft);
+  --color-amber: var(--amber);
+  --color-amber-bg: var(--amber-bg);
+  --color-dark-line: var(--dark-line);
+  --color-dark-border: var(--dark-border);
+  --color-dark-text: var(--dark-text);
+  --color-green-light: var(--green-light);
+  --font-sans: var(--font-dm-sans);
+  --radius-work: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ink);
+  color: var(--ink);
+  font-family: var(--font-dm-sans), "DM Sans", sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Cifras financieras: tabular-nums siempre en tablas */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.label-upper {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
