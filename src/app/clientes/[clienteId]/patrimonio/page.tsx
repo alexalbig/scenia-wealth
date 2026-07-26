@@ -1,11 +1,24 @@
-import { PlaceholderScreen } from "@/components/shell/PlaceholderScreen";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { PatrimonioView } from "@/components/patrimonio/PatrimonioView";
+import { getCliente } from "@/lib/seed";
 
-export default function PatrimonioPage() {
+export default async function PatrimonioPage({
+  params,
+}: {
+  params: Promise<{ clienteId: string }>;
+}) {
+  const { clienteId } = await params;
+  const cliente = getCliente(clienteId);
+  if (!cliente) notFound();
+
   return (
-    <PlaceholderScreen
-      code="P3"
-      title="Patrimonio"
-      note="Pendiente — se construye tras validar Fase 0 y P1."
-    />
+    <Suspense
+      fallback={
+        <p className="text-[12px] text-mute">Cargando patrimonio…</p>
+      }
+    >
+      <PatrimonioView cliente={cliente} />
+    </Suspense>
   );
 }
