@@ -1,11 +1,17 @@
-import { PlaceholderScreen } from "@/components/shell/PlaceholderScreen";
+import { notFound } from "next/navigation";
+import { HistorialView } from "@/components/historial/HistorialView";
+import { getCliente, getHistorialDeCliente } from "@/lib/seed";
 
-export default function HistorialPage() {
-  return (
-    <PlaceholderScreen
-      code="P7"
-      title="Historial"
-      note="Pendiente — tras validar P1 y P3."
-    />
-  );
+export default async function HistorialPage({
+  params,
+}: {
+  params: Promise<{ clienteId: string }>;
+}) {
+  const { clienteId } = await params;
+  const cliente = getCliente(clienteId);
+  if (!cliente) notFound();
+
+  const entries = getHistorialDeCliente(clienteId);
+
+  return <HistorialView entries={entries} />;
 }

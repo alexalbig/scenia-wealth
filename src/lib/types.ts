@@ -1,11 +1,39 @@
 /** Modelo de datos — ANEXO B (Scenia Wealth) */
 
-export type CCAA =
-  | "Comunitat Valenciana"
-  | "Comunidad de Madrid"
-  | "Cataluña"
-  | "Andalucía"
-  | "Otras";
+/** 17 comunidades autónomas (nombres oficiales en español). */
+export const CCAAS = [
+  "Andalucía",
+  "Aragón",
+  "Principado de Asturias",
+  "Illes Balears",
+  "Canarias",
+  "Cantabria",
+  "Castilla y León",
+  "Castilla-La Mancha",
+  "Cataluña",
+  "Comunidad de Madrid",
+  "Comunidad Foral de Navarra",
+  "Comunitat Valenciana",
+  "Extremadura",
+  "Galicia",
+  "La Rioja",
+  "País Vasco",
+  "Región de Murcia",
+] as const;
+
+export type CCAA = (typeof CCAAS)[number];
+
+/** Única CCAA con parámetros fiscales en el motor (firewall 7). */
+export const CCAA_CON_COBERTURA_FISCAL: CCAA = "Comunitat Valenciana";
+
+/** Entrada de timeline P7 — informe emitido. */
+export interface HistorialInforme {
+  id: string;
+  clienteId: string;
+  /** ISO YYYY-MM-DD */
+  fecha: string;
+  titulo: string;
+}
 
 export type Segmento =
   | "Empresario"

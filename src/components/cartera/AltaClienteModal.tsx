@@ -2,7 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { Button, Modal } from "@/components/ui";
-import type { CCAA, Segmento } from "@/lib/types";
+import {
+  CCAAS,
+  CCAA_CON_COBERTURA_FISCAL,
+  type CCAA,
+  type Segmento,
+} from "@/lib/types";
 import { cn } from "@/lib/cn";
 
 const SEGMENTOS: Segmento[] = [
@@ -11,14 +16,6 @@ const SEGMENTOS: Segmento[] = [
   "Jubilado",
   "Alto ingreso",
   "Herencia en curso",
-];
-
-const CCAAS: CCAA[] = [
-  "Comunitat Valenciana",
-  "Comunidad de Madrid",
-  "Cataluña",
-  "Andalucía",
-  "Otras",
 ];
 
 interface PersonaDraft {
@@ -38,7 +35,9 @@ interface AltaClienteModalProps {
   }) => void;
 }
 
-function emptyPersona(ccaa: CCAA = "Comunitat Valenciana"): PersonaDraft {
+function emptyPersona(
+  ccaa: CCAA = CCAA_CON_COBERTURA_FISCAL,
+): PersonaDraft {
   return {
     id: `draft-${Math.random().toString(36).slice(2, 9)}`,
     nombre: "",
@@ -64,7 +63,9 @@ export function AltaClienteModal({
   const [personas, setPersonas] = useState<PersonaDraft[]>([emptyPersona()]);
   const [submitted, setSubmitted] = useState(false);
 
-  const hasNonCv = personas.some((p) => p.ccaa !== "Comunitat Valenciana");
+  const hasNonCv = personas.some(
+    (p) => p.ccaa !== CCAA_CON_COBERTURA_FISCAL,
+  );
 
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -160,7 +161,7 @@ export function AltaClienteModal({
               onClick={() =>
                 setPersonas((prev) => [
                   ...prev,
-                  emptyPersona(prev[0]?.ccaa ?? "Comunitat Valenciana"),
+                  emptyPersona(prev[0]?.ccaa ?? CCAA_CON_COBERTURA_FISCAL),
                 ])
               }
             >

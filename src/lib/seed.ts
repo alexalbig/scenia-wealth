@@ -1,4 +1,4 @@
-import type { SeedData } from "./types";
+import type { HistorialInforme, SeedData } from "./types";
 
 /**
  * Seed ANEXO F — un asesor/EAF con seis clientes.
@@ -296,7 +296,12 @@ export const seed: SeedData = {
       impuestosPeriodo: 0,
       rentabilidadEsperada: 0.04,
       inflacion: 0.02,
-      eventoIds: [],
+      // Hitos del plan base (sin cifras fiscales inventadas)
+      eventoIds: [
+        "evt-base-revision-2027",
+        "evt-base-jubilacion-2033",
+        "evt-base-revision-2035",
+      ],
     },
     {
       id: ESC_A,
@@ -351,6 +356,32 @@ export const seed: SeedData = {
 
   eventos: [
     {
+      id: "evt-base-revision-2027",
+      escenarioId: ESC_BASE,
+      tipo: "generico",
+      anio: 2027,
+      etiqueta: "Revisión anual del plan",
+      notas: "Hito de seguimiento · sin impacto fiscal",
+    },
+    {
+      id: "evt-base-jubilacion-2033",
+      escenarioId: ESC_BASE,
+      tipo: "jubilarse",
+      anio: 2033,
+      etiqueta: "Jubilación prevista · Carlos",
+      targetId: PERSONA_CARLOS,
+      introducidoPorAsesor: true,
+      notas: "Edad 65 · pensión estimada a introducir por el asesor",
+    },
+    {
+      id: "evt-base-revision-2035",
+      escenarioId: ESC_BASE,
+      tipo: "generico",
+      anio: 2035,
+      etiqueta: "Revisión anual del plan",
+      notas: "Hito de seguimiento · sin impacto fiscal",
+    },
+    {
       id: "evt-a-reembolso",
       escenarioId: ESC_A,
       tipo: "reembolsar_fondo",
@@ -397,6 +428,28 @@ export const ids = {
   escB: ESC_B,
 } as const;
 
+/** P7 · Informes emitidos (solo García-Llorente tiene historial en el seed). */
+export const historialInformes: HistorialInforme[] = [
+  {
+    id: "hist-gl-1",
+    clienteId: CLIENTE_GL,
+    fecha: "2026-06-18",
+    titulo: "Informe de la foto patrimonial",
+  },
+  {
+    id: "hist-gl-2",
+    clienteId: CLIENTE_GL,
+    fecha: "2026-04-02",
+    titulo: "Comparación de escenarios · Reembolso vs traspaso",
+  },
+  {
+    id: "hist-gl-3",
+    clienteId: CLIENTE_GL,
+    fecha: "2025-11-22",
+    titulo: "Informe de la foto patrimonial",
+  },
+];
+
 export function getCliente(id: string) {
   return seed.clientes.find((c) => c.id === id);
 }
@@ -409,6 +462,24 @@ export function getPersonasDeCliente(clienteId: string) {
 
 export function getEscenariosDeCliente(clienteId: string) {
   return seed.escenarios.filter((e) => e.clienteId === clienteId);
+}
+
+export function getPlanBase(clienteId: string) {
+  return seed.escenarios.find((e) => e.clienteId === clienteId && e.esPlanBase);
+}
+
+export function getEventosDeEscenario(escenarioId: string) {
+  const esc = seed.escenarios.find((e) => e.id === escenarioId);
+  if (!esc) return [];
+  return esc.eventoIds
+    .map((id) => seed.eventos.find((e) => e.id === id))
+    .filter((e): e is NonNullable<typeof e> => !!e);
+}
+
+export function getHistorialDeCliente(clienteId: string) {
+  return historialInformes
+    .filter((h) => h.clienteId === clienteId)
+    .sort((a, b) => b.fecha.localeCompare(a.fecha));
 }
 
 export function patrimonioTotalCartera() {

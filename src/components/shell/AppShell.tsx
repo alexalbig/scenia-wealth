@@ -80,13 +80,28 @@ export function AppTopBar({
   title?: string;
   action?: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const ajustesActive = pathname === "/ajustes";
+
   return (
     <header className="border-b border-line-2 bg-paper">
       <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-4 px-5 py-3.5">
         <div className="flex items-center gap-3">
-          <span className="text-[15px] font-bold tracking-[-0.02em] text-ink">
+          <Link
+            href="/"
+            className="text-[15px] font-bold tracking-[-0.02em] text-ink hover:text-blue"
+          >
             Scenia Wealth
-          </span>
+          </Link>
+          <Link
+            href="/ajustes"
+            className={cn(
+              "label-upper",
+              ajustesActive ? "text-blue" : "text-mute hover:text-blue",
+            )}
+          >
+            Ajustes
+          </Link>
           <span className="h-4 w-px bg-line-2" />
           <h1 className="text-[13px] font-semibold text-ink-3">{title}</h1>
         </div>
