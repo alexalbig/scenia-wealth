@@ -4,7 +4,7 @@ import { Button, Modal } from "@/components/ui";
 
 const EVENTOS_POR_CONTEXTO: Record<string, string[]> = {
   instrumento: ["Reembolsar fondo", "Traspasar fondo", "Pignorar", "Aportar a fondo", "Rescatar plan"],
-  inmueble: ["Vender inmueble", "Comprar inmueble", "Amortizar hipoteca"],
+  inmueble: ["Comprar inmueble", "Vender inmueble", "Amortizar hipoteca"],
   pasivo: ["Amortizar hipoteca", "Evento genérico"],
   sociedad: ["Repartir dividendo", "Vender participación"],
   otro: ["Vender (genérico, sin cálculo fiscal)"],

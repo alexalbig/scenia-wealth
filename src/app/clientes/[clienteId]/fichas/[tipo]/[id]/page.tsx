@@ -1,7 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { InmuebleFicha } from "@/components/fichas/InmuebleFicha";
+import { OtroActivoFicha } from "@/components/fichas/OtroActivoFicha";
+import { PersonaFicha } from "@/components/fichas/PersonaFicha";
+import { PortfolioFicha } from "@/components/fichas/PortfolioFicha";
+import { SociedadFicha } from "@/components/fichas/SociedadFicha";
 import { Card } from "@/components/ui";
-import { getCliente } from "@/lib/seed";
+import {
+  getInmuebles,
+  getInstrumentos,
+  getOtrosActivos,
+  getPasivos,
+  getSociedades,
+} from "@/lib/patrimonio";
+import { getCliente, getPersonasDeCliente } from "@/lib/seed";
 
 const LABELS: Record<string, string> = {
   persona: "F1 · Persona",
@@ -11,7 +23,7 @@ const LABELS: Record<string, string> = {
   otro: "F5 · Otros activos",
 };
 
-export default async function FichaPlaceholderPage({
+export default async function FichaPage({
   params,
 }: {
   params: Promise<{ clienteId: string; tipo: string; id: string }>;
@@ -19,6 +31,69 @@ export default async function FichaPlaceholderPage({
   const { clienteId, tipo, id } = await params;
   const cliente = getCliente(clienteId);
   if (!cliente) notFound();
+
+  const personas = getPersonasDeCliente(clienteId);
+
+  if (tipo === "persona") {
+    const persona = personas.find((p) => p.id === id);
+    if (!persona) notFound();
+    return <PersonaFicha clienteId={clienteId} persona={persona} />;
+  }
+
+  if (tipo === "portfolio") {
+    const instrumentos = getInstrumentos(clienteId);
+    const instrumento = instrumentos.find((i) => i.id === id);
+    if (!instrumento) notFound();
+    return (
+      <PortfolioFicha
+        clienteId={clienteId}
+        instrumento={instrumento}
+        instrumentos={instrumentos}
+      />
+    );
+  }
+
+  if (tipo === "inmueble") {
+    const inmueble = getInmuebles(clienteId).find((i) => i.id === id);
+    if (!inmueble) notFound();
+    const pasivo = inmueble.pasivoId
+      ? getPasivos(clienteId).find((p) => p.id === inmueble.pasivoId)
+      : undefined;
+    return (
+      <InmuebleFicha
+        clienteId={clienteId}
+        inmueble={inmueble}
+        pasivo={pasivo}
+        personas={personas}
+      />
+    );
+  }
+
+  if (tipo === "sociedad") {
+    const sociedad = getSociedades(clienteId).find((s) => s.id === id);
+    if (!sociedad) notFound();
+    return (
+      <SociedadFicha
+        clienteId={clienteId}
+        sociedad={sociedad}
+        personas={personas}
+        instrumentos={getInstrumentos(clienteId)}
+        inmuebles={getInmuebles(clienteId)}
+      />
+    );
+  }
+
+  if (tipo === "otro") {
+    const activo = getOtrosActivos(clienteId).find((a) => a.id === id);
+    if (!activo) notFound();
+    return (
+      <OtroActivoFicha
+        clienteId={clienteId}
+        activo={activo}
+        personas={personas}
+      />
+    );
+  }
 
   const label = LABELS[tipo] ?? "Ficha";
 
@@ -32,12 +107,6 @@ export default async function FichaPlaceholderPage({
         Drill-down desde Patrimonio. El detalle de la ficha se construye en una
         fase posterior; la navegación ya queda preparada.
       </p>
-      {tipo === "sociedad" && (
-        <p className="mt-3 rounded-[8px] border border-dashed border-line-2 bg-paper-2 px-3 py-2 text-[12px] text-mute">
-          Liquidador de Impuesto de Sociedades · pendiente de definir. No se
-          inventan cifras.
-        </p>
-      )}
       <p className="mt-4">
         <Link
           href={`/clientes/${clienteId}/patrimonio?tab=activos`}
