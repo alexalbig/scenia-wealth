@@ -1,11 +1,22 @@
-import { PlaceholderScreen } from "@/components/shell/PlaceholderScreen";
+import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { EscenariosView } from "@/components/escenarios/EscenariosView";
+import { getCliente } from "@/lib/seed";
 
-export default function EscenariosPage() {
+export default async function EscenariosPage({
+  params,
+}: {
+  params: Promise<{ clienteId: string }>;
+}) {
+  const { clienteId } = await params;
+  const cliente = getCliente(clienteId);
+  if (!cliente) notFound();
+
   return (
-    <PlaceholderScreen
-      code="P6"
-      title="Escenarios"
-      note="Pendiente — tras validar P1 y P3."
-    />
+    <Suspense
+      fallback={<p className="text-[12px] text-mute">Cargando escenarios…</p>}
+    >
+      <EscenariosView cliente={cliente} />
+    </Suspense>
   );
 }
