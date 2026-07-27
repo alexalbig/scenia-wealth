@@ -6,12 +6,6 @@ import {
   Button,
   Card,
   FilaFiscal,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
 } from "@/components/ui";
 import { ComparadorChart } from "@/components/escenarios/ComparadorChart";
 import {
@@ -21,7 +15,6 @@ import {
 import { InformeModal } from "@/components/patrimonio/InformeModal";
 import { formatEUR, formatPercent } from "@/lib/format";
 import { formatFechaES } from "@/lib/patrimonio";
-import { cn } from "@/lib/cn";
 import {
   COMPARADOR_METRICAS,
   buildEscenarioSeries,
@@ -178,7 +171,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
     return (
       <Card>
         <p className="label-upper mb-1">Cliente ligero</p>
-        <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+        <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
           Escenarios
         </h2>
         <p className="mt-2 text-[13px] text-slate">
@@ -192,14 +185,14 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
   const hasSociedad = cliente.sociedadIds.length > 0;
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="label-upper">P6 · Escenarios</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             Espacio de trabajo libre
           </h2>
-          <p className="text-[12px] text-mute">
+          <p className="mt-0.5 text-[11px] text-mute">
             El escenario es del cliente · plan base = primer escenario
           </p>
         </div>
@@ -219,276 +212,293 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
         </div>
       </div>
 
-      {/* Lista de escenarios */}
-      <Card padding="sm">
-        <div className="mb-2 flex items-center justify-between px-1">
-          <p className="label-upper">Escenarios del expediente</p>
-          <span className="text-[11px] text-mute">
-            Marca para comparar · el primero de la lista es el plan base
-          </span>
-        </div>
-        <Table>
-          <THead>
-            <TR>
-              <TH>Comparar</TH>
-              <TH>Nombre</TH>
-              <TH className="text-right">Eventos</TH>
-              <TH className="text-right">Impuestos periodo</TH>
-              <TH />
-            </TR>
-          </THead>
-          <TBody>
-            {escenarios.map((e) => {
-              const active = e.id === selected?.id;
-              return (
-                <TR
-                  key={e.id}
-                  className={cn("cursor-pointer", active && "bg-blue-soft/40")}
-                  onClick={() => setSelectedId(e.id)}
+      <div className="esc-grid">
+        {/* Lista de escenarios */}
+        <div>
+          <p className="label-upper mb-2">Escenarios del expediente</p>
+          {escenarios.map((e) => {
+            const active = e.id === selected?.id;
+            return (
+              <div
+                key={e.id}
+                role="button"
+                tabIndex={0}
+                data-on={active}
+                className="esc-item"
+                onClick={() => setSelectedId(e.id)}
+                onKeyDown={(ev) => {
+                  if (ev.key === "Enter" || ev.key === " ") {
+                    ev.preventDefault();
+                    setSelectedId(e.id);
+                  }
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <b className="text-[12.5px] text-ink">{e.nombre}</b>
+                  {e.esPlanBase && <span className="base-tag">Plan base</span>}
+                </div>
+                <p className="my-1 text-[10.5px] text-mute">
+                  {e.eventos.length} evento{e.eventos.length !== 1 ? "s" : ""}
+                  {" · "}
+                  supuestos{" "}
+                  {formatPercent(e.rentabilidadEsperada ?? 0.04)} /{" "}
+                  {formatPercent(e.inflacion ?? 0.02)}
+                </p>
+                {e.impuestosPeriodo != null && (
+                  <div className="calc-chip mb-2">
+                    {formatEUR(e.impuestosPeriodo, true)} · orientativo
+                  </div>
+                )}
+                <div
+                  className="flex items-center gap-2.5"
+                  onClick={(ev) => ev.stopPropagation()}
                 >
-                  <TD onClick={(ev) => ev.stopPropagation()}>
+                  <label className="inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-slate">
                     <input
                       type="checkbox"
+                      className="h-[15px] w-[15px] accent-ink"
                       checked={compareIds.includes(e.id)}
                       onChange={() => toggleCompare(e.id)}
                       aria-label={`Comparar ${e.nombre}`}
                     />
-                  </TD>
-                  <TD>
-                    <span className="font-semibold text-ink">{e.nombre}</span>
-                    {e.esPlanBase && (
-                      <Badge variant="blue" className="ml-2">
-                        Plan base
-                      </Badge>
-                    )}
-                  </TD>
-                  <TD numeric>{e.eventos.length}</TD>
-                  <TD numeric>
-                    {e.impuestosPeriodo != null ? (
-                      <span>
-                        {formatEUR(e.impuestosPeriodo, true)}
-                        <span className="ml-1 text-[10px] font-medium text-mute">
-                          orientativo
-                        </span>
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </TD>
-                  <TD onClick={(ev) => ev.stopPropagation()}>
-                    <Button size="sm" variant="ghost" onClick={() => clonar(e)}>
-                      Clonar
-                    </Button>
-                  </TD>
-                </TR>
-              );
-            })}
-          </TBody>
-        </Table>
-      </Card>
-
-      {selected && (
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <p className="label-upper mb-2">Supuestos · {selected.nombre}</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="label-upper">Nombre</span>
-                <input
-                  className="mt-1 w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-[13px] outline-none focus:border-blue"
-                  value={selected.nombre}
-                  onChange={(e) =>
-                    updateSupuesto(selected.id, { nombre: e.target.value })
-                  }
-                />
-              </label>
-              <label className="block">
-                <span className="label-upper">Rentabilidad esperada</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-[13px] tabular-nums outline-none focus:border-blue"
-                  value={selected.rentabilidadEsperada ?? 0.04}
-                  onChange={(e) =>
-                    updateSupuesto(selected.id, {
-                      rentabilidadEsperada: Number(e.target.value),
-                    })
-                  }
-                />
-                <span className="mt-1 block text-[11px] text-mute">
-                  {formatPercent(selected.rentabilidadEsperada ?? 0.04)}
-                </span>
-              </label>
-              <label className="block">
-                <span className="label-upper">Inflación</span>
-                <input
-                  type="number"
-                  step="0.01"
-                  className="mt-1 w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-[13px] tabular-nums outline-none focus:border-blue"
-                  value={selected.inflacion ?? 0.02}
-                  onChange={(e) =>
-                    updateSupuesto(selected.id, {
-                      inflacion: Number(e.target.value),
-                    })
-                  }
-                />
-              </label>
-            </div>
-          </Card>
-
-          <Card>
-            <div className="mb-2 flex items-center justify-between">
-              <p className="label-upper">Eventos · menú completo</p>
-              <Button size="sm" onClick={() => setEventoOpen(true)}>
-                + Evento
-              </Button>
-            </div>
-            <ul className="max-h-48 space-y-1.5 overflow-y-auto">
-              {selected.eventos.length === 0 && (
-                <li className="text-[12px] text-mute">Sin eventos.</li>
-              )}
-              {selected.eventos.map((ev) => (
-                <li
-                  key={ev.id}
-                  className="flex items-start justify-between gap-2 rounded-[8px] border border-line px-2.5 py-2"
-                >
-                  <div>
-                    <p className="text-[12px] font-semibold text-ink">
-                      {ev.anio} · {ev.etiqueta}
-                    </p>
-                    {ev.impuestosPeriodo != null && (
-                      <p
-                        className={cn(
-                          "text-[11px] tabular-nums",
-                          ev.introducidoPorAsesor
-                            ? "text-mute italic"
-                            : "font-semibold text-ink",
-                        )}
-                      >
-                        {formatEUR(ev.impuestosPeriodo, true)}
-                        {ev.introducidoPorAsesor
-                          ? " · introducido por el asesor, no calculado"
-                          : " · orientativo"}
-                      </p>
-                    )}
-                  </div>
+                    Comparar
+                  </label>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => deleteEvento(selected.id, ev.id)}
+                    className="h-7 px-2 text-[11px]"
+                    onClick={() => clonar(e)}
                   >
-                    Eliminar
+                    Clonar
                   </Button>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </div>
-      )}
-
-      {/* Comparador */}
-      <Card padding="sm">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3 px-1">
-          <div>
-            <p className="label-upper">Comparador</p>
-            <p className="text-[12px] text-mute">
-              Superpone escenarios · clic en un año · sin coronar ganador
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex overflow-hidden rounded-[8px] border border-line-2">
-              {COMPARADOR_METRICAS.map((m) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  onClick={() => setMetrica(m.id)}
-                  className={cn(
-                    "px-2.5 py-1.5 text-[11px] font-semibold",
-                    metrica === m.id
-                      ? "bg-blue text-white"
-                      : "bg-paper text-mute hover:text-ink",
-                  )}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-            <div className="flex overflow-hidden rounded-[8px] border border-line-2">
-              <button
-                type="button"
-                onClick={() => setMode("hoy")}
-                className={cn(
-                  "px-2.5 py-1.5 text-[11px] font-semibold",
-                  mode === "hoy" ? "bg-blue text-white" : "bg-paper text-mute",
-                )}
-              >
-                € hoy
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode("futuro")}
-                className={cn(
-                  "px-2.5 py-1.5 text-[11px] font-semibold",
-                  mode === "futuro" ? "bg-blue text-white" : "bg-paper text-mute",
-                )}
-              >
-                € futuro
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <ComparadorChart
-          series={chartSeries}
-          metrica={metrica}
-          mode={mode}
-          inflation={inflation}
-          selectedYear={year}
-          onSelectYear={setYear}
-        />
-
-        <p className="mt-2 px-1 text-[11px] text-mute">
-          Año fijado <span className="font-semibold text-ink">{year}</span>
-        </p>
-      </Card>
-
-      {/* CT2 Fila fiscal — pieza central del firewall */}
-      {fiscalPair && (
-        <FilaFiscal
-          scenarioA={fiscalPair[0].nombre}
-          amountA={fiscalPair[0].impuestosPeriodo ?? 0}
-          scenarioB={fiscalPair[1].nombre}
-          amountB={fiscalPair[1].impuestosPeriodo ?? 0}
-        />
-      )}
-
-      {/* Eventos en paralelo */}
-      {compareEscenarios.length >= 2 && (
-        <Card padding="sm">
-          <p className="label-upper mb-2 px-1">
-            Eventos en paralelo · {year}
-          </p>
-          <div className="grid gap-3 md:grid-cols-2">
-            {compareEscenarios.map((e) => (
-              <div key={e.id} className="rounded-[8px] border border-line-2 p-3">
-                <p className="mb-2 text-[12px] font-bold text-ink">{e.nombre}</p>
-                <ul className="space-y-1">
-                  {e.eventos
-                    .filter((ev) => ev.anio === year)
-                    .map((ev) => (
-                      <li key={ev.id} className="text-[12px] text-slate">
-                        {ev.etiqueta}
-                      </li>
-                    ))}
-                  {e.eventos.filter((ev) => ev.anio === year).length === 0 && (
-                    <li className="text-[12px] text-mute">Sin eventos en {year}</li>
-                  )}
-                </ul>
+                </div>
               </div>
-            ))}
+            );
+          })}
+        </div>
+
+        {/* Detalle del seleccionado */}
+        <div className="space-y-3">
+          {selected && (
+            <div className="sidep">
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="label-upper">Escenario</p>
+                  <h3 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
+                    {selected.nombre}
+                  </h3>
+                  {selected.esPlanBase && (
+                    <p className="mt-0.5 text-[11px] text-mute">
+                      La vida «tal como va» — comparable y editable como
+                      cualquier otro.
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="mt-3 grid gap-2.5 sm:grid-cols-3">
+                <label className="block">
+                  <span className="label-upper">Nombre</span>
+                  <input
+                    className="mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-1.5 text-[12px] outline-none focus:border-ink"
+                    value={selected.nombre}
+                    onChange={(e) =>
+                      updateSupuesto(selected.id, { nombre: e.target.value })
+                    }
+                  />
+                </label>
+                <label className="block">
+                  <span className="label-upper">Rentabilidad esperada</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-1.5 text-[12px] tabular-nums outline-none focus:border-ink"
+                    value={selected.rentabilidadEsperada ?? 0.04}
+                    onChange={(e) =>
+                      updateSupuesto(selected.id, {
+                        rentabilidadEsperada: Number(e.target.value),
+                      })
+                    }
+                  />
+                  <span className="mt-0.5 block text-[10.5px] text-mute">
+                    {formatPercent(selected.rentabilidadEsperada ?? 0.04)}
+                  </span>
+                </label>
+                <label className="block">
+                  <span className="label-upper">Inflación</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-1.5 text-[12px] tabular-nums outline-none focus:border-ink"
+                    value={selected.inflacion ?? 0.02}
+                    onChange={(e) =>
+                      updateSupuesto(selected.id, {
+                        inflacion: Number(e.target.value),
+                      })
+                    }
+                  />
+                </label>
+              </div>
+
+              <div className="mt-3.5 flex items-center justify-between gap-2">
+                <p className="label-upper">Eventos · menú completo</p>
+                <Button size="sm" onClick={() => setEventoOpen(true)}>
+                  + Evento
+                </Button>
+              </div>
+              <ul className="mt-1 max-h-52 overflow-y-auto">
+                {selected.eventos.length === 0 && (
+                  <li className="py-3 text-[12px] text-mute">Sin eventos.</li>
+                )}
+                {selected.eventos.map((ev) => (
+                  <li
+                    key={ev.id}
+                    className="flex items-start justify-between gap-2 border-t border-line py-2 first:border-t-0"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-[12px] font-semibold text-ink">
+                        {ev.anio} · {ev.etiqueta}
+                      </p>
+                      {ev.impuestosPeriodo != null &&
+                        (ev.introducidoPorAsesor ? (
+                          <div className="intro-chip mt-1">
+                            {formatEUR(ev.impuestosPeriodo, true)} ·
+                            introducido por el asesor, no calculado
+                          </div>
+                        ) : (
+                          <div className="calc-chip mt-1">
+                            {formatEUR(ev.impuestosPeriodo, true)} ·
+                            orientativo
+                          </div>
+                        ))}
+                    </div>
+                    <button
+                      type="button"
+                      className="shrink-0 rounded px-1.5 py-0.5 text-[10.5px] text-mute hover:bg-paper-2 hover:text-ink"
+                      onClick={() => deleteEvento(selected.id, ev.id)}
+                    >
+                      Eliminar
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {/* Comparador */}
+          <div className="sidep">
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+              <div>
+                <p className="label-upper">Comparador</p>
+                <p className="text-[12px] text-mute">
+                  Superpone escenarios · clic en un año · sin coronar ganador
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="chips" role="group" aria-label="Métrica">
+                  {COMPARADOR_METRICAS.map((m) => (
+                    <button
+                      key={m.id}
+                      type="button"
+                      data-on={metrica === m.id}
+                      onClick={() => setMetrica(m.id)}
+                    >
+                      {m.label}
+                    </button>
+                  ))}
+                </div>
+                <div className="seg" role="group" aria-label="Unidad monetaria">
+                  <button
+                    type="button"
+                    data-on={mode === "hoy"}
+                    aria-pressed={mode === "hoy"}
+                    onClick={() => setMode("hoy")}
+                  >
+                    € hoy
+                  </button>
+                  <button
+                    type="button"
+                    data-on={mode === "futuro"}
+                    aria-pressed={mode === "futuro"}
+                    onClick={() => setMode("futuro")}
+                  >
+                    € futuro
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="chartbox">
+              <ComparadorChart
+                series={chartSeries}
+                metrica={metrica}
+                mode={mode}
+                inflation={inflation}
+                selectedYear={year}
+                onSelectYear={setYear}
+              />
+              <p className="mt-2 text-[11px] text-mute">
+                Año fijado{" "}
+                <span className="font-semibold text-ink">{year}</span>
+              </p>
+            </div>
+
+            {fiscalPair && (
+              <div className="mt-3">
+                <FilaFiscal
+                  scenarioA={fiscalPair[0].nombre}
+                  amountA={fiscalPair[0].impuestosPeriodo ?? 0}
+                  scenarioB={fiscalPair[1].nombre}
+                  amountB={fiscalPair[1].impuestosPeriodo ?? 0}
+                />
+              </div>
+            )}
+
+            {compareEscenarios.length >= 2 && (
+              <div className="mt-4">
+                <p className="label-upper mb-2">
+                  Eventos en paralelo · {year}
+                </p>
+                <div className="grid gap-3 md:grid-cols-2">
+                  {compareEscenarios.map((e) => (
+                    <div key={e.id}>
+                      <p className="mb-1 text-[11.5px] font-bold text-ink">
+                        {e.nombre}
+                      </p>
+                      <ul>
+                        {e.eventos
+                          .filter((ev) => ev.anio === year)
+                          .map((ev) => (
+                            <li
+                              key={ev.id}
+                              className="flex items-start gap-2 border-t border-line py-1.5 first:border-t-0"
+                            >
+                              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-[2px] bg-blue" />
+                              <div>
+                                <p className="text-[11.5px] font-semibold text-ink">
+                                  {ev.etiqueta}
+                                </p>
+                                <p className="text-[10.5px] text-mute">
+                                  {ev.anio}
+                                </p>
+                              </div>
+                            </li>
+                          ))}
+                        {e.eventos.filter((ev) => ev.anio === year).length ===
+                          0 && (
+                          <li className="text-[12px] text-mute">
+                            Sin eventos en {year}
+                          </li>
+                        )}
+                      </ul>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
-        </Card>
-      )}
+        </div>
+      </div>
 
       <PlantillaEvento
         open={eventoOpen}

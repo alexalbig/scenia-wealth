@@ -165,7 +165,12 @@ export function PatrimonioView({ cliente }: { cliente: Cliente }) {
         )}
       </div>
 
-      <Tabs items={[...TABS]} value={tab} onChange={setTab} />
+      <Tabs
+        items={[...TABS]}
+        value={tab}
+        onChange={setTab}
+        className="-mx-[22px] border-x-0 px-[22px]"
+      />
 
       {tab === "resumen" && (
         <ResumenTab
@@ -176,6 +181,11 @@ export function PatrimonioView({ cliente }: { cliente: Cliente }) {
           onTab={setTab}
           onInforme={() => setInformeOpen(true)}
           onAdd={(cat) => flash(`Alta de ${cat} — pendiente de formulario`)}
+          ahorroDetalle={{
+            ingresos: ahorro.ingresos,
+            gastos: ahorro.gastos,
+            amortizacionCapital: ahorro.amortizacionCapital,
+          }}
         />
       )}
 

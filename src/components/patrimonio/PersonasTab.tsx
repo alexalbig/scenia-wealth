@@ -46,7 +46,7 @@ export function PersonasTab({
                 <TD>
                   <Link
                     href={`/clientes/${clienteId}/fichas/persona/${p.id}`}
-                    className="font-semibold text-blue hover:underline"
+                    className="font-semibold text-ink hover:underline"
                   >
                     {personaLabel(p)}
                   </Link>

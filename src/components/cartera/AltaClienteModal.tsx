@@ -47,7 +47,7 @@ function emptyPersona(
 }
 
 const fieldClass =
-  "mt-1 w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-[13px] text-ink outline-none focus:border-blue";
+  "mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink";
 
 /**
  * P2 · Alta de cliente — modal de baja fricción (capa 1).
@@ -105,7 +105,8 @@ export function AltaClienteModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Nuevo cliente"
+      eyebrow="Nuevo cliente"
+      title="Alta de cliente"
       size="lg"
       footer={
         <>
@@ -116,63 +117,31 @@ export function AltaClienteModal({
         </>
       }
     >
-      <div className="space-y-4">
-        <p className="text-[12px] text-mute">
-          Alta mínima (~30 s). El resto se rellena después, por capas.
-        </p>
-
+      <div className="space-y-3.5">
         <label className="block">
-          <span className="label-upper">Nombre del expediente</span>
+          <span className="label-upper">Nombre del expediente *</span>
           <input
             className={cn(
               fieldClass,
               submitted && errors.includes("nombre") && "border-coral-deep",
             )}
-            placeholder="Ej: Familia García-Llorente"
+            placeholder="Ej.: Familia Pérez Soler"
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
           />
           {submitted && errors.includes("nombre") && (
-            <p className="mt-1 text-[11px] text-coral-deep">Obligatorio</p>
+            <p className="mt-1 text-[11px] font-semibold text-coral-deep">
+              El nombre del expediente es obligatorio.
+            </p>
           )}
         </label>
 
-        <label className="block">
-          <span className="label-upper">Segmento</span>
-          <select
-            className={fieldClass}
-            value={segmento}
-            onChange={(e) => setSegmento(e.target.value as Segmento)}
-          >
-            {SEGMENTOS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <span className="label-upper">Personas</span>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() =>
-                setPersonas((prev) => [
-                  ...prev,
-                  emptyPersona(prev[0]?.ccaa ?? CCAA_CON_COBERTURA_FISCAL),
-                ])
-              }
-            >
-              + Añadir persona
-            </Button>
-          </div>
-
+        <div className="space-y-2">
+          <span className="label-upper">Personas del expediente *</span>
           {personas.map((p, idx) => (
             <div
               key={p.id}
-              className="rounded-[8px] border border-line-2 bg-paper-2 p-3 space-y-2"
+              className="space-y-2 rounded-[8px] border border-line-2 bg-white p-2.5"
             >
               <div className="flex items-center justify-between">
                 <p className="text-[12px] font-semibold text-ink-3">
@@ -246,16 +215,56 @@ export function AltaClienteModal({
               </div>
             </div>
           ))}
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={() =>
+              setPersonas((prev) => [
+                ...prev,
+                emptyPersona(prev[0]?.ccaa ?? CCAA_CON_COBERTURA_FISCAL),
+              ])
+            }
+          >
+            + Añadir persona
+          </Button>
+        </div>
+
+        <div className="grid gap-2.5 sm:grid-cols-2">
+          <label className="block">
+            <span className="label-upper">Segmento</span>
+            <select
+              className={fieldClass}
+              value={segmento}
+              onChange={(e) => setSegmento(e.target.value as Segmento)}
+            >
+              {SEGMENTOS.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </label>
         </div>
 
         {hasNonCv && (
           <div
             role="alert"
-            className="rounded-[8px] border border-line-2 bg-paper-2 px-3 py-2.5 text-[12px] text-ink"
+            className="flex gap-2 rounded-[8px] border border-[#D4DDF6] bg-blue-soft px-[11px] py-[9px] text-[11.5px] text-ink-3"
           >
-            El cálculo fiscal solo está disponible para la Comunitat Valenciana.
+            <b className="shrink-0">ⓘ</b>
+            <span>
+              El cálculo fiscal solo está disponible para la{" "}
+              <b className="font-semibold">Comunitat Valenciana</b> por ahora.
+              Para esta comunidad, Scenia mostrará el patrimonio sin cifras
+              fiscales.
+            </span>
           </div>
         )}
+
+        <p className="text-[11px] text-mute">
+          Alta mínima: solo el nombre y una persona son obligatorios. El
+          patrimonio se completa después, por capas.
+        </p>
       </div>
     </Modal>
   );

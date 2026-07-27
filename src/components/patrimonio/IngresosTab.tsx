@@ -1,6 +1,16 @@
 "use client";
 
-import { Button, Card, Table, TBody, TD, TH, THead, TR } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Table,
+  TBody,
+  TD,
+  TFoot,
+  TH,
+  THead,
+  TR,
+} from "@/components/ui";
 import { formatEUR } from "@/lib/format";
 import { fuenteIngresoLabel, personaLabel } from "@/lib/patrimonio";
 import type { Ingreso, Persona } from "@/lib/types";
@@ -20,10 +30,7 @@ export function IngresosTab({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="label-upper">Ingresos del año</p>
-          <p className="text-[11px] text-mute">
-            Alimentan el motor fiscal (base general · regla ②)
-          </p>
+          <p className="label-upper">Ingresos · por persona y fuente</p>
         </div>
         <Button size="sm" variant="secondary" onClick={onEvento}>
           + Evento genérico
@@ -61,34 +68,20 @@ export function IngresosTab({
             )}
           </TBody>
           {ingresos.length > 0 && (
-            <tfoot>
-              <tr className="border-t border-line-2 bg-paper-2">
-                <td className="px-3 py-2.5 text-[12px] font-semibold" colSpan={2}>
-                  Total
-                </td>
-                <td className="px-3 py-2.5 text-right text-[12px] font-bold tabular-nums">
-                  {formatEUR(total)}
-                </td>
-              </tr>
-            </tfoot>
+            <TFoot>
+              <TR>
+                <TD colSpan={2}>Total ingresos</TD>
+                <TD numeric>{formatEUR(total)}</TD>
+              </TR>
+            </TFoot>
           )}
         </Table>
       </Card>
 
-      {personas.map((p) => {
-        const sub = ingresos
-          .filter((i) => i.personaId === p.id)
-          .reduce((s, i) => s + i.importeAnual, 0);
-        if (sub === 0) return null;
-        return (
-          <p key={p.id} className="text-[12px] text-slate">
-            <span className="font-semibold text-ink">{personaLabel(p)}</span>
-            {" · "}
-            <span className="tabular-nums">{formatEUR(sub)}</span>
-            {" · input liquidador"}
-          </p>
-        );
-      })}
+      <p className="text-[11px] text-mute">
+        El total por persona es el input del liquidador de base general — el
+        rescate del plan se apila sobre estos ingresos.
+      </p>
     </div>
   );
 }

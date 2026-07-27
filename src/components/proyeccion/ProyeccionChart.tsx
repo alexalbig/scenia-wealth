@@ -84,7 +84,7 @@ export function ProyeccionChart({
           {selected && selectedVal != null ? (
             <>
               <p className="label-upper">{selected.year}</p>
-              <p className="text-[20px] font-bold tracking-[-0.02em] tabular-nums text-ink">
+              <p className="text-[20px] font-bold tracking-[-0.01em] tabular-nums text-ink">
                 {formatEUR(selectedVal)}
                 {orientativo && (
                   <span className="ml-2 text-[11px] font-semibold uppercase tracking-[0.06em] text-mute">

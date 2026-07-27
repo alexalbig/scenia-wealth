@@ -43,7 +43,7 @@ interface PlantillaEventoProps {
 }
 
 const fieldClass =
-  "mt-1 w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-[13px] text-ink outline-none focus:border-blue";
+  "mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink";
 
 /**
  * CT1 · Plantilla de evento
@@ -142,24 +142,37 @@ export function PlantillaEvento({
     handleClose();
   }
 
+  const eyebrow =
+    step === "menu"
+      ? `Nuevo evento · ${elementoNombre}`
+      : "Describir el evento";
   const titulo =
-    step === "menu" ? "Plantilla de evento" : "Describir el evento";
+    step === "menu"
+      ? "¿Qué decisión?"
+      : (opciones.find((o) => o.tipo === tipo)?.label ?? "Evento");
 
   return (
     <Modal
       open={open}
       onClose={handleClose}
+      eyebrow={eyebrow}
       title={titulo}
       size="lg"
       footer={
         step === "menu" ? (
           <Button variant="secondary" onClick={handleClose}>
-            Cerrar
+            Cancelar
           </Button>
         ) : (
           <>
-            <Button variant="ghost" onClick={() => { setStep("menu"); setResultado(null); }}>
-              ← Menú
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setStep("menu");
+                setResultado(null);
+              }}
+            >
+              ‹ Atrás
             </Button>
             <Button variant="secondary" onClick={handleClose}>
               Cancelar
@@ -173,13 +186,8 @@ export function PlantillaEvento({
         )
       }
     >
-      <p className="mb-3 text-[12px] text-mute">
-        Sobre <span className="font-semibold text-ink">{elementoNombre}</span>.
-        El asesor describe; el motor calcula. Nunca se teclea un tipo impositivo.
-      </p>
-
       {escenarios && escenarios.length > 0 && (
-        <label className="mb-3 block">
+        <label className="block">
           <span className="label-upper">Escenario destino</span>
           <select
             className={fieldClass}
@@ -197,58 +205,70 @@ export function PlantillaEvento({
       )}
 
       {step === "menu" && (
-        <ul className="space-y-1.5">
-          {opciones.map((ev) => (
-            <li key={ev.tipo}>
+        <>
+          <p className="text-[11px] text-mute">
+            Elemento: <b className="font-semibold text-ink">{elementoNombre}</b>
+          </p>
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+            {opciones.map((ev) => (
               <button
+                key={ev.tipo}
                 type="button"
-                className="w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-left text-[13px] font-semibold text-ink hover:border-blue hover:text-blue"
+                className={cn(
+                  "rounded-[8px] border border-line-2 bg-white px-3 py-2.5 text-left",
+                  "text-[12px] font-semibold text-ink",
+                  "hover:border-ink-3 hover:bg-paper-2",
+                )}
                 onClick={() => pickTipo(ev.tipo)}
               >
                 {ev.label}
+                <span className="mt-0.5 block text-[10.5px] font-medium text-mute">
+                  El asesor describe; el motor calcula
+                </span>
               </button>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </div>
+          <p className="text-[11px] text-mute">
+            Menú completo: el escenario es del cliente, no de un activo.
+          </p>
+        </>
       )}
 
       {step === "form" && tipo && (
         <div className="space-y-3">
-          <p className="text-[13px] font-semibold text-ink">
-            {opciones.find((o) => o.tipo === tipo)?.label}
-          </p>
-
-          <label className="block">
-            <span className="label-upper">Año</span>
-            <input
-              type="number"
-              className={fieldClass}
-              value={anio}
-              onChange={(e) => setAnio(e.target.value)}
-            />
-          </label>
-
-          {(tipo === "reembolsar_fondo" ||
-            tipo === "pignorar" ||
-            tipo === "aportar_fondo" ||
-            tipo === "rescatar_plan" ||
-            tipo === "amortizar_hipoteca" ||
-            tipo === "vender_inmueble" ||
-            tipo === "comprar_inmueble" ||
-            tipo === "repartir_dividendo" ||
-            tipo === "vender_participacion" ||
-            tipo === "aportar_plan") && (
+          <div className="grid gap-2.5 sm:grid-cols-2">
             <label className="block">
-              <span className="label-upper">Importe (€)</span>
+              <span className="label-upper">Año</span>
               <input
                 type="number"
                 className={fieldClass}
-                value={importe}
-                onChange={(e) => setImporte(e.target.value)}
-                placeholder="Importe"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
               />
             </label>
-          )}
+
+            {(tipo === "reembolsar_fondo" ||
+              tipo === "pignorar" ||
+              tipo === "aportar_fondo" ||
+              tipo === "rescatar_plan" ||
+              tipo === "amortizar_hipoteca" ||
+              tipo === "vender_inmueble" ||
+              tipo === "comprar_inmueble" ||
+              tipo === "repartir_dividendo" ||
+              tipo === "vender_participacion" ||
+              tipo === "aportar_plan") && (
+              <label className="block">
+                <span className="label-upper">Importe (€)</span>
+                <input
+                  type="number"
+                  className={fieldClass}
+                  value={importe}
+                  onChange={(e) => setImporte(e.target.value)}
+                  placeholder="Importe"
+                />
+              </label>
+            )}
+          </div>
 
           {tipo === "traspasar_fondo" && (
             <label className="block">
@@ -263,26 +283,35 @@ export function PlantillaEvento({
           )}
 
           {tipo === "rescatar_plan" && (
-            <label className="block">
-              <span className="label-upper">Modalidad</span>
-              <select
-                className={fieldClass}
-                value={modalidad}
-                onChange={(e) =>
-                  setModalidad(e.target.value as "capital" | "renta" | "mixto")
-                }
-              >
-                <option value="capital">Capital</option>
-                <option value="renta">Renta</option>
-                <option value="mixto">Mixto</option>
-              </select>
-            </label>
+            <div>
+              <span className="label-upper mb-1.5 block">Modalidad</span>
+              <div className="flex flex-wrap gap-2">
+                {(["capital", "renta", "mixto"] as const).map((m) => (
+                  <label
+                    key={m}
+                    className={cn(
+                      "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-line-2 bg-white px-2.5 py-1.5 text-[12px] font-semibold capitalize",
+                      modalidad === m && "border-ink bg-paper-2",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      className="accent-ink"
+                      checked={modalidad === m}
+                      onChange={() => setModalidad(m)}
+                    />
+                    {m}
+                  </label>
+                ))}
+              </div>
+            </div>
           )}
 
           {tipo === "vender_inmueble" && (
-            <label className="flex items-center gap-2 text-[13px] text-ink">
+            <label className="inline-flex items-center gap-1.5 text-[12px] text-ink">
               <input
                 type="checkbox"
+                className="accent-ink"
                 checked={reinvierte}
                 onChange={(e) => setReinvierte(e.target.checked)}
               />
@@ -299,8 +328,8 @@ export function PlantillaEvento({
                 value={pension}
                 onChange={(e) => setPension(e.target.value)}
               />
-              <span className="mt-1 block text-[11px] text-mute">
-                Introducido por el asesor, no calculado
+              <span className="intro-chip mt-2">
+                ✎ Pensión introducida por el asesor · no calculada
               </span>
             </label>
           )}
@@ -308,7 +337,7 @@ export function PlantillaEvento({
           {(tipo === "generico" || tipo === "aportar_plan") && (
             <label className="block">
               <span className="label-upper">
-                Impacto fiscal (opcional, si lo teclea el asesor)
+                Impacto fiscal estimado (opcional)
               </span>
               <input
                 type="number"
@@ -316,8 +345,9 @@ export function PlantillaEvento({
                 value={impactoManual}
                 onChange={(e) => setImpactoManual(e.target.value)}
               />
-              <span className="mt-1 block text-[11px] text-mute">
-                Si se rellena, se marca «introducido por el asesor, no calculado»
+              <span className="intro-chip mt-2">
+                ✎ Si tecleas un impacto fiscal, se marcará «introducido por el
+                asesor, no calculado»
               </span>
             </label>
           )}
@@ -332,38 +362,30 @@ export function PlantillaEvento({
 function ResultadoPanel({ resultado }: { resultado: ResultadoFiscalMotor }) {
   if (resultado.kind === "pendiente_is") {
     return (
-      <div className="rounded-[8px] border border-dashed border-line-2 bg-paper-2 px-3 py-3">
-        <p className="label-upper mb-1">Impuesto de Sociedades</p>
-        <p className="text-[13px] font-semibold text-ink">
-          Pendiente de definir
-        </p>
-        <p className="mt-1 text-[12px] text-mute">{resultado.nota}</p>
+      <div className="rounded-[8px] border border-dashed border-line-2 bg-paper-2 px-3 py-2.5">
+        <span className="inline-flex items-center rounded-[6px] border border-line-2 bg-paper-2 px-2 py-0.5 text-[10.5px] font-semibold text-slate">
+          Sin cálculo · liquidador de IS pendiente de definir
+        </span>
+        <p className="mt-1.5 text-[11px] text-mute">{resultado.nota}</p>
       </div>
     );
   }
 
   if (resultado.kind === "sin_calculo") {
     return (
-      <div className="rounded-[8px] border border-line-2 bg-paper-2 px-3 py-3">
-        <p className="label-upper mb-1">Sin cálculo del motor</p>
-        <p className="text-[12px] text-slate">{resultado.nota}</p>
-      </div>
+      <span className="intro-chip self-start">
+        ✎ {resultado.nota}
+      </span>
     );
   }
 
   // calculado | neutro — cifra del motor (aspecto distinto a introducido)
   return (
-    <div className="rounded-[8px] border border-line-2 bg-ink-2 px-3 py-3 text-dark-text">
-      <p className="label-upper !text-faint mb-1">
-        {resultado.regla} · calculado por el motor
-      </p>
-      <p className="text-[22px] font-bold tracking-[-0.02em] tabular-nums">
-        {formatEUR(resultado.importe, true)}
-      </p>
-      <p className="mt-1 text-[11px] text-faint">{resultado.nota}</p>
-      <p className="mt-2 text-[10.5px] uppercase tracking-[0.06em] text-mute">
-        orientativo
-      </p>
+    <div className="flex flex-col gap-1.5">
+      <span className="calc-chip self-start">
+        {resultado.regla} · {formatEUR(resultado.importe, true)} · orientativo
+      </span>
+      <p className="text-[11px] text-mute">{resultado.nota}</p>
     </div>
   );
 }

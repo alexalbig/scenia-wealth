@@ -1,10 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Badge, Button, Card, Modal } from "@/components/ui";
+import { Button, Card, Modal } from "@/components/ui";
 import { ProyeccionChart } from "@/components/proyeccion/ProyeccionChart";
 import { formatEUR } from "@/lib/format";
-import { cn } from "@/lib/cn";
 import {
   getEventosDeEscenario,
   getPlanBase,
@@ -100,16 +99,16 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
 
   if (!cliente.completo) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <p className="label-upper">P5 · Proyección</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             Plan base
           </h2>
         </div>
         <Card>
           <p className="label-upper mb-1">Cliente ligero</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             {cliente.nombre}
           </h2>
           <p className="mt-2 text-[13px] text-slate">
@@ -125,70 +124,60 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="label-upper">P5 · Proyección</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             Situación actual
           </h2>
-          <p className="mt-0.5 text-[12px] text-mute">
+          <p className="mt-0.5 text-[11px] text-mute">
             Plan base · series año a año · hogar de los eventos
           </p>
         </div>
-        {toast && (
-          <p className="rounded-[6px] bg-paper-2 px-2.5 py-1 text-[11px] text-ink-3">
-            {toast}
-          </p>
-        )}
-      </div>
-
-      {/* Controles: serie + toggle € */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div
-          role="tablist"
-          aria-label="Serie"
-          className="flex flex-wrap gap-0 border-b border-line-2"
-        >
-          {PROYECCION_SERIES.map((s) => {
-            const active = serie === s.id;
-            return (
+        <div className="flex flex-wrap items-center gap-2">
+          <div role="tablist" aria-label="Serie" className="chips">
+            {PROYECCION_SERIES.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 role="tab"
-                aria-selected={active}
+                aria-selected={serie === s.id}
+                data-on={serie === s.id}
                 onClick={() => setSerie(s.id)}
-                className={cn(
-                  "relative shrink-0 px-3 py-2 text-[12px] font-semibold transition-colors",
-                  active ? "text-blue" : "text-mute hover:text-ink-3",
-                )}
               >
                 {s.label}
-                {active && (
-                  <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-blue" />
-                )}
               </button>
-            );
-          })}
-        </div>
-
-        <div className="flex items-center gap-1 rounded-[8px] border border-line-2 bg-paper p-0.5">
-          <ToggleBtn
-            active={mode === "hoy"}
-            onClick={() => setMode("hoy")}
-            label="€ hoy"
-          />
-          <ToggleBtn
-            active={mode === "futuro"}
-            onClick={() => setMode("futuro")}
-            label="€ futuro"
-          />
+            ))}
+          </div>
+          <div role="group" aria-label="Unidad monetaria" className="seg">
+            <button
+              type="button"
+              data-on={mode === "hoy"}
+              aria-pressed={mode === "hoy"}
+              onClick={() => setMode("hoy")}
+            >
+              € hoy
+            </button>
+            <button
+              type="button"
+              data-on={mode === "futuro"}
+              aria-pressed={mode === "futuro"}
+              onClick={() => setMode("futuro")}
+            >
+              € futuro
+            </button>
+          </div>
+          {toast && (
+            <p className="rounded-[6px] bg-paper-2 px-2.5 py-1 text-[11px] text-ink-3">
+              {toast}
+            </p>
+          )}
         </div>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_260px]">
-        <Card>
+      <div className="split">
+        <div className="chartbox">
           <ProyeccionChart
             points={points}
             serie={serie}
@@ -198,86 +187,101 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
             milestoneYears={milestoneYears}
             onSelectYear={setSelectedYear}
           />
-        </Card>
+        </div>
 
-        <Card padding="sm" className="flex flex-col">
-          <div className="mb-3 border-b border-line px-1 pb-2">
-            <p className="label-upper">Eventos del año</p>
-            <p className="text-[15px] font-bold tabular-nums text-ink">
-              {selectedYear ?? "—"}
+        <div className="sidep flex flex-col">
+          <p className="label-upper">Eventos del año</p>
+          <p className="text-[17px] font-bold tracking-[-0.01em] tabular-nums text-ink">
+            {selectedYear ?? "—"}
+          </p>
+          {selectedPoint && (
+            <p className="mt-1 flex justify-between text-[11px] text-slate">
+              <span>
+                {PROYECCION_SERIES.find((s) => s.id === serie)?.label}
+              </span>
+              <b className="tabular-nums text-ink">
+                {formatEUR(
+                  displayValue(selectedPoint, serie, mode, inflation),
+                )}
+                {isSerieOrientativa(serie) && (
+                  <span className="ml-1 font-medium text-mute">
+                    · orientativo
+                  </span>
+                )}
+              </b>
             </p>
-            {selectedPoint && (
-              <p className="mt-0.5 text-[11px] tabular-nums text-mute">
-                {PROYECCION_SERIES.find((s) => s.id === serie)?.label}:{" "}
-                <span className="font-semibold text-ink-3">
-                  {formatEUR(
-                    displayValue(selectedPoint, serie, mode, inflation),
-                  )}
-                </span>
-                {isSerieOrientativa(serie) && " · orientativo"}
+          )}
+
+          <div className="mt-3.5">
+            {selectedYear == null ? (
+              <p className="text-[12px] text-mute">
+                Fija un año en el gráfico para ver sus eventos.
               </p>
+            ) : yearEvents.length === 0 ? (
+              <p className="py-3.5 text-[12px] text-mute">
+                Sin eventos en {selectedYear}.
+              </p>
+            ) : (
+              <ul>
+                {yearEvents.map((ev) => (
+                  <li
+                    key={ev.id}
+                    className="flex items-start gap-2 border-t border-line py-2 first:border-t-0"
+                  >
+                    <span
+                      className={`mt-1 h-2 w-2 shrink-0 rounded-[2px] ${
+                        ev.introducidoPorAsesor
+                          ? "bg-faintest"
+                          : "bg-blue"
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[12px] font-semibold text-ink">
+                        {ev.etiqueta}
+                      </p>
+                      <p className="text-[10.5px] text-mute">
+                        {tipoEventoLabel(ev.tipo)}
+                      </p>
+                      {ev.impuestosPeriodo != null &&
+                        ev.impuestosPeriodo > 0 &&
+                        !ev.introducidoPorAsesor && (
+                          <div className="calc-chip mt-1">
+                            {formatEUR(ev.impuestosPeriodo)} · orientativo
+                          </div>
+                        )}
+                      {ev.introducidoPorAsesor && (
+                        <div className="intro-chip mt-1">
+                          Introducido por el asesor · no calculado
+                        </div>
+                      )}
+                      {ev.notas && (
+                        <p className="mt-1 text-[10.5px] text-mute">
+                          {ev.notas}
+                        </p>
+                      )}
+                    </div>
+                    <div className="flex shrink-0 gap-0.5">
+                      <button
+                        type="button"
+                        className="rounded px-1.5 py-0.5 text-[10.5px] text-mute hover:bg-paper-2 hover:text-ink"
+                        onClick={() => openEdit(ev)}
+                      >
+                        Editar
+                      </button>
+                      <button
+                        type="button"
+                        className="rounded px-1.5 py-0.5 text-[10.5px] text-mute hover:bg-paper-2 hover:text-ink"
+                        onClick={() => deleteEvent(ev.id)}
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
           </div>
-
-          {selectedYear == null ? (
-            <p className="px-1 text-[12px] text-mute">
-              Fija un año en el gráfico para ver sus eventos.
-            </p>
-          ) : yearEvents.length === 0 ? (
-            <p className="px-1 text-[12px] text-mute">
-              Sin eventos en {selectedYear}.
-            </p>
-          ) : (
-            <ul className="space-y-2">
-              {yearEvents.map((ev) => (
-                <li
-                  key={ev.id}
-                  className="rounded-[8px] border border-line-2 bg-paper-2 px-2.5 py-2"
-                >
-                  <p className="text-[12px] font-semibold text-ink">
-                    {ev.etiqueta}
-                  </p>
-                  <div className="mt-1 flex flex-wrap items-center gap-1">
-                    <Badge variant="neutral">{tipoEventoLabel(ev.tipo)}</Badge>
-                    {ev.introducidoPorAsesor && (
-                      <Badge variant="neutral">
-                        Introducido por el asesor
-                      </Badge>
-                    )}
-                  </div>
-                  {ev.notas && (
-                    <p className="mt-1 text-[10.5px] text-mute">{ev.notas}</p>
-                  )}
-                  {/* Sin cifras fiscales inventadas en hitos del plan base */}
-                  {ev.impuestosPeriodo != null && ev.impuestosPeriodo > 0 && (
-                    <p className="mt-1 text-[11px] tabular-nums text-ink-3">
-                      Impuestos del periodo {formatEUR(ev.impuestosPeriodo)}{" "}
-                      <span className="text-mute">orientativo</span>
-                    </p>
-                  )}
-                  <div className="mt-2 flex gap-1.5">
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => openEdit(ev)}
-                    >
-                      Editar
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-[11px]"
-                      onClick={() => deleteEvent(ev.id)}
-                    >
-                      Eliminar
-                    </Button>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Card>
+        </div>
       </div>
 
       <Modal
@@ -300,7 +304,7 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
             <input
               value={editLabel}
               onChange={(e) => setEditLabel(e.target.value)}
-              className="h-9 w-full rounded-[8px] border border-line-2 bg-paper px-3 text-[13px] text-ink outline-none focus:border-blue"
+              className="h-9 w-full rounded-[8px] border border-line-2 bg-paper px-3 text-[13px] text-ink outline-none focus:border-ink"
             />
           </label>
           <label className="block">
@@ -309,7 +313,7 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
               type="number"
               value={editYear}
               onChange={(e) => setEditYear(e.target.value)}
-              className="h-9 w-full rounded-[8px] border border-line-2 bg-paper px-3 text-[13px] tabular-nums text-ink outline-none focus:border-blue"
+              className="h-9 w-full rounded-[8px] border border-line-2 bg-paper px-3 text-[13px] tabular-nums text-ink outline-none focus:border-ink"
             />
           </label>
           <p className="text-[11px] text-mute">
@@ -318,31 +322,6 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
         </div>
       </Modal>
     </div>
-  );
-}
-
-function ToggleBtn({
-  active,
-  onClick,
-  label,
-}: {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "rounded-[6px] px-2.5 py-1.5 text-[11px] font-semibold transition-colors",
-        active
-          ? "bg-blue text-white"
-          : "bg-transparent text-mute hover:text-ink-3",
-      )}
-    >
-      {label}
-    </button>
   );
 }
 

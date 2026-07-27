@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { AppTopBar, PaperShell } from "@/components/shell/AppShell";
+import { AppTopBar, PaperShell, Sheet } from "@/components/shell/AppShell";
 import {
   Badge,
-  Card,
+  Button,
   Table,
   TBody,
   TD,
@@ -16,7 +16,7 @@ import { seed } from "@/lib/seed";
 import { cn } from "@/lib/cn";
 
 const fieldClass =
-  "mt-1 w-full rounded-[8px] border border-line-2 bg-paper px-3 py-2 text-[13px] text-ink outline-none focus:border-blue";
+  "mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink";
 
 interface SeatRow {
   id: string;
@@ -58,52 +58,30 @@ export default function AjustesPage() {
     <PaperShell>
       <AppTopBar title="Ajustes" />
 
-      <main className="space-y-5 px-5 py-5">
-        <div>
-          <p className="label-upper">P8 · Cuenta</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
-            Ajustes
-          </h2>
-          <p className="mt-1 text-[12px] text-mute">
-            Marca del despacho y asientos. Los cambios viven solo en esta
-            sesión (mockup).
-          </p>
+      <Sheet>
+        <div className="flex flex-wrap items-end justify-between gap-4 px-[22px] pb-3.5 pt-5">
+          <div className="min-w-[220px] flex-1">
+            <p className="label-upper">Configuración</p>
+            <h1 className="text-[28px] font-bold tracking-[-0.02em] text-ink">
+              Ajustes
+            </h1>
+          </div>
         </div>
 
-        <Card>
-          <p className="label-upper mb-3">Marca del despacho</p>
-          <p className="mb-4 text-[12px] text-mute">
-            Datos que aparecen en los informes PDF.
-          </p>
+        <div className="grid gap-3.5 px-[22px] pb-5">
+          <div className="rounded-[10px] border border-line-2 bg-white px-[18px] py-4">
+            <p className="text-[13px] font-bold text-ink">Marca del despacho</p>
+            <p className="mb-3 mt-1 text-[12px] text-ink-3">
+              Identidad que aparece en los informes PDF generados.
+            </p>
 
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
-            <div
-              className={cn(
-                "flex h-24 w-24 shrink-0 items-center justify-center rounded-[8px]",
-                "border border-dashed border-line-2 bg-paper-2",
-              )}
-              aria-label="Marcador de posición del logo"
-            >
-              <span className="text-center text-[10px] font-semibold uppercase tracking-[0.06em] text-faint">
-                Logo
-              </span>
-            </div>
-
-            <div className="grid min-w-0 flex-1 gap-3 sm:grid-cols-2">
-              <label className="block sm:col-span-2">
+            <div className="grid gap-2.5 sm:grid-cols-2">
+              <label className="block">
                 <span className="label-upper">Nombre del despacho</span>
                 <input
                   className={fieldClass}
                   value={nombreDespacho}
                   onChange={(e) => setNombreDespacho(e.target.value)}
-                />
-              </label>
-              <label className="block sm:col-span-2">
-                <span className="label-upper">Dirección</span>
-                <input
-                  className={fieldClass}
-                  value={direccion}
-                  onChange={(e) => setDireccion(e.target.value)}
                 />
               </label>
               <label className="block">
@@ -114,43 +92,80 @@ export default function AjustesPage() {
                   onChange={(e) => setNif(e.target.value)}
                 />
               </label>
+              <label className="block sm:col-span-2">
+                <span className="label-upper">Dirección</span>
+                <input
+                  className={fieldClass}
+                  value={direccion}
+                  onChange={(e) => setDireccion(e.target.value)}
+                />
+              </label>
+            </div>
+
+            <div className="mt-3 flex items-center gap-3">
+              <div
+                className={cn(
+                  "flex h-11 w-11 shrink-0 items-center justify-center rounded-[10px]",
+                  "border border-dashed border-faintest bg-paper-2",
+                  "text-[12px] font-bold text-mute",
+                )}
+                aria-label="Marcador de posición del logo"
+              >
+                {nombreDespacho.trim().charAt(0).toUpperCase() || "D"}
+              </div>
+              <Button size="sm" variant="secondary" type="button">
+                Subir logo
+              </Button>
             </div>
           </div>
-        </Card>
 
-        <Card padding="sm">
-          <div className="mb-3 px-3 pt-2">
-            <p className="label-upper">Usuarios / asientos</p>
-            <p className="mt-1 text-[12px] text-mute">
-              Modelo por asiento · {SEATS_SEED.length} de 5 ocupados
+          <div className="rounded-[10px] border border-line-2 bg-white px-[18px] py-4">
+            <p className="text-[13px] font-bold text-ink">Usuarios y asientos</p>
+            <p className="mb-2.5 mt-1 text-[12px] text-ink-3">
+              Modelo por asiento · {SEATS_SEED.length} de 3 asientos en uso.
             </p>
-          </div>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Nombre</TH>
-                <TH>Correo</TH>
-                <TH>Rol</TH>
-                <TH>Estado</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {SEATS_SEED.map((seat) => (
-                <TR key={seat.id}>
-                  <TD className="font-semibold">{seat.nombre}</TD>
-                  <TD className="text-slate">{seat.email}</TD>
-                  <TD className="text-ink-3">{seat.rol}</TD>
-                  <TD>
-                    <Badge variant="segment">
-                      {seat.estado === "activo" ? "Activo" : "Invitado"}
-                    </Badge>
-                  </TD>
+            <Table>
+              <THead>
+                <TR>
+                  <TH>Usuario</TH>
+                  <TH>Rol</TH>
+                  <TH>Estado</TH>
                 </TR>
-              ))}
-            </TBody>
-          </Table>
-        </Card>
-      </main>
+              </THead>
+              <TBody>
+                {SEATS_SEED.map((seat) => (
+                  <TR key={seat.id}>
+                    <TD>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-soft text-[11px] font-bold text-blue">
+                          {seat.nombre
+                            .split(" ")
+                            .map((w) => w[0])
+                            .slice(0, 2)
+                            .join("")}
+                        </span>
+                        <div>
+                          <p className="font-semibold">{seat.nombre}</p>
+                          <p className="text-[11px] text-mute">{seat.email}</p>
+                        </div>
+                      </div>
+                    </TD>
+                    <TD className="text-ink-3">{seat.rol}</TD>
+                    <TD>
+                      <Badge variant="segment">
+                        {seat.estado === "activo" ? "Activo" : "Invitado"}
+                      </Badge>
+                    </TD>
+                  </TR>
+                ))}
+              </TBody>
+            </Table>
+            <Button size="sm" variant="secondary" className="mt-2.5" type="button">
+              + Invitar usuario
+            </Button>
+          </div>
+        </div>
+      </Sheet>
     </PaperShell>
   );
 }

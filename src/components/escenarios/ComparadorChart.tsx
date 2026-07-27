@@ -152,7 +152,7 @@ export function ComparadorChart({
                   x2={xAt(i)}
                   y1={PAD.top}
                   y2={PAD.top + innerH}
-                  stroke="var(--blue)"
+                  stroke="var(--ink)"
                   strokeWidth={1}
                   strokeDasharray="3 3"
                 />
@@ -181,7 +181,7 @@ export function ComparadorChart({
               y={H - 12}
               textAnchor="middle"
               className={cn(
-                year === selectedYear ? "fill-blue font-semibold" : "fill-mute",
+                year === selectedYear ? "fill-ink font-semibold" : "fill-mute",
               )}
               style={{ fontSize: 9 }}
             >

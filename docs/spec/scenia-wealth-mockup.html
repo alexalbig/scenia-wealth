@@ -1,0 +1,1581 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scenia Wealth · mockup MVP</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+/* ═══ SCENIA WEALTH · Estilo G "Papel frío" ═══ */
+:root{
+  --ink:#0C1424; --ink-2:#1A2438; --ink-3:#3A4660;
+  --slate:#6E7A92; --mute:#8A95A8; --faint:#9AA4B6; --faintest:#B8C0CE;
+  --paper:#FBFCFE; --paper-2:#F4F6FA; --line:#EEF1F6; --line-2:#E2E6EE;
+  --blue:#3A5BC8; --coral:#FF6B5A; --coral-deep:#D14A38;
+  --green:#0E7C4A; --green-bg:#E3F5EC;
+  --amber:#B5732A; --amber-bg:#FBF1E7;
+  --av-blue:#E7ECFB; --pill-coral:#FBEAE7;
+  --dk-line:#1E2A42; --dk-border:#2A3650; --dk-text:#E8ECF4; --dk-green:#5FD89A;
+  --dk-tagbg:#3A2E1A; --dk-tag:#E0A868;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{font-size:16px}
+body{
+  font-family:'DM Sans',sans-serif; background:var(--ink); color:var(--ink);
+  min-height:100vh; -webkit-font-smoothing:antialiased; font-size:13px; line-height:1.45;
+}
+button{font-family:inherit;cursor:pointer;border:none;background:none;font-size:inherit;color:inherit}
+input,select,textarea{font-family:inherit;font-size:12.5px;color:var(--ink)}
+:focus-visible{outline:2px solid var(--blue);outline-offset:1px;border-radius:4px}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+/* ── Marco de la app ── */
+.app{max-width:1240px;margin:0 auto;padding:22px 20px 60px}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 4px 16px}
+.brand{display:flex;align-items:center;gap:10px;color:var(--dk-text)}
+.brand-mark{width:26px;height:26px;border-radius:8px;background:var(--paper);color:var(--ink);
+  display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;letter-spacing:-0.02em}
+.brand-name{font-weight:700;font-size:14.5px;letter-spacing:-0.01em}
+.brand-name span{color:var(--faint);font-weight:500}
+.topnav{display:flex;gap:6px;align-items:center}
+.topnav button{color:#8FA0BE;font-size:12px;font-weight:600;padding:7px 12px;border-radius:8px}
+.topnav button:hover{color:var(--dk-text);background:rgba(255,255,255,.06)}
+.topnav button.on{color:var(--ink);background:var(--paper)}
+
+/* ── Hoja de papel ── */
+.sheet{background:var(--paper);border:1px solid var(--line-2);border-radius:14px;overflow:hidden}
+.sheet+.sheet{margin-top:14px}
+.sheet-pad{padding:20px 22px}
+.screen{display:none}
+.screen.on{display:block}
+
+/* ── Tipografía utilitaria ── */
+.lbl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--mute)}
+.h1{font-size:28px;font-weight:700;letter-spacing:-0.02em;color:var(--ink)}
+.h2{font-size:17px;font-weight:700;letter-spacing:-0.01em}
+.h3{font-size:14.5px;font-weight:700}
+.sub{font-size:12px;color:var(--slate)}
+.tiny{font-size:11px;color:var(--mute)}
+.num{font-variant-numeric:tabular-nums}
+.strong{font-weight:700}
+.mut{color:var(--mute)} .slt{color:var(--slate)} .fnt{color:var(--faint)}
+.right{text-align:right}
+
+/* ── Botones ── */
+.btn{display:inline-flex;align-items:center;gap:6px;font-weight:600;font-size:12px;
+  padding:8px 14px;border-radius:8px;border:1px solid var(--line-2);background:#fff;color:var(--ink)}
+.btn:hover{border-color:var(--faintest);background:var(--paper-2)}
+.btn.primary{background:var(--ink);color:#fff;border-color:var(--ink)}
+.btn.primary:hover{background:var(--ink-2)}
+.btn.coral{background:var(--coral);color:#fff;border-color:var(--coral)}
+.btn.coral:hover{background:var(--coral-deep);border-color:var(--coral-deep)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--slate)}
+.btn.ghost:hover{background:var(--paper-2);color:var(--ink)}
+.btn.sm{padding:5px 10px;font-size:11px;border-radius:6px}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* ── Pills, badges, semáforos ── */
+.pill{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px;
+  background:var(--paper-2);color:var(--slate);letter-spacing:.02em}
+.pill.emp{background:var(--pill-coral);color:var(--coral-deep)}
+.pill.blue{background:var(--av-blue);color:var(--blue)}
+.liq{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:600;padding:3px 8px;border-radius:6px}
+.liq.a{background:var(--green-bg);color:var(--green)}
+.liq.b{background:var(--amber-bg);color:var(--amber)}
+.gain{color:var(--green);font-weight:600}
+.tag-manual{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--ink-3);
+  background:var(--paper-2);border:1px dashed var(--faintest);padding:3px 8px;border-radius:6px}
+.tag-pend{display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;color:var(--slate);
+  background:var(--paper-2);border:1px solid var(--line-2);padding:3px 8px;border-radius:6px}
+.av{width:28px;height:28px;border-radius:50%;background:var(--av-blue);color:var(--blue);
+  display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex:none}
+
+/* ── Tablas ── */
+table{width:100%;border-collapse:collapse}
+th{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--mute);
+  text-align:left;padding:9px 12px;border-bottom:1px solid var(--line-2);white-space:nowrap;user-select:none}
+th.sortable{cursor:pointer} th.sortable:hover{color:var(--ink-3)}
+td{padding:11px 12px;border-bottom:1px solid var(--line);font-size:12.5px;vertical-align:middle}
+tr.rowlink{cursor:pointer} tr.rowlink:hover td{background:var(--paper-2)}
+tr:last-child td{border-bottom:none}
+tfoot td{border-top:1px solid var(--line-2);border-bottom:none;font-weight:700;background:var(--paper-2);font-size:12px}
+.group-head td{background:var(--paper-2);font-size:10.5px;font-weight:700;text-transform:uppercase;
+  letter-spacing:.06em;color:var(--ink-3);padding:7px 12px;border-bottom:1px solid var(--line-2)}
+.subtotal td{font-weight:600;color:var(--ink-3);background:#fff;font-size:11.5px;border-bottom:1px solid var(--line-2)}
+
+/* ── Barra de composición ── */
+.comp{display:flex;height:5px;border-radius:3px;overflow:hidden;width:120px;margin-top:5px;background:var(--line)}
+.comp i{display:block;height:100%}
+.c-fin{background:var(--blue)} .c-inm{background:var(--ink-3)} .c-emp{background:var(--coral)} .c-otr{background:var(--faintest)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.legend span{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--slate)}
+.legend i{width:9px;height:9px;border-radius:2px;display:inline-block}
+
+/* ── Cabeceras de pantalla ── */
+.scr-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:20px 22px 14px;flex-wrap:wrap}
+.scr-head .grow{flex:1;min-width:220px}
+.toolbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.search{display:flex;align-items:center;gap:7px;background:#fff;border:1px solid var(--line-2);
+  border-radius:8px;padding:7px 11px;min-width:230px}
+.search input{border:none;outline:none;flex:1;background:transparent;font-size:12.5px}
+.search svg{flex:none}
+
+/* ── Contexto del cliente ── */
+.ctx{display:flex;align-items:center;gap:14px;padding:14px 22px;border-bottom:1px solid var(--line)}
+.ctx .av{width:34px;height:34px;font-size:12.5px}
+.ctx-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:2px}
+.clientnav{display:flex;gap:2px;padding:0 14px;border-bottom:1px solid var(--line-2);background:#fff}
+.clientnav button{padding:11px 13px;font-size:12.5px;font-weight:600;color:var(--slate);
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.clientnav button:hover{color:var(--ink)}
+.clientnav button.on{color:var(--ink);border-bottom-color:var(--ink)}
+.tabs{display:flex;gap:2px;padding:10px 14px 0;flex-wrap:wrap;border-bottom:1px solid var(--line);background:var(--paper)}
+.tabs button{padding:8px 12px;font-size:12px;font-weight:600;color:var(--slate);border-radius:8px 8px 0 0;
+  border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button:hover{color:var(--ink);background:var(--paper-2)}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--coral)}
+
+/* ── Treemap ── */
+.treemap{display:flex;gap:8px;height:230px}
+.tm-col{display:flex;flex-direction:column;gap:8px}
+.tm-block{border-radius:10px;padding:12px 14px;display:flex;flex-direction:column;justify-content:space-between;
+  cursor:pointer;border:1px solid transparent;transition:filter .12s}
+.tm-block:hover{filter:brightness(.96)}
+.tm-fin{background:#E7ECFB;color:#20358A;border-color:#D4DDF6}
+.tm-inm{background:#EAEDF3;color:var(--ink-2);border-color:#DCE1EA}
+.tm-emp{background:var(--pill-coral);color:var(--coral-deep);border-color:#F6DCD6}
+.tm-otr{background:var(--paper-2);color:var(--ink-3);border-color:var(--line-2)}
+.tm-pas{background:#fff;color:var(--ink-3);border:1px dashed var(--faintest)}
+.tm-v{font-size:16px;font-weight:700;letter-spacing:-0.01em}
+.tm-add{align-self:flex-end;width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.65);
+  font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;color:inherit}
+.tm-add:hover{background:#fff}
+
+/* ── Tarjeta oscura (capacidad de ahorro) ── */
+.darkcard{background:var(--ink-2);border:1px solid var(--dk-border);border-radius:12px;padding:16px 18px;color:var(--dk-text)}
+.darkcard .lbl{color:#7E8DB0}
+.darkcard .big{font-size:24px;font-weight:700;letter-spacing:-0.02em;color:var(--dk-green)}
+.darkcard .row{display:flex;justify-content:space-between;font-size:11.5px;color:#B4C0D8;
+  padding:5px 0;border-top:1px solid var(--dk-line)}
+.darkcard .row:first-of-type{border-top:none}
+.ftag{display:inline-flex;font-size:10px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;
+  padding:3px 7px;border-radius:5px;background:var(--dk-tagbg);color:var(--dk-tag)}
+
+/* ── Sello ── */
+.sello{display:inline-flex;align-items:center;gap:6px;font-size:10.5px;font-weight:600;color:var(--slate);
+  border:1px solid var(--line-2);border-radius:6px;padding:4px 9px;background:#fff}
+.sello b{color:var(--ink-3);font-weight:700}
+
+/* ═══ FILA FISCAL (CT2) — firewall incorporado: tinta neutra SIEMPRE ═══ */
+.fila-fiscal{background:#fff;border:1px solid var(--line-2);border-radius:10px;padding:14px 16px}
+.fila-fiscal *{color:var(--ink) !important}
+.fila-fiscal .ff-lbl{font-size:10.5px !important;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--slate) !important}
+.fila-fiscal .ff-cells{display:flex;gap:0;align-items:stretch;margin-top:10px;flex-wrap:wrap}
+.fila-fiscal .ff-cell{flex:1;min-width:120px;padding:2px 16px;border-left:1px solid var(--line)}
+.fila-fiscal .ff-cell:first-child{border-left:none;padding-left:0}
+.fila-fiscal .ff-name{font-size:11px !important;font-weight:600;color:var(--slate) !important;margin-bottom:2px}
+.fila-fiscal .ff-val{font-size:17px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.fila-fiscal .ff-note{font-size:10.5px !important;color:var(--mute) !important;margin-top:10px;font-style:italic}
+
+/* ── Gráficos ── */
+.chartbox{background:#fff;border:1px solid var(--line-2);border-radius:10px;padding:14px}
+.chart-svg{width:100%;display:block;cursor:crosshair}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chips button{font-size:11px;font-weight:600;padding:5px 10px;border-radius:999px;
+  border:1px solid var(--line-2);color:var(--slate);background:#fff}
+.chips button:hover{color:var(--ink)}
+.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{font-size:11px;font-weight:600;padding:6px 11px;color:var(--slate);background:#fff}
+.seg button.on{background:var(--ink);color:#fff}
+
+/* ── Panel lateral (proyección) ── */
+.split{display:grid;grid-template-columns:1fr 280px;gap:14px}
+@media(max-width:900px){.split{grid-template-columns:1fr}}
+.sidep{background:#fff;border:1px solid var(--line-2);border-radius:10px;padding:14px 16px}
+.evt{display:flex;align-items:flex-start;gap:9px;padding:9px 0;border-top:1px solid var(--line)}
+.evt:first-of-type{border-top:none}
+.evt-dot{width:8px;height:8px;border-radius:2px;background:var(--blue);margin-top:4px;flex:none}
+.evt-dot.intro{background:var(--faintest)}
+.evt-actions{display:flex;gap:4px;margin-left:auto}
+.evt-actions button{font-size:10.5px;color:var(--mute);padding:2px 5px;border-radius:4px}
+.evt-actions button:hover{background:var(--paper-2);color:var(--ink)}
+
+/* ── Escenarios ── */
+.esc-grid{display:grid;grid-template-columns:290px 1fr;gap:14px}
+@media(max-width:940px){.esc-grid{grid-template-columns:1fr}}
+.esc-item{border:1px solid var(--line-2);border-radius:10px;padding:12px 14px;background:#fff;cursor:pointer;margin-bottom:8px}
+.esc-item:hover{border-color:var(--faintest)}
+.esc-item.on{border-color:var(--ink);background:var(--paper-2)}
+.esc-item .base-tag{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+  color:var(--blue);background:var(--av-blue);border-radius:4px;padding:2px 6px}
+.chk{width:15px;height:15px;accent-color:var(--ink);cursor:pointer}
+.calc-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ink-3);
+  background:var(--paper-2);border:1px solid var(--line-2);border-radius:6px;padding:3px 8px;font-variant-numeric:tabular-nums}
+.intro-chip{display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:var(--ink-3);
+  background:#fff;border:1px dashed var(--faintest);border-radius:6px;padding:3px 8px}
+
+/* ── Fichas ── */
+.backlink{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--slate);
+  padding:4px 8px;border-radius:6px;margin:-4px 0 6px -8px}
+.backlink:hover{color:var(--ink);background:var(--paper-2)}
+.kv{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
+.kv>div{background:#fff;border:1px solid var(--line-2);border-radius:10px;padding:11px 13px}
+.kv .v{font-size:14.5px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums}
+.tit-bar{display:flex;height:7px;border-radius:4px;overflow:hidden;background:var(--line);margin-top:6px}
+.tit-bar i{display:block;height:100%}
+
+/* ── Modales ── */
+.overlay{position:fixed;inset:0;background:rgba(12,20,36,.55);display:none;align-items:flex-start;
+  justify-content:center;padding:6vh 16px;z-index:50;overflow:auto}
+.overlay.on{display:flex}
+.modal{background:var(--paper);border-radius:14px;border:1px solid var(--line-2);width:100%;max-width:520px}
+.modal.wide{max-width:640px}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--line)}
+.modal-body{padding:18px 20px;display:flex;flex-direction:column;gap:14px}
+.modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--line);background:var(--paper-2);border-radius:0 0 14px 14px}
+.field label{display:block;margin-bottom:5px}
+.field input[type=text],.field input[type=number],.field input[type=date],.field select,.field textarea{
+  width:100%;border:1px solid var(--line-2);border-radius:8px;padding:8px 10px;background:#fff}
+.field textarea{min-height:84px;resize:vertical}
+.field .err{border-color:var(--coral-deep) !important}
+.err-msg{font-size:11px;color:var(--coral-deep);font-weight:600;margin-top:4px;display:none}
+.err-msg.on{display:block}
+.hint-info{display:flex;gap:8px;font-size:11.5px;color:var(--ink-3);background:var(--av-blue);
+  border:1px solid #D4DDF6;border-radius:8px;padding:9px 11px}
+.opt-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.opt-grid button{border:1px solid var(--line-2);border-radius:8px;padding:10px 12px;text-align:left;background:#fff;font-weight:600;font-size:12px}
+.opt-grid button:hover{border-color:var(--ink-3);background:var(--paper-2)}
+.opt-grid button .tiny{display:block;font-weight:500;margin-top:2px}
+.radio-row{display:flex;gap:8px;flex-wrap:wrap}
+.radio-row label{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);
+  border-radius:8px;padding:7px 11px;font-size:12px;font-weight:600;cursor:pointer;background:#fff}
+.radio-row input{accent-color:var(--ink)}
+
+/* ── Historial ── */
+.tl{position:relative;padding-left:22px}
+.tl::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:1px;background:var(--line-2)}
+.tl-item{position:relative;padding:10px 0 14px}
+.tl-item::before{content:"";position:absolute;left:-19px;top:15px;width:9px;height:9px;border-radius:3px;
+  background:var(--paper);border:2px solid var(--ink-3)}
+
+/* ── Toast ── */
+.toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(8px);background:var(--ink);
+  color:#fff;font-size:12px;font-weight:600;padding:10px 16px;border-radius:9px;opacity:0;
+  pointer-events:none;transition:.18s;z-index:99;max-width:90vw;text-align:center}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Vacíos ── */
+.empty{padding:26px;text-align:center;color:var(--mute);font-size:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:820px){.grid2{grid-template-columns:1fr}}
+.grid3{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr}}
+
+/* ── Tramos fiscales ── */
+.tramo{margin-bottom:8px}
+.tramo-bar{position:relative;height:26px;border-radius:6px;background:var(--paper-2);border:1px solid var(--line-2);overflow:hidden}
+.tramo-fill{position:absolute;inset:0;width:0;background:#E7ECFB;border-right:1px solid #D4DDF6}
+.tramo-info{display:flex;justify-content:space-between;font-size:11px;padding:3px 2px}
+.marker{position:absolute;top:-3px;bottom:-3px;width:2px;background:var(--ink)}
+.marker::after{content:attr(data-l);position:absolute;top:-16px;left:50%;transform:translateX(-50%);
+  font-size:9.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+.lock{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--slate)}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ═══ TOPBAR ═══ -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-mark">S</div>
+      <div class="brand-name">Scenia <span>Wealth</span></div>
+    </div>
+    <div class="topnav">
+      <button id="nav-cartera" onclick="goCartera()">Cartera</button>
+      <button id="nav-ajustes" onclick="goAjustes()">Ajustes</button>
+    </div>
+  </div>
+
+  <!-- ═══ P1 · CARTERA ═══ -->
+  <section id="scr-cartera" class="screen">
+    <div class="sheet">
+      <div class="scr-head">
+        <div class="grow">
+          <div class="lbl">Cartera</div>
+          <div class="h1">Cartera de clientes</div>
+        </div>
+        <div class="toolbar">
+          <div class="search">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#8A95A8" stroke-width="2.4"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
+            <input id="q-cartera" type="text" placeholder="Buscar por nombre o NIF" oninput="renderCartera()">
+          </div>
+          <button class="btn coral" onclick="openAlta()">+ Nuevo cliente</button>
+        </div>
+      </div>
+      <div style="padding:0 22px 20px">
+        <table id="tbl-cartera">
+          <thead><tr>
+            <th class="sortable" onclick="sortCartera('nombre')">Cliente</th>
+            <th class="sortable" onclick="sortCartera('segmento')">Segmento</th>
+            <th class="sortable right" onclick="sortCartera('patrimonio')">Patrimonio neto</th>
+            <th class="sortable right" onclick="sortCartera('escenarios')">Escenarios</th>
+            <th class="sortable" onclick="sortCartera('rev')">Última revisión</th>
+          </tr></thead>
+          <tbody id="tb-cartera"></tbody>
+          <tfoot><tr id="tf-cartera"></tr></tfoot>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ P8 · AJUSTES ═══ -->
+  <section id="scr-ajustes" class="screen">
+    <div class="sheet">
+      <div class="scr-head"><div class="grow">
+        <div class="lbl">Configuración</div>
+        <div class="h1">Ajustes</div>
+      </div></div>
+      <div class="sheet-pad" style="padding-top:0;display:grid;gap:14px">
+        <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:16px 18px">
+          <div class="h3">Marca del despacho</div>
+          <div class="sub" style="margin:3px 0 12px">Identidad que aparece en los informes PDF generados.</div>
+          <div class="grid2">
+            <div class="field"><label class="lbl">Nombre del despacho</label><input type="text" value="Despacho Demo EAF, S.L."></div>
+            <div class="field"><label class="lbl">Nº registro CNMV</label><input type="text" value="EAF 000 (demo)"></div>
+          </div>
+          <div style="margin-top:12px;display:flex;align-items:center;gap:12px">
+            <div style="width:44px;height:44px;border-radius:10px;background:var(--paper-2);border:1px dashed var(--faintest);display:flex;align-items:center;justify-content:center;color:var(--mute);font-weight:700">D</div>
+            <button class="btn sm" onclick="toast('Carga de logo simulada en esta demo')">Subir logo</button>
+          </div>
+        </div>
+        <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:16px 18px">
+          <div class="h3">Usuarios y asientos</div>
+          <div class="sub" style="margin:3px 0 10px">Modelo por asiento · 1 de 3 asientos en uso.</div>
+          <table><thead><tr><th>Usuario</th><th>Rol</th><th>Estado</th></tr></thead>
+          <tbody><tr><td><div style="display:flex;align-items:center;gap:9px"><span class="av">MA</span><b>Marco Asesor</b></div></td><td>Titular</td><td><span class="pill" style="background:var(--green-bg);color:var(--green)">Activo</span></td></tr></tbody></table>
+          <button class="btn sm" style="margin-top:10px" onclick="toast('Invitaciones disponibles en el producto, no en la demo')">+ Invitar usuario</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ SHELL DEL CLIENTE ═══ -->
+  <section id="scr-cliente" class="screen">
+    <div class="sheet">
+      <div class="ctx">
+        <button class="backlink" onclick="goCartera()" style="margin:0">‹ Cartera</button>
+        <span class="av" id="ctx-av">GL</span>
+        <div class="grow" style="flex:1">
+          <div class="h3" id="ctx-nombre">—</div>
+          <div class="ctx-meta" id="ctx-meta"></div>
+        </div>
+        <span class="sello">Datos a fecha de <b id="ctx-fecha">—</b></span>
+      </div>
+      <nav class="clientnav" id="clientnav">
+        <button data-cv="patrimonio" class="on" onclick="goClientView('patrimonio')">Patrimonio</button>
+        <button data-cv="fiscalidad" onclick="goClientView('fiscalidad')">Fiscalidad</button>
+        <button data-cv="proyeccion" onclick="goClientView('proyeccion')">Proyección</button>
+        <button data-cv="escenarios" onclick="goClientView('escenarios')">Escenarios</button>
+        <button data-cv="historial" onclick="goClientView('historial')">Historial</button>
+      </nav>
+
+      <!-- ── P3 · PATRIMONIO ── -->
+      <div id="cv-patrimonio" class="cview">
+        <div class="tabs" id="pat-tabs">
+          <button data-t="resumen" class="on" onclick="goPatTab('resumen')">Resumen</button>
+          <button data-t="personas" onclick="goPatTab('personas')">Personas</button>
+          <button data-t="activos" onclick="goPatTab('activos')">Activos</button>
+          <button data-t="pasivos" onclick="goPatTab('pasivos')">Pasivos</button>
+          <button data-t="ingresos" onclick="goPatTab('ingresos')">Ingresos</button>
+          <button data-t="gastos" onclick="goPatTab('gastos')">Gastos</button>
+          <button data-t="ahorro" onclick="goPatTab('ahorro')">Ahorro</button>
+        </div>
+        <div id="pat-body" class="sheet-pad"></div>
+      </div>
+
+      <!-- ── P4 · FISCALIDAD ── -->
+      <div id="cv-fiscalidad" class="cview" style="display:none"><div id="fis-body" class="sheet-pad"></div></div>
+
+      <!-- ── P5 · PROYECCIÓN ── -->
+      <div id="cv-proyeccion" class="cview" style="display:none"><div id="pro-body" class="sheet-pad"></div></div>
+
+      <!-- ── P6 · ESCENARIOS ── -->
+      <div id="cv-escenarios" class="cview" style="display:none"><div id="esc-body" class="sheet-pad"></div></div>
+
+      <!-- ── P7 · HISTORIAL ── -->
+      <div id="cv-historial" class="cview" style="display:none"><div id="his-body" class="sheet-pad"></div></div>
+
+      <!-- ── FICHAS (drill-down) ── -->
+      <div id="cv-ficha" class="cview" style="display:none"><div id="ficha-body" class="sheet-pad"></div></div>
+    </div>
+  </section>
+</div>
+
+<!-- ═══ MODAL P2 · ALTA DE CLIENTE ═══ -->
+<div class="overlay" id="ov-alta">
+  <div class="modal">
+    <div class="modal-head"><div><div class="lbl">Nuevo cliente</div><div class="h2">Alta de cliente</div></div>
+      <button class="btn ghost sm" onclick="closeOv('ov-alta')">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label class="lbl">Nombre del expediente *</label>
+        <input type="text" id="alta-nombre" placeholder="Ej.: Familia Pérez Soler">
+        <div class="err-msg" id="alta-nombre-err">El nombre del expediente es obligatorio.</div></div>
+      <div>
+        <label class="lbl" style="display:block;margin-bottom:6px">Personas del expediente *</label>
+        <div id="alta-personas"></div>
+        <button class="btn sm" onclick="altaAddPersona()">+ Añadir persona</button>
+        <div class="err-msg" id="alta-personas-err">Añade al menos una persona con nombre y fecha de nacimiento.</div>
+      </div>
+      <div class="grid2">
+        <div class="field"><label class="lbl">Segmento</label>
+          <select id="alta-segmento"><option>Pre-jubilado</option><option>Empresario</option><option>Jubilado</option><option>Alto ingreso</option><option>Herencia en curso</option></select></div>
+        <div class="field"><label class="lbl">Comunidad autónoma</label>
+          <select id="alta-ccaa" onchange="altaCcaaAviso()"></select></div>
+      </div>
+      <div class="hint-info" id="alta-ccaa-aviso" style="display:none">
+        <b>ⓘ</b><span>El cálculo fiscal solo está disponible para la <b>Comunitat Valenciana</b> por ahora. Para esta comunidad, Scenia mostrará el patrimonio sin cifras fiscales.</span>
+      </div>
+      <div class="tiny">Alta mínima: solo el nombre y una persona son obligatorios. El patrimonio se completa después, por capas.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeOv('ov-alta')">Cancelar</button>
+      <button class="btn primary" onclick="altaCrear()">Crear cliente</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CT1 · EVENTO ═══ -->
+<div class="overlay" id="ov-evento">
+  <div class="modal wide">
+    <div class="modal-head"><div><div class="lbl" id="ev-sup">Nuevo evento</div><div class="h2" id="ev-title">Añadir evento</div></div>
+      <button class="btn ghost sm" onclick="closeOv('ov-evento')">✕</button></div>
+    <div class="modal-body" id="ev-body"></div>
+    <div class="modal-foot" id="ev-foot"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CT3 · INFORME ═══ -->
+<div class="overlay" id="ov-informe">
+  <div class="modal">
+    <div class="modal-head"><div><div class="lbl">Informe</div><div class="h2" id="inf-title">Generar informe</div></div>
+      <button class="btn ghost sm" onclick="closeOv('ov-informe')">✕</button></div>
+    <div class="modal-body">
+      <div class="field"><label class="lbl">Título del informe</label><input type="text" id="inf-nombre"></div>
+      <div class="field"><label class="lbl">Nota del asesor · obligatoria</label>
+        <textarea id="inf-nota" placeholder="Tu conclusión profesional. Scenia muestra el cálculo; la conclusión es tuya y firma el informe."></textarea>
+        <div class="err-msg" id="inf-nota-err">La Nota del asesor es obligatoria para generar el informe.</div></div>
+      <div class="tiny">El PDF incluirá la marca del despacho, el sello <b>«cálculo orientativo, no asesoramiento»</b> y el sello <b>«datos a fecha de <span id="inf-fecha"></span>»</b>.</div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn" onclick="closeOv('ov-informe')">Cancelar</button>
+      <button class="btn primary" onclick="informeGenerar()">Generar informe</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+/* ═══ SCENIA WEALTH · mockup clicable · datos y estado ═══ */
+
+const HOY = new Date();
+const fmtFecha = d => d.toLocaleDateString('es-ES',{day:'2-digit',month:'2-digit',year:'numeric'});
+const EUR0 = new Intl.NumberFormat('es-ES',{style:'currency',currency:'EUR',maximumFractionDigits:0});
+const eur = n => EUR0.format(Math.round(n));
+const PCT = new Intl.NumberFormat('es-ES',{style:'percent',maximumFractionDigits:1});
+
+const CCAA = ['Comunitat Valenciana','Andalucía','Aragón','Asturias','Baleares','Canarias','Cantabria','Castilla-La Mancha','Castilla y León','Cataluña','Extremadura','Galicia','La Rioja','Madrid','Murcia','Navarra','País Vasco'];
+
+/* ── Seed ── */
+const seed = {
+  clientes: [
+    { id:'gl', nombre:'Familia García-Llorente', nif:'B98·· demo', segmento:'Pre-jubilado', ccaa:'Comunitat Valenciana',
+      patrimonio:705000, escenarios:2, rev:'hace 3 semanas', revOrden:3,
+      comp:{fin:47,inm:48,emp:0,otr:5}, completo:true },
+    { id:'bo', nombre:'Familia Beltrán Ortiz', nif:'B46·· demo', segmento:'Empresario', ccaa:'Comunitat Valenciana',
+      patrimonio:2840000, escenarios:1, rev:'hace 2 meses', revOrden:8, comp:{fin:21,inm:15,emp:62,otr:2} },
+    { id:'ns', nombre:'Familia Navarro Sanchís', nif:'B12·· demo', segmento:'Jubilado', ccaa:'Comunitat Valenciana',
+      patrimonio:1150000, escenarios:0, rev:'hace 5 meses', revOrden:20, comp:{fin:39,inm:58,emp:0,otr:3} },
+    { id:'rp', nombre:'Familia Requena Poveda', nif:'B77·· demo', segmento:'Alto ingreso', ccaa:'Comunitat Valenciana',
+      patrimonio:610000, escenarios:2, rev:'hace 3 semanas', revOrden:3, comp:{fin:71,inm:26,emp:0,otr:3} },
+    { id:'sa', nombre:'Familia Server Alcaraz', nif:'B31·· demo', segmento:'Herencia en curso', ccaa:'Comunitat Valenciana',
+      patrimonio:1930000, escenarios:1, rev:'hace 8 meses', revOrden:32, comp:{fin:28,inm:64,emp:8,otr:0} },
+    { id:'tg', nombre:'Familia Tormo Gisbert', nif:'B59·· demo', segmento:'Pre-jubilado', ccaa:'Comunitat Valenciana',
+      patrimonio:875000, escenarios:0, rev:'hace 1 mes', revOrden:4, comp:{fin:46,inm:44,emp:0,otr:10} }
+  ],
+  personas: [
+    { id:'carlos', nombre:'Carlos García', nac:1968, edad:58, ccaa:'Comunitat Valenciana', ingresos:95000, jubilacion:2033 },
+    { id:'marta',  nombre:'Marta Llorente', nac:1971, edad:55, ccaa:'Comunitat Valenciana', ingresos:32000, jubilacion:2036 }
+  ],
+  activos: {
+    portfolio: [
+      { id:'fondoA', nombre:'Fondo A · RV global', tipoFiscal:'Fondo traspasable', valor:300000, adq:2014, coste:180000,
+        plusv:120000, tit:{carlos:60, marta:40}, liq:'a' },
+      { id:'plan', nombre:'Plan de pensiones', tipoFiscal:'Plan de pensiones', valor:120000, adq:2009, coste:null,
+        plusv:null, tit:{carlos:100}, liq:'b' }
+    ],
+    inmuebles: [
+      { id:'javea', nombre:'Vivienda · Jávea', valor:420000, adq:2009, coste:295000, plusv:125000,
+        hipoteca:'Hipoteca Banco Levante', tit:{carlos:50, marta:50}, liq:'b' }
+    ],
+    empresarial: [
+      { id:'gcsl', nombre:'García Consulting SL', participacion:{carlos:100}, valor:null, liq:'b' }
+    ],
+    otros: [
+      { id:'audi', nombre:'Audi Q8', tipo:'Vehículo', valor:45000, adq:2022, tit:{carlos:100}, liq:'b' }
+    ]
+  },
+  pasivos: [
+    { id:'hipo', nombre:'Hipoteca Banco Levante', prestamista:'Banco Levante', pendiente:180000, tipo:2.9,
+      cuota:950, inmueble:'Vivienda · Jávea', tit:{carlos:50, marta:50} }
+  ],
+  ingresos: [
+    { persona:'carlos', fuente:'Trabajo', importe:95000 },
+    { persona:'marta',  fuente:'Trabajo', importe:32000 }
+  ],
+  gastos: [
+    { cat:'Intereses de deuda', importe:5220, vinc:'Vivienda · Jávea' },
+    { cat:'Suministros y comunidad', importe:4800, vinc:'Vivienda · Jávea' },
+    { cat:'Familia y estilo de vida', importe:36000, vinc:'Sin vincular' },
+    { cat:'Seguros', importe:2400, vinc:'Sin vincular' },
+    { cat:'Vehículo', importe:3600, vinc:'Audi Q8' },
+    { cat:'Otros', importe:6000, vinc:'Sin vincular' }
+  ],
+  ahorro: { ingresos:127000, gastos:58020, amort:6180 }
+};
+
+/* Eventos del plan base (editables desde Proyección) */
+let eventosBase = [
+  { id:1, anyo:2033, titulo:'Jubilación de Carlos (65)', detalle:'Pensión estimada 32.000 €/año · introducida por el asesor', calc:null, intro:true, el:'Carlos García' },
+  { id:2, anyo:2036, titulo:'Jubilación de Marta (65)', detalle:'Pensión estimada 14.500 €/año · introducida por el asesor', calc:null, intro:true, el:'Marta Llorente' }
+];
+let nextEvId = 10;
+
+/* Escenarios del cliente completo */
+let escenarios = [
+  { id:'base', nombre:'Situación actual', base:true, rent:4.0, infl:2.0,
+    eventos: [] /* hereda eventosBase en render */, impuestos:0 },
+  { id:'A', nombre:'A · Reembolso', base:false, rent:4.0, infl:2.0, impuestos:14200,
+    eventos: [
+      { id:3, anyo:'2026–2031', titulo:'Reembolsar Fondo A · 35.000 €/año', el:'Fondo A',
+        detalle:'Plusvalía → base del ahorro · FIFO', calc:'IRPF del periodo ≈ 14.200 € · orientativo', intro:false }
+    ]},
+  { id:'B', nombre:'B · Traspaso + rescate', base:false, rent:4.0, infl:2.0, impuestos:9800,
+    eventos: [
+      { id:4, anyo:2026, titulo:'Traspasar Fondo A → Fondo B (Art. 94)', el:'Fondo A',
+        detalle:'Neutro · el destino hereda valor y fecha de adquisición', calc:'Cuota 0 € · orientativo', intro:false },
+      { id:5, anyo:'2026–2033', titulo:'Rescatar plan · renta · 15.000 €/año', el:'Plan de pensiones',
+        detalle:'Base general · se apila sobre los ingresos del año', calc:'IRPF del periodo ≈ 9.800 € · orientativo', intro:false }
+    ]}
+];
+let nextEscLetra = 'C'.charCodeAt(0);
+
+/* Historial */
+let historial = [
+  { fecha:'12/05/2026', titulo:'Informe de la foto patrimonial', tipo:'Foto del patrimonio' },
+  { fecha:'20/06/2026', titulo:'Comparación · A Reembolso vs B Traspaso + rescate', tipo:'Comparación de escenarios' }
+];
+
+/* ── Estado ── */
+const S = {
+  clienteId:null, cview:'patrimonio', patTab:'resumen',
+  cartOrden:{campo:null,dir:1},
+  fichaPrev:null,
+  proySerie:'patrimonio', proyAnyo:null, proyHoy:true,
+  fisPersona:'carlos', fisAnyo:2026, fisHoy:true,
+  escSel:'A', escCmp:['base','A','B'], cmpMetrica:'patrimonio', cmpAnyo:null,
+  informeCtx:null
+};
+
+/* ── Utilidades ── */
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.classList.add('on');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('on'),2600); }
+function closeOv(id){ $(id).classList.remove('on'); }
+function openOv(id){ $(id).classList.add('on'); }
+function iniciales(n){ return n.replace(/^Familia\s+/,'').split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase(); }
+function titBar(tit){
+  const cols={carlos:'var(--blue)',marta:'#8FA0BE'};
+  let h='<div class="tit-bar">';
+  for(const k in tit) h+=`<i style="width:${tit[k]}%;background:${cols[k]||'var(--faintest)'}"></i>`;
+  return h+'</div>';
+}
+function titTxt(tit){
+  const nm={carlos:'Carlos',marta:'Marta'};
+  return Object.entries(tit).map(([k,v])=>`${nm[k]||k} ${v}%`).join(' · ');
+}
+
+/* ── Navegación superior ── */
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
+  $(id).classList.add('on'); window.scrollTo(0,0);
+  $('nav-cartera').classList.toggle('on', id==='scr-cartera');
+  $('nav-ajustes').classList.toggle('on', id==='scr-ajustes');
+}
+function goCartera(){ S.clienteId=null; showScreen('scr-cartera'); renderCartera(); }
+function goAjustes(){ showScreen('scr-ajustes'); }
+
+/* ── P1 · Cartera ── */
+function sortCartera(campo){
+  if(S.cartOrden.campo===campo) S.cartOrden.dir*=-1; else S.cartOrden={campo,dir:1};
+  renderCartera();
+}
+function renderCartera(){
+  const q=($('q-cartera').value||'').toLowerCase();
+  let rows=seed.clientes.filter(c=>c.nombre.toLowerCase().includes(q)||c.nif.toLowerCase().includes(q));
+  const {campo,dir}=S.cartOrden;
+  if(campo){
+    rows=[...rows].sort((a,b)=>{
+      let va=a[campo], vb=b[campo];
+      if(campo==='rev'){va=a.revOrden;vb=b.revOrden;}
+      if(typeof va==='string') return va.localeCompare(vb)*dir;
+      return (va-vb)*dir;
+    });
+  }
+  $('tb-cartera').innerHTML = rows.map(c=>`
+    <tr class="rowlink" onclick="abrirCliente('${c.id}')">
+      <td><div style="display:flex;align-items:center;gap:10px">
+        <span class="av">${iniciales(c.nombre)}</span>
+        <div><b>${c.nombre}</b><div class="tiny">${c.nif}</div></div></div></td>
+      <td><span class="pill ${c.segmento==='Empresario'?'emp':''}">${c.segmento}</span></td>
+      <td class="right"><div class="num strong">${eur(c.patrimonio)}</div>
+        <div class="comp" style="margin-left:auto">
+          <i class="c-fin" style="width:${c.comp.fin}%"></i><i class="c-inm" style="width:${c.comp.inm}%"></i>
+          <i class="c-emp" style="width:${c.comp.emp}%"></i><i class="c-otr" style="width:${c.comp.otr}%"></i></div></td>
+      <td class="right num">${c.escenarios}</td>
+      <td class="slt">${c.rev}</td>
+    </tr>`).join('');
+  const total=rows.reduce((s,c)=>s+c.patrimonio,0);
+  $('tf-cartera').innerHTML=`<td colspan="2">${rows.length} cliente${rows.length!==1?'s':''}</td>
+    <td class="right num">${eur(total)}</td><td colspan="2" class="tiny" style="font-weight:500">patrimonio neto seguido</td>`;
+}
+
+/* ── P2 · Alta de cliente ── */
+function openAlta(){
+  $('alta-nombre').value=''; $('alta-nombre').classList.remove('err'); $('alta-nombre-err').classList.remove('on');
+  $('alta-personas').innerHTML=''; $('alta-personas-err').classList.remove('on');
+  altaAddPersona();
+  const sel=$('alta-ccaa'); sel.innerHTML=CCAA.map(c=>`<option>${c}</option>`).join(''); sel.value='Comunitat Valenciana';
+  altaCcaaAviso(); openOv('ov-alta');
+}
+function altaAddPersona(){
+  const d=document.createElement('div');
+  d.className='grid2'; d.style.marginBottom='8px';
+  d.innerHTML=`<div class="field"><input type="text" placeholder="Nombre y apellidos" class="alta-p-nombre"></div>
+    <div class="field"><input type="date" class="alta-p-nac"></div>`;
+  $('alta-personas').appendChild(d);
+}
+function altaCcaaAviso(){
+  $('alta-ccaa-aviso').style.display = $('alta-ccaa').value==='Comunitat Valenciana' ? 'none' : 'flex';
+}
+function altaCrear(){
+  let ok=true;
+  const nombre=$('alta-nombre').value.trim();
+  if(!nombre){ $('alta-nombre').classList.add('err'); $('alta-nombre-err').classList.add('on'); ok=false; }
+  else { $('alta-nombre').classList.remove('err'); $('alta-nombre-err').classList.remove('on'); }
+  const ps=[...document.querySelectorAll('.alta-p-nombre')].map((el,i)=>({
+    nombre:el.value.trim(), nac:document.querySelectorAll('.alta-p-nac')[i].value }));
+  const validas=ps.filter(p=>p.nombre&&p.nac);
+  if(!validas.length){ $('alta-personas-err').classList.add('on'); ok=false; }
+  else $('alta-personas-err').classList.remove('on');
+  if(!ok) return;
+  seed.clientes.push({ id:'nx'+Date.now(), nombre, nif:'— pendiente', segmento:$('alta-segmento').value,
+    ccaa:$('alta-ccaa').value, patrimonio:0, escenarios:0, rev:'hoy', revOrden:0,
+    comp:{fin:0,inm:0,emp:0,otr:0} });
+  closeOv('ov-alta'); renderCartera();
+  toast('Cliente creado · completa su patrimonio por capas cuando quieras');
+}
+
+/* ── Entrar en un cliente ── */
+function abrirCliente(id){
+  const c=seed.clientes.find(x=>x.id===id);
+  if(!c.completo){ toast('Cliente de demostración — solo la Familia García-Llorente está cargada al completo'); return; }
+  S.clienteId=id; S.cview='patrimonio'; S.patTab='resumen';
+  $('ctx-av').textContent=iniciales(c.nombre);
+  $('ctx-nombre').textContent=c.nombre;
+  $('ctx-meta').innerHTML=`<span class="pill">${c.segmento}</span><span class="tiny">${c.ccaa}</span>
+    <span class="tiny">·</span><span class="tiny num strong" style="color:var(--ink-3)">${eur(c.patrimonio)} netos</span>`;
+  $('ctx-fecha').textContent=fmtFecha(HOY);
+  showScreen('scr-cliente'); goClientView('patrimonio');
+}
+function goClientView(v){
+  S.cview=v;
+  document.querySelectorAll('#clientnav button').forEach(b=>b.classList.toggle('on',b.dataset.cv===v));
+  document.querySelectorAll('.cview').forEach(x=>x.style.display='none');
+  $('cv-'+v).style.display='block';
+  if(v==='patrimonio') renderPatrimonio();
+  if(v==='fiscalidad') renderFiscalidad();
+  if(v==='proyeccion') renderProyeccion();
+  if(v==='escenarios') renderEscenarios();
+  if(v==='historial') renderHistorial();
+  window.scrollTo(0,0);
+}
+function goPatTab(t){ S.patTab=t;
+  document.querySelectorAll('#pat-tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  renderPatrimonio();
+}
+
+/* ── P3 · Patrimonio: render por pestaña ── */
+function renderPatrimonio(){
+  const b=$('pat-body');
+  const t=S.patTab;
+  if(t==='resumen') b.innerHTML=tplResumen();
+  if(t==='personas') b.innerHTML=tplPersonas();
+  if(t==='activos') b.innerHTML=tplActivos();
+  if(t==='pasivos') b.innerHTML=tplPasivos();
+  if(t==='ingresos') b.innerHTML=tplIngresos();
+  if(t==='gastos') b.innerHTML=tplGastos();
+  if(t==='ahorro') b.innerHTML=tplAhorro();
+}
+
+function tplResumen(){
+  const a=seed.ahorro, cap=a.ingresos-a.gastos+a.amort;
+  return `
+  <div class="grid3">
+    <div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div><div class="lbl">Foto del patrimonio</div>
+        <div class="h2">Activos ${eur(885000)} · Pasivos ${eur(180000)}</div></div>
+        <button class="btn primary" onclick="openInforme('foto')">Generar informe</button>
+      </div>
+      <div class="treemap">
+        <div class="tm-col" style="flex:2.05">
+          <div class="tm-block tm-fin" style="flex:1" onclick="goPatTab('activos')">
+            <div><div class="lbl" style="color:inherit;opacity:.75">Financiero</div><div class="tm-v num">420.000 €</div></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end">
+              <span class="tiny" style="color:inherit;opacity:.8">Fondo A · Plan de pensiones</span>
+              <button class="tm-add" onclick="event.stopPropagation();abrirEvento({modo:'alta',grupo:'financiero'})">+</button></div>
+          </div>
+        </div>
+        <div class="tm-col" style="flex:2.05">
+          <div class="tm-block tm-inm" style="flex:1" onclick="goPatTab('activos')">
+            <div><div class="lbl" style="color:inherit;opacity:.75">Inmobiliario</div><div class="tm-v num">420.000 €</div></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end">
+              <span class="tiny" style="color:inherit;opacity:.8">Vivienda · Jávea</span>
+              <button class="tm-add" onclick="event.stopPropagation();abrirEvento({modo:'alta',grupo:'inmobiliario'})">+</button></div>
+          </div>
+        </div>
+        <div class="tm-col" style="flex:1">
+          <div class="tm-block tm-emp" style="flex:1.1" onclick="abrirFicha('sociedad','gcsl')">
+            <div><div class="lbl" style="color:inherit;opacity:.75">Empresarial</div><div class="tm-v" style="font-size:13px">García Consulting SL</div></div>
+            <span class="tiny" style="color:inherit;opacity:.8">no valorada</span>
+          </div>
+          <div class="tm-block tm-otr" style="flex:.9" onclick="goPatTab('activos')">
+            <div><div class="lbl" style="color:inherit;opacity:.75">Otros</div><div class="tm-v num" style="font-size:14px">45.000 €</div></div>
+            <div style="display:flex;justify-content:space-between;align-items:flex-end">
+              <span class="tiny" style="color:inherit;opacity:.85">Audi Q8</span>
+              <button class="tm-add" onclick="event.stopPropagation();abrirEvento({modo:'alta',grupo:'otros'})">+</button></div>
+          </div>
+          <div class="tm-block tm-pas" style="flex:.65" onclick="goPatTab('pasivos')">
+            <div class="lbl" style="color:inherit">Pasivos</div><div class="tm-v num" style="font-size:14px">−180.000 €</div>
+          </div>
+        </div>
+      </div>
+      <div class="legend">
+        <span><i class="c-fin"></i>Financiero</span><span><i class="c-inm"></i>Inmobiliario</span>
+        <span><i class="c-emp"></i>Empresarial</span><span><i class="c-otr"></i>Otros</span>
+        <span style="margin-left:auto" class="tiny">Pincha un bloque para bajar al detalle · «+» da de alta en esa categoría</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div class="darkcard">
+        <div class="lbl">Capacidad de ahorro anual</div>
+        <div class="big num">${eur(cap)} / año</div>
+        <div style="margin-top:10px">
+          <div class="row"><span>Ingresos</span><b class="num">${eur(a.ingresos)}</b></div>
+          <div class="row"><span>Gastos (solo intereses de deuda)</span><b class="num">−${eur(a.gastos)}</b></div>
+          <div class="row"><span>Reducción de deuda (amortización)</span><b class="num">+${eur(a.amort)}</b></div>
+        </div>
+        <div style="margin-top:10px"><span class="ftag">Calculado en la pestaña Ahorro</span></div>
+      </div>
+      <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+        <div class="lbl">Patrimonio neto</div>
+        <div style="font-size:22px;font-weight:700;letter-spacing:-0.02em" class="num">${eur(705000)}</div>
+        <div class="tiny" style="margin-top:2px">885.000 € de activos − 180.000 € de pasivos</div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function tplPersonas(){
+  const agg={carlos:555000, marta:330000};
+  return `
+  <div class="lbl" style="margin-bottom:8px">Personas del expediente</div>
+  <table><thead><tr><th>Persona</th><th>Edad</th><th>CCAA</th><th class="right">Ingresos del año</th><th class="right">Patrimonio atribuido</th><th></th></tr></thead>
+  <tbody>${seed.personas.map(p=>`
+    <tr class="rowlink" onclick="abrirFicha('persona','${p.id}')">
+      <td><div style="display:flex;align-items:center;gap:9px"><span class="av">${p.nombre.split(' ').map(w=>w[0]).join('')}</span><b>${p.nombre}</b></div></td>
+      <td class="num">${p.edad}</td><td class="slt">${p.ccaa}</td>
+      <td class="right num strong">${eur(p.ingresos)}</td>
+      <td class="right num">${eur(agg[p.id])}</td>
+      <td class="right"><span class="tiny" style="color:var(--blue);font-weight:600">Ver ficha ›</span></td>
+    </tr>`).join('')}
+  </tbody></table>
+  <div style="margin-top:12px;display:flex;gap:8px;align-items:center">
+    <button class="btn sm" onclick="toast('Alta de persona simulada en esta demo')">+ Añadir persona</button>
+    <span class="tiny">Los ingresos alimentan el motor fiscal (regla del rescate del plan).</span>
+  </div>`;
+}
+
+function evBtn(elId,elNombre,tipoEl){
+  return `<button class="btn sm" onclick="event.stopPropagation();abrirEvento({modo:'evento',el:'${elId}',elNombre:'${elNombre}',tipoEl:'${tipoEl}',destino:'plan'})">⚡ Evento</button>`;
+}
+function liqBadge(l){ return l==='a' ? '<span class="liq a">● Alta</span>' : '<span class="liq b">● Media/baja</span>'; }
+
+function tplActivos(){
+  const P=seed.activos;
+  return `
+  <div class="lbl" style="margin-bottom:8px">Activos · agrupados por tipo</div>
+  <table>
+    <tbody>
+      <tr class="group-head"><td colspan="8">Portfolio financiero</td></tr>
+      <tr><td colspan="8" style="padding:0;border:none"><table>
+        <thead><tr><th>Instrumento</th><th>Tipo fiscal</th><th class="right">Valor</th><th>Adquisición</th><th class="right">Plusvalía latente</th><th>Titularidad</th><th>Liquidez</th><th></th></tr></thead>
+        <tbody>${P.portfolio.map(a=>`
+          <tr class="rowlink" onclick="abrirFicha('portfolio','${a.id}')">
+            <td><b>${a.nombre}</b></td><td class="slt">${a.tipoFiscal}</td>
+            <td class="right num strong">${eur(a.valor)}</td><td class="num slt">${a.adq}</td>
+            <td class="right num">${a.plusv!=null?`<span class="gain">+${eur(a.plusv)}</span>`:'<span class="mut">—</span>'}</td>
+            <td><span class="tiny">${titTxt(a.tit)}</span>${titBar(a.tit)}</td>
+            <td>${liqBadge(a.liq)}</td><td class="right">${evBtn(a.id,a.nombre,'fondo'+(a.id==='plan'?'|plan':''))}</td>
+          </tr>`).join('')}
+        <tr class="subtotal"><td colspan="2">Subtotal portfolio</td><td class="right num">${eur(420000)}</td><td colspan="5"></td></tr>
+        </tbody></table></td></tr>
+
+      <tr class="group-head"><td colspan="8">Inmuebles</td></tr>
+      <tr><td colspan="8" style="padding:0;border:none"><table>
+        <thead><tr><th>Inmueble</th><th class="right">Valor</th><th>Adquisición</th><th>Hipoteca asociada</th><th>Titularidad</th><th>Liquidez</th><th></th></tr></thead>
+        <tbody>${P.inmuebles.map(a=>`
+          <tr class="rowlink" onclick="abrirFicha('inmueble','${a.id}')">
+            <td><b>${a.nombre}</b></td><td class="right num strong">${eur(a.valor)}</td>
+            <td class="num slt">${a.adq}</td><td class="slt">${a.hipoteca}</td>
+            <td><span class="tiny">${titTxt(a.tit)}</span>${titBar(a.tit)}</td>
+            <td>${liqBadge(a.liq)}</td><td class="right">${evBtn(a.id,a.nombre,'inmueble')}</td>
+          </tr>`).join('')}
+        <tr class="subtotal"><td>Subtotal inmuebles</td><td class="right num">${eur(420000)}</td><td colspan="5"></td></tr>
+        </tbody></table></td></tr>
+
+      <tr class="group-head"><td colspan="8">Inversiones empresariales</td></tr>
+      <tr><td colspan="8" style="padding:0;border:none"><table>
+        <thead><tr><th>Sociedad</th><th>Participación</th><th class="right">Valor</th><th>Liquidez</th><th></th></tr></thead>
+        <tbody>${P.empresarial.map(a=>`
+          <tr class="rowlink" onclick="abrirFicha('sociedad','${a.id}')">
+            <td><b>${a.nombre}</b></td><td class="slt">Carlos 100 %</td>
+            <td class="right"><span class="mut">no valorada</span></td>
+            <td>${liqBadge(a.liq)}</td><td class="right">${evBtn(a.id,a.nombre,'sociedad')}</td>
+          </tr>`).join('')}</tbody></table></td></tr>
+
+      <tr class="group-head"><td colspan="8">Otros activos</td></tr>
+      <tr><td colspan="8" style="padding:0;border:none"><table>
+        <thead><tr><th>Activo</th><th>Tipo</th><th class="right">Valor</th><th>Titularidad</th><th>Liquidez</th><th></th></tr></thead>
+        <tbody>${P.otros.map(a=>`
+          <tr class="rowlink" onclick="abrirFicha('otros','${a.id}')">
+            <td><b>${a.nombre}</b></td><td class="slt">${a.tipo}</td>
+            <td class="right num strong">${eur(a.valor)}</td>
+            <td><span class="tiny">${titTxt(a.tit)}</span>${titBar(a.tit)}</td>
+            <td>${liqBadge(a.liq)}</td><td class="right">${evBtn(a.id,a.nombre,'otros')}</td>
+          </tr>`).join('')}
+        <tr class="subtotal"><td colspan="2">Subtotal otros</td><td class="right num">${eur(45000)}</td><td colspan="3"></td></tr>
+        </tbody></table></td></tr>
+    </tbody>
+    <tfoot><tr><td colspan="5">Total activos</td><td colspan="3" class="right num">${eur(885000)}</td></tr></tfoot>
+  </table>
+  <div class="tiny" style="margin-top:10px">Pincha el nombre para abrir su ficha · «⚡ Evento» añade una decisión sobre ese elemento.</div>`;
+}
+
+function tplPasivos(){
+  return `
+  <div class="lbl" style="margin-bottom:8px">Pasivos</div>
+  <table><thead><tr><th>Deuda</th><th>Prestamista</th><th class="right">Capital pendiente</th><th class="right">Tipo</th><th class="right">Cuota</th><th>Inmueble</th><th>Titularidad</th><th></th></tr></thead>
+  <tbody>${seed.pasivos.map(p=>`
+    <tr><td><b>${p.nombre}</b></td><td class="slt">${p.prestamista}</td>
+      <td class="right num strong">${eur(p.pendiente)}</td><td class="right num">${p.tipo.toLocaleString('es-ES')} %</td>
+      <td class="right num">${eur(p.cuota)}/mes</td><td class="slt">${p.inmueble}</td>
+      <td><span class="tiny">${titTxt(p.tit)}</span>${titBar(p.tit)}</td>
+      <td class="right">${evBtn(p.id,p.nombre,'pasivo')}</td></tr>`).join('')}
+  </tbody>
+  <tfoot><tr><td colspan="2">Total pasivos</td><td class="right num">${eur(180000)}</td><td colspan="5"></td></tr></tfoot></table>
+  <div class="hint-info" style="margin-top:12px"><b>ⓘ</b><span>La cuota nunca va entera a un sitio: los <b>intereses</b> cuentan como gasto y la <b>amortización de capital</b> como ahorro. Aproximación anual orientativa (nivel 1).</span></div>`;
+}
+
+function tplIngresos(){
+  const tot=seed.ingresos.reduce((s,i)=>s+i.importe,0);
+  const nm={carlos:'Carlos García',marta:'Marta Llorente'};
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="lbl">Ingresos · por persona y fuente</div>
+    <button class="btn sm" onclick="abrirEvento({modo:'evento',el:'generico',elNombre:'Ingresos',tipoEl:'generico',destino:'plan'})">+ Evento genérico</button></div>
+  <table><thead><tr><th>Persona</th><th>Fuente</th><th class="right">Importe anual</th></tr></thead>
+  <tbody>${seed.ingresos.map(i=>`
+    <tr><td><b>${nm[i.persona]}</b></td><td class="slt">${i.fuente}</td><td class="right num strong">${eur(i.importe)}</td></tr>`).join('')}
+  </tbody><tfoot><tr><td colspan="2">Total ingresos</td><td class="right num">${eur(tot)}</td></tr></tfoot></table>
+  <div class="tiny" style="margin-top:10px">El total por persona es el input del liquidador de base general — el rescate del plan se apila sobre estos ingresos.</div>`;
+}
+
+function tplGastos(){
+  const tot=seed.gastos.reduce((s,g)=>s+g.importe,0);
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <div class="lbl">Gastos · por categoría</div>
+    <button class="btn sm" onclick="abrirEvento({modo:'evento',el:'generico',elNombre:'Gastos',tipoEl:'generico',destino:'plan'})">+ Evento genérico</button></div>
+  <table><thead><tr><th>Categoría</th><th class="right">Importe anual</th><th>Vinculado a</th></tr></thead>
+  <tbody>${seed.gastos.map(g=>`
+    <tr><td><b>${g.cat}</b></td><td class="right num strong">${eur(g.importe)}</td>
+    <td>${g.vinc==='Sin vincular'?'<span class="mut">Sin vincular</span>':`<span class="pill blue">${g.vinc}</span>`}</td></tr>`).join('')}
+  </tbody><tfoot><tr><td>Total gastos</td><td class="right num">${eur(tot)}</td><td></td></tr></tfoot></table>
+  <div class="tiny" style="margin-top:10px">Solo los <b>intereses</b> de la deuda cuentan como gasto; la amortización de capital es ahorro.</div>`;
+}
+
+function tplAhorro(){
+  const a=seed.ahorro, cap=a.ingresos-a.gastos+a.amort, liq=a.ingresos-a.gastos-a.amort;
+  return `
+  <div class="grid2">
+    <div class="darkcard">
+      <div class="lbl">Capacidad de ahorro anual</div>
+      <div class="big num">${eur(cap)} / año</div>
+      <div style="margin-top:10px">
+        <div class="row"><span>Ingresos</span><b class="num">${eur(a.ingresos)}</b></div>
+        <div class="row"><span>Gastos</span><b class="num">−${eur(a.gastos)}</b></div>
+        <div class="row"><span>Ahorro líquido</span><b class="num">${eur(liq+a.amort)}</b></div>
+        <div class="row"><span>+ Reducción de deuda (amortización de capital)</span><b class="num">${eur(a.amort)}</b></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:14px 16px">
+        <div class="lbl">Tasa de ahorro</div>
+        <div style="font-size:22px;font-weight:700" class="num">${(cap/a.ingresos*100).toLocaleString('es-ES',{maximumFractionDigits:1})} %</div>
+        <div class="tiny" style="margin-top:2px">sobre los ingresos del año</div>
+      </div>
+      <div class="hint-info"><b>ⓘ</b><span>El ahorro es un <b>resultado calculado</b> (ingresos − gastos + amortización). Esta pestaña es de solo lectura y no admite eventos.</span></div>
+    </div>
+  </div>`;
+}
+
+/* ═══ Series deterministas (simulación del motor — cifras fijas del seed) ═══ */
+const ANYOS = []; for(let y=2026;y<=2060;y++) ANYOS.push(y);
+function deflactar(v,y){ return S.proyHoy||arguments[2]===true ? v/Math.pow(1.02,y-2026) : v; }
+function seriesBase(){
+  const pat=[], liq=[], aho=[], flu=[], irpf=[];
+  let p=705000, l=300000;
+  for(const y of ANYOS){
+    const ahorro = y<2033?69000 : y<2036?30000 : 18000;
+    const impuesto = (y<2033?27500:6500) + (y<2036?5900:1800);
+    pat.push(p); liq.push(l); aho.push(ahorro); flu.push(ahorro); irpf.push(impuesto);
+    p = p*1.03 + ahorro; l = l*1.04 + ahorro*0.9;
+  }
+  return {patrimonio:pat, liquidos:liq, ahorro:aho, flujos:flu, irpf};
+}
+const SB = seriesBase();
+function serieEscenario(escId, metrica){
+  const base = metrica==='liquidos'?SB.liquidos:metrica==='irpfacum'?null:SB.patrimonio;
+  if(metrica==='irpfacum'){
+    const extra = escId==='A'? (y=>y>=2026&&y<=2031?14200/6:0) : escId==='B'? (y=>y>=2026&&y<=2033?9800/8:0) : (y=>0);
+    let acc=0; return ANYOS.map((y,i)=>{ acc+=SB.irpf[i]+extra(y); return acc; });
+  }
+  const drag = escId==='A'? (y=>y>=2026&&y<=2031?35000+14200/6:0)
+             : escId==='B'? (y=>y>=2026&&y<=2031?35000+9800/8:0) : (y=>0);
+  let acc=0; return ANYOS.map((y,i)=>{ acc=acc*1.03+drag(y); return Math.max(base[i]-acc,0); });
+}
+
+/* ═══ Gráfico SVG reutilizable ═══ */
+function lineChart(cfg){
+  const {series, w=780, h=210, pad=34, clickFn, selYear, hitos=[], deflate=false} = cfg;
+  const n=ANYOS.length, step=(w-pad-10)/(n-1);
+  const vals = series.flatMap(s=>s.values.map((v,i)=>deflate?v/Math.pow(1.02,i):v));
+  const max=Math.max(...vals)*1.06, min=0;
+  const X=i=>pad+i*step, Y=v=>h-24-((v-min)/(max-min))*(h-42);
+  let g='';
+  for(let k=0;k<=3;k++){ const v=min+(max-min)*k/3, y=Y(v);
+    g+=`<line x1="${pad}" y1="${y}" x2="${w-8}" y2="${y}" stroke="var(--line)" stroke-width="1"/>
+        <text x="${pad-5}" y="${y+3}" text-anchor="end" font-size="9" fill="var(--faint)">${Math.round(v/1000)}k</text>`; }
+  for(let i=0;i<n;i+=5) g+=`<text x="${X(i)}" y="${h-8}" text-anchor="middle" font-size="9" fill="var(--mute)">${ANYOS[i]}</text>`;
+  series.forEach(s=>{
+    const pts=s.values.map((v,i)=>`${X(i)},${Y(deflate?v/Math.pow(1.02,i):v)}`).join(' ');
+    if(s.area) g+=`<polygon points="${pad},${h-24} ${pts} ${X(n-1)},${h-24}" fill="${s.color}" opacity=".08"/>`;
+    g+=`<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" ${s.dash?`stroke-dasharray="${s.dash}"`:''}/>`;
+  });
+  hitos.forEach(hv=>{ const i=ANYOS.indexOf(hv); if(i<0) return;
+    g+=`<circle cx="${X(i)}" cy="${h-24}" r="3.5" fill="var(--paper)" stroke="var(--ink-3)" stroke-width="2"/>`; });
+  if(selYear!=null){ const i=ANYOS.indexOf(selYear);
+    g+=`<line x1="${X(i)}" y1="10" x2="${X(i)}" y2="${h-24}" stroke="var(--ink)" stroke-width="1.5" stroke-dasharray="3 3"/>
+        <text x="${X(i)}" y="9" text-anchor="middle" font-size="10" font-weight="700" fill="var(--ink)">${selYear}</text>`; }
+  let overlay='';
+  if(clickFn) ANYOS.forEach((y,i)=>{ overlay+=`<rect x="${X(i)-step/2}" y="0" width="${step}" height="${h}" fill="transparent" style="cursor:pointer" onclick="${clickFn}(${y})"/>`; });
+  return `<svg class="chart-svg" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${g}${overlay}</svg>`;
+}
+
+/* ═══ P4 · FISCALIDAD ═══ */
+const TRAMOS_GEN=[[0,12450,19],[12450,20200,24],[20200,35200,30],[35200,60000,37],[60000,300000,45],[300000,null,47]];
+const TRAMOS_AHO=[[0,6000,19],[6000,50000,21],[50000,200000,23],[200000,300000,27],[300000,null,28]];
+function renderFiscalidad(){
+  const p = seed.personas.find(x=>x.id===S.fisPersona);
+  const base = p.ingresos;
+  const tramoIdx = TRAMOS_GEN.findIndex(t=>base>=t[0]&&(t[1]===null||base<t[1]));
+  const tramo=TRAMOS_GEN[tramoIdx], sig=TRAMOS_GEN[tramoIdx+1];
+  const espacio = tramo[1]!==null ? tramo[1]-base : null;
+  const irpfEst = p.id==='carlos'?27500:5900;
+  const etr = irpfEst/base;
+  const factor = S.fisHoy?1:Math.pow(1.02, S.fisAnyo-2026);
+  const tramosHtml = (tr, marca) => tr.map(t=>{
+    const dentro = marca>=t[0] && (t[1]===null||marca<t[1]);
+    const fillPct = t[1]===null ? (dentro?18:0) : Math.min(Math.max((marca-t[0])/(t[1]-t[0]),0),1)*100;
+    return `<div class="tramo">
+      <div class="tramo-bar">
+        <div class="tramo-fill" style="width:${fillPct}%"></div>
+        ${dentro?`<div class="marker" style="left:${t[1]===null?18:fillPct}%" data-l="${eur(marca)}"></div>`:''}
+      </div>
+      <div class="tramo-info"><span class="mut num">${eur(t[0])} ${t[1]!==null?'– '+eur(t[1]):'en adelante'}</span>
+      <b class="num">${t[2].toLocaleString('es-ES')} %</b></div></div>`;
+  }).join('');
+  $('fis-body').innerHTML=`
+  <div style="display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:14px">
+    <div><div class="lbl">Fiscalidad · foto del plan base</div>
+      <div class="h2">Cómo está fiscalmente este cliente</div></div>
+    <div class="toolbar">
+      <div class="seg">${seed.personas.map(x=>`<button class="${x.id===S.fisPersona?'on':''}" onclick="S.fisPersona='${x.id}';renderFiscalidad()">${x.nombre.split(' ')[0]}</button>`).join('')}</div>
+      <select onchange="S.fisAnyo=+this.value;renderFiscalidad()" style="border:1px solid var(--line-2);border-radius:8px;padding:6px 9px">
+        ${[2026,2027,2028,2029,2030,2031].map(y=>`<option ${y===S.fisAnyo?'selected':''}>${y}</option>`).join('')}</select>
+      <div class="seg"><button class="${S.fisHoy?'on':''}" onclick="S.fisHoy=true;renderFiscalidad()">€ hoy</button><button class="${!S.fisHoy?'on':''}" onclick="S.fisHoy=false;renderFiscalidad()">€ futuro</button></div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-bottom:14px">
+    <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+      <div class="lbl">IRPF proyectado 2026–2040 · ${p.nombre.split(' ')[0]}</div>
+      <div style="font-size:22px;font-weight:700" class="num">${eur((p.id==='carlos'?412000:88000)*(S.fisHoy?0.86:1))}</div>
+      <div class="tiny">orientativo · parámetros (a verificar)</div>
+    </div>
+    <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+      <div class="lbl">Tipo efectivo medio (ETR) · ${S.fisAnyo}</div>
+      <div style="font-size:22px;font-weight:700" class="num">${(etr*100).toLocaleString('es-ES',{maximumFractionDigits:1})} %</div>
+      <div class="tiny">cuota ≈ ${eur(irpfEst*factor)} sobre ${eur(base*factor)} · orientativo</div>
+    </div>
+  </div>
+  <div class="grid2">
+    <div class="chartbox">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="lbl">Base general ${S.fisAnyo} · estatal + Comunitat Valenciana (a verificar)</div>
+        <span class="lock">🔒 solo lectura</span></div>
+      ${tramosHtml(TRAMOS_GEN, base)}
+      <div class="hint-info" style="margin-top:10px"><b>ⓘ</b><span>${p.nombre.split(' ')[0]} tributa en el tramo del <b>${tramo[2]} %</b>${espacio!==null?` · quedan <b class="num">${eur(espacio)}</b> hasta el tramo del ${sig[2]} %`:''}. Un rescate del plan se apilaría aquí.</span></div>
+    </div>
+    <div class="chartbox">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <div class="lbl">Base del ahorro ${S.fisAnyo} · (a verificar)</div>
+        <span class="lock">🔒 solo lectura</span></div>
+      ${tramosHtml(TRAMOS_AHO, 0)}
+      <div class="tiny" style="margin-top:8px">Escala separada de la base general — aquí tributarían las plusvalías realizadas (p. ej. un reembolso del Fondo A, con +120.000 € latentes).</div>
+    </div>
+  </div>
+  <div class="chartbox" style="margin-top:14px">
+    <div class="lbl" style="margin-bottom:8px">Serie de IRPF proyectado · plan base · orientativo</div>
+    ${lineChart({series:[{values:SB.irpf.map(v=>v*(S.fisHoy?1:1)),color:'var(--ink-3)',area:true}],h:170,clickFn:'fisClickAnyo',selYear:S.fisAnyo<=2060?S.fisAnyo:null,deflate:S.fisHoy})}
+    <div class="tiny">Pincha un año para fijarlo · cifras orientativas, parámetros (a verificar) hasta validación del fiscalista.</div>
+  </div>`;
+}
+function fisClickAnyo(y){ S.fisAnyo=y; renderFiscalidad(); }
+
+/* ═══ P5 · PROYECCIÓN ═══ */
+const SERIES_DEF={patrimonio:'Patrimonio',flujos:'Flujos',ahorro:'Ahorro',liquidos:'Activos líquidos',irpf:'IRPF proyectado'};
+function renderProyeccion(){
+  const vals = SB[S.proySerie==='irpf'?'irpf':S.proySerie];
+  const hitos = eventosBase.map(e=>+e.anyo).filter(y=>!isNaN(y));
+  const sel = S.proyAnyo;
+  const evAno = sel ? eventosBase.filter(e=>String(e.anyo).includes(sel)) : [];
+  $('pro-body').innerHTML=`
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+    <div><div class="lbl">Proyección · plan base</div><div class="h2">Las series año a año</div></div>
+    <div class="toolbar">
+      <div class="chips">${Object.entries(SERIES_DEF).map(([k,n])=>`<button class="${S.proySerie===k?'on':''}" onclick="S.proySerie='${k}';renderProyeccion()">${n}</button>`).join('')}</div>
+      <div class="seg"><button class="${S.proyHoy?'on':''}" onclick="S.proyHoy=true;renderProyeccion()">€ hoy</button><button class="${!S.proyHoy?'on':''}" onclick="S.proyHoy=false;renderProyeccion()">€ futuro</button></div>
+    </div></div>
+  <div class="split">
+    <div class="chartbox">
+      ${lineChart({series:[{values:vals,color:'var(--blue)',area:true}],h:240,clickFn:'proySetAnyo',selYear:sel,hitos,deflate:S.proyHoy})}
+      <div class="tiny" style="margin-top:4px">Pincha en la línea para fijar un año · ● hitos del plan base · ${S.proyHoy?'valores deflactados al 2 % anual (€ de hoy)':'valores nominales (€ futuros)'}.</div>
+    </div>
+    <div class="sidep">
+      ${sel?`
+        <div class="lbl">Año fijado</div><div class="h2 num">${sel}</div>
+        <div style="margin:8px 0 4px;display:flex;justify-content:space-between" class="sub"><span>${SERIES_DEF[S.proySerie]}</span>
+          <b class="num">${eur(deflactar(vals[ANYOS.indexOf(sel)]??0, sel, S.proyHoy))}</b></div>
+        <div class="lbl" style="margin-top:14px;margin-bottom:4px">Eventos de ${sel}</div>
+        ${evAno.length?evAno.map(e=>tplEvt(e,'base')).join(''):`<div class="empty" style="padding:14px 4px">Sin eventos en ${sel}.</div>`}
+        <button class="btn sm" style="margin-top:8px" onclick="abrirEvento({modo:'evento',el:null,elNombre:null,tipoEl:null,destino:'plan',anyo:${sel}})">+ Añadir evento en ${sel}</button>
+      `:`
+        <div class="lbl">Eventos del plan base</div>
+        <div style="margin-top:6px">${eventosBase.map(e=>tplEvt(e,'base')).join('')||'<div class="empty">Sin eventos anotados.</div>'}</div>
+        <button class="btn sm" style="margin-top:8px" onclick="abrirEvento({modo:'evento',el:null,elNombre:null,tipoEl:null,destino:'plan'})">+ Añadir evento</button>
+        <div class="tiny" style="margin-top:10px">Todo lo que anotas desde las fichas se refleja aquí.</div>`}
+    </div>
+  </div>`;
+}
+function proySetAnyo(y){ S.proyAnyo = (S.proyAnyo===y? null : y); renderProyeccion(); }
+function tplEvt(e,origen){
+  return `<div class="evt"><span class="evt-dot ${e.intro?'intro':''}"></span>
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600">${e.titulo}</div>
+      <div class="tiny">${e.anyo} · ${e.el||''}</div>
+      ${e.calc?`<div class="calc-chip" style="margin-top:4px">${e.calc}</div>`:''}
+      ${e.intro?`<div class="intro-chip" style="margin-top:4px">✎ Introducido por el asesor · no calculado</div>`:''}
+      ${e.detalle&&!e.calc&&!e.intro?`<div class="tiny" style="margin-top:2px">${e.detalle}</div>`:''}
+    </div>
+    <div class="evt-actions">
+      <button onclick="editarEvento(${e.id},'${origen}')">Editar</button>
+      <button onclick="borrarEvento(${e.id},'${origen}')">Eliminar</button>
+    </div></div>`;
+}
+function borrarEvento(id,origen){
+  if(origen==='base') eventosBase=eventosBase.filter(e=>e.id!==id);
+  else { const esc=escenarios.find(x=>x.id===origen); if(esc) esc.eventos=esc.eventos.filter(e=>e.id!==id); }
+  refreshVista(); toast('Evento eliminado');
+}
+function editarEvento(id,origen){ toast('Edición simulada en esta demo — elimina y vuelve a crear el evento'); }
+function refreshVista(){
+  if(S.cview==='proyeccion') renderProyeccion();
+  if(S.cview==='escenarios') renderEscenarios();
+  if(S.cview==='patrimonio') renderPatrimonio();
+}
+
+/* ═══ P6 · ESCENARIOS + COMPARADOR ═══ */
+function escEventos(esc){ return esc.base ? eventosBase.concat(esc.eventos) : esc.eventos; }
+function renderEscenarios(){
+  const modo = S.escModo||'detalle';
+  const esc = escenarios.find(x=>x.id===S.escSel)||escenarios[0];
+  const nSel = S.escCmp.length;
+  $('esc-body').innerHTML=`
+  <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:12px">
+    <div><div class="lbl">Escenarios</div><div class="h2">Espacio de trabajo · sin pasos guiados</div></div>
+    <button class="btn coral" onclick="clonarEscenario('base')">+ Nuevo escenario (clona el plan base)</button></div>
+  <div class="esc-grid">
+    <div>
+      ${escenarios.map(e=>`
+        <div class="esc-item ${e.id===S.escSel&&modo==='detalle'?'on':''}" onclick="S.escSel='${e.id}';S.escModo='detalle';renderEscenarios()">
+          <div style="display:flex;align-items:center;gap:8px;justify-content:space-between">
+            <b style="font-size:12.5px">${e.nombre}</b>
+            ${e.base?'<span class="base-tag">Plan base</span>':''}
+          </div>
+          <div class="tiny" style="margin:4px 0 8px">${escEventos(e).length} evento${escEventos(e).length!==1?'s':''} · supuestos ${e.rent.toLocaleString('es-ES')} % / ${e.infl.toLocaleString('es-ES')} %</div>
+          <div style="display:flex;align-items:center;gap:10px" onclick="event.stopPropagation()">
+            <label style="display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--slate);cursor:pointer">
+              <input type="checkbox" class="chk" ${S.escCmp.includes(e.id)?'checked':''} onchange="toggleCmp('${e.id}')"> Comparar</label>
+            <button class="btn ghost sm" onclick="clonarEscenario('${e.id}')">⧉ Clonar</button>
+          </div>
+        </div>`).join('')}
+      <button class="btn" style="width:100%;justify-content:center" ${nSel<2?'disabled':''} onclick="S.escModo='comparador';renderEscenarios()">Comparar seleccionados (${nSel})</button>
+    </div>
+    <div>${modo==='comparador'? tplComparador() : tplEscenarioDetalle(esc)}</div>
+  </div>`;
+}
+function toggleCmp(id){
+  if(S.escCmp.includes(id)) S.escCmp=S.escCmp.filter(x=>x!==id);
+  else S.escCmp.push(id);
+  renderEscenarios();
+}
+function clonarEscenario(deId){
+  const de=escenarios.find(x=>x.id===deId);
+  const letra=String.fromCharCode(nextEscLetra++);
+  const nuevo={ id:letra, nombre:letra+' · Nuevo escenario', base:false, rent:de.rent, infl:de.infl,
+    impuestos:de.base?0:de.impuestos, eventos: escEventos(de).map(e=>({...e, id:nextEvId++})) };
+  escenarios.push(nuevo); S.escSel=letra; S.escModo='detalle'; renderEscenarios();
+  toast('Escenario clonado · añade eventos de cualquier activo');
+}
+function tplEscenarioDetalle(esc){
+  const evs=escEventos(esc);
+  return `
+  <div class="sidep" style="padding:16px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">
+      <div><div class="lbl">Escenario</div><div class="h2">${esc.nombre}</div>
+        ${esc.base?'<div class="tiny" style="margin-top:2px">La vida «tal como va» — comparable y editable como cualquier otro.</div>':''}</div>
+      <div class="toolbar">
+        <span class="tiny">Supuestos:</span>
+        <label class="tiny">Rentabilidad <input type="number" step="0.1" value="${esc.rent}" style="width:56px;border:1px solid var(--line-2);border-radius:6px;padding:4px 6px" onchange="setSupuesto('${esc.id}','rent',this.value)"> %</label>
+        <label class="tiny">Inflación <input type="number" step="0.1" value="${esc.infl}" style="width:56px;border:1px solid var(--line-2);border-radius:6px;padding:4px 6px" onchange="setSupuesto('${esc.id}','infl',this.value)"> %</label>
+      </div></div>
+    <div class="lbl" style="margin:14px 0 4px">Eventos del escenario</div>
+    ${evs.length?evs.map(e=>tplEvt(e, esc.base?'base':esc.id)).join(''):'<div class="empty">Sin eventos. Añade el primero — de cualquier activo.</div>'}
+    <div style="display:flex;gap:8px;margin-top:10px;align-items:center">
+      <button class="btn primary sm" onclick="abrirEvento({modo:'evento',el:null,elNombre:null,tipoEl:null,destino:'${esc.id}'})">+ Añadir evento</button>
+      <span class="tiny">El menú de eventos aparece completo — el escenario es del cliente, no de un activo.</span></div>
+  </div>`;
+}
+function setSupuesto(id,k,v){ const e=escenarios.find(x=>x.id===id); if(e){ e[k]=parseFloat(v)||e[k]; toast('Supuesto actualizado (recomputación simulada)'); } }
+
+function tplComparador(){
+  const sel = escenarios.filter(e=>S.escCmp.includes(e.id));
+  const met = S.cmpMetrica;
+  const COLS=['var(--ink)','var(--blue)','#8FA0BE','var(--ink-3)','var(--faintest)'];
+  const seriesData = sel.map((e,i)=>({values:serieEscenario(e.id, met==='irpfacum'?'irpfacum':met), color:COLS[i%COLS.length], dash:i===2?'5 4':null, name:e.nombre}));
+  const selY=S.cmpAnyo;
+  const conCifra = sel.filter(e=>!e.base);
+  const delta = conCifra.length>=2 ? Math.abs(conCifra[0].impuestos-conCifra[1].impuestos) : null;
+  return `
+  <div class="sidep" style="padding:16px 18px">
+    <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+      <div><div class="lbl">Comparador</div><div class="h2">${sel.map(e=>e.nombre).join('  vs  ')}</div></div>
+      <div class="toolbar">
+        <div class="chips">
+          <button class="${met==='patrimonio'?'on':''}" onclick="S.cmpMetrica='patrimonio';renderEscenarios()">Patrimonio</button>
+          <button class="${met==='liquidos'?'on':''}" onclick="S.cmpMetrica='liquidos';renderEscenarios()">Líquidos</button>
+          <button class="${met==='irpfacum'?'on':''}" onclick="S.cmpMetrica='irpfacum';renderEscenarios()">IRPF acumulado</button></div>
+        <div class="seg"><button class="${S.proyHoy?'on':''}" onclick="S.proyHoy=true;renderEscenarios()">€ hoy</button><button class="${!S.proyHoy?'on':''}" onclick="S.proyHoy=false;renderEscenarios()">€ futuro</button></div>
+        <button class="btn primary sm" onclick="openInforme('comparador')">Generar informe</button>
+      </div></div>
+    <div class="chartbox" style="margin-top:12px">
+      ${lineChart({series:seriesData,h:230,clickFn:'cmpSetAnyo',selYear:selY,deflate:S.proyHoy})}
+      <div class="legend">${seriesData.map(s=>`<span><i style="background:${s.color}"></i>${s.name}</span>`).join('')}
+        <span style="margin-left:auto" class="tiny">Pincha para fijar un año</span></div>
+    </div>
+
+    <div class="fila-fiscal" style="margin-top:12px">
+      <div class="ff-lbl">Impuestos del periodo 2026–2033</div>
+      <div class="ff-cells">
+        ${sel.map(e=>`<div class="ff-cell"><div class="ff-name">${e.nombre}</div><div class="ff-val">${eur(e.base?0:e.impuestos)}</div></div>`).join('')}
+        ${delta!=null?`<div class="ff-cell"><div class="ff-name">Δ diferencia</div><div class="ff-val">${eur(delta)}</div></div>`:''}
+      </div>
+      <div class="ff-note">Cálculo orientativo · parámetros (a verificar) · Scenia muestra las cifras; la conclusión es del asesor.</div>
+    </div>
+
+    <div class="lbl" style="margin:16px 0 6px">Eventos de cada escenario</div>
+    <div style="display:grid;grid-template-columns:repeat(${sel.length},1fr);gap:12px">
+      ${sel.map(e=>`<div>
+        <div style="font-size:11.5px;font-weight:700;margin-bottom:4px">${e.nombre}</div>
+        ${escEventos(e).map(x=>`<div class="evt"><span class="evt-dot ${x.intro?'intro':''}"></span>
+          <div><div style="font-size:11.5px;font-weight:600">${x.titulo}</div><div class="tiny">${x.anyo}</div></div></div>`).join('')||'<div class="tiny mut">Sin eventos propios.</div>'}
+      </div>`).join('')}
+    </div>
+    ${selY?`<div class="tiny" style="margin-top:10px">Año fijado: <b class="num">${selY}</b> · ${met==='irpfacum'?'IRPF acumulado':'valor'} por escenario: ${sel.map((e,i)=>`${e.nombre} <b class="num">${eur(deflactar(seriesData[i].values[ANYOS.indexOf(selY)]||0,selY,S.proyHoy))}</b>`).join(' · ')}</div>`:''}
+  </div>`;
+}
+function cmpSetAnyo(y){ S.cmpAnyo=(S.cmpAnyo===y?null:y); renderEscenarios(); }
+
+/* ═══ FICHAS (drill-down) ═══ */
+function abrirFicha(tipo,id){
+  S.fichaPrev={cview:S.cview, patTab:S.patTab};
+  document.querySelectorAll('.cview').forEach(x=>x.style.display='none');
+  $('cv-ficha').style.display='block';
+  const b=$('ficha-body');
+  if(tipo==='persona') b.innerHTML=fPersona(id);
+  if(tipo==='portfolio') b.innerHTML=fPortfolio(id);
+  if(tipo==='inmueble') b.innerHTML=fInmueble(id);
+  if(tipo==='sociedad') b.innerHTML=fSociedad(id);
+  if(tipo==='otros') b.innerHTML=fOtros(id);
+  window.scrollTo(0,0);
+}
+function volverFicha(){
+  const p=S.fichaPrev||{cview:'patrimonio',patTab:'activos'};
+  S.patTab=p.patTab;
+  document.querySelectorAll('#pat-tabs button').forEach(x=>x.classList.toggle('on',x.dataset.t===p.patTab));
+  goClientView(p.cview);
+}
+const back = txt => `<button class="backlink" onclick="volverFicha()">‹ ${txt}</button>`;
+
+function fPersona(id){
+  const p=seed.personas.find(x=>x.id===id);
+  const agg = id==='carlos'
+    ? [['Fondo A · RV global','60 %',180000],['Plan de pensiones','100 %',120000],['Vivienda · Jávea','50 %',210000],['Audi Q8','100 %',45000],['García Consulting SL','100 %',null]]
+    : [['Fondo A · RV global','40 %',120000],['Vivienda · Jávea','50 %',210000]];
+  const tot = id==='carlos'?555000:330000;
+  return `${back('Patrimonio · Personas')}
+  <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px">
+    <span class="av" style="width:40px;height:40px;font-size:14px">${p.nombre.split(' ').map(w=>w[0]).join('')}</span>
+    <div><div class="lbl">Ficha · Persona</div><div class="h1" style="font-size:22px">${p.nombre}</div></div>
+    <div style="margin-left:auto">${evBtn(id,p.nombre,'persona')}</div></div>
+  <div class="kv">
+    <div><div class="lbl">Nacimiento</div><div class="v">${p.nac} · ${p.edad} años</div></div>
+    <div><div class="lbl">Comunidad autónoma</div><div class="v" style="font-size:12.5px">${p.ccaa}</div></div>
+    <div><div class="lbl">Ingresos del año</div><div class="v">${eur(p.ingresos)}</div><div class="tiny">alimenta el motor fiscal</div></div>
+    <div><div class="lbl">Jubilación prevista</div><div class="v">${p.jubilacion} (65)</div><div class="tag-manual" style="margin-top:4px">✎ estimación del asesor</div></div>
+  </div>
+  <div class="lbl" style="margin:18px 0 6px">Patrimonio atribuido · ${eur(tot)}</div>
+  <table><thead><tr><th>Elemento</th><th class="right">Titularidad</th><th class="right">Valor atribuido</th></tr></thead>
+  <tbody>${agg.map(a=>`<tr><td><b>${a[0]}</b></td><td class="right num">${a[1]}</td>
+    <td class="right num">${a[2]!=null?eur(a[2]):'<span class="mut">no valorada</span>'}</td></tr>`).join('')}</tbody></table>`;
+}
+
+function fPortfolio(id){
+  const a=seed.activos.portfolio.find(x=>x.id===id);
+  return `${back('Patrimonio · Activos')}
+  <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div><div class="lbl">Ficha · Portfolio financiero</div><div class="h1" style="font-size:22px">${a.nombre}</div>
+    <div class="tiny" style="margin-top:2px">${a.tipoFiscal}</div></div>
+    <div style="margin-left:auto">${evBtn(a.id,a.nombre,a.id==='plan'?'plan':'fondo')}</div></div>
+  <div class="kv">
+    <div><div class="lbl">Valor actual</div><div class="v">${eur(a.valor)}</div></div>
+    <div><div class="lbl">Fecha de adquisición</div><div class="v">${a.adq}</div><div class="tiny">clave para traspaso y FIFO</div></div>
+    ${a.coste!=null?`<div><div class="lbl">Coste de adquisición</div><div class="v">${eur(a.coste)}</div></div>
+    <div><div class="lbl">Plusvalía latente</div><div class="v gain">+${eur(a.plusv)}</div><div class="tiny">hecho objetivo del activo</div></div>`:''}
+    <div><div class="lbl">Liquidez</div><div class="v" style="font-size:12px">${liqBadge(a.liq)}</div></div>
+  </div>
+  <div class="lbl" style="margin:18px 0 6px">Reparto de titularidad</div>
+  <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:12px 14px;max-width:420px">
+    <span class="tiny">${titTxt(a.tit)}</span>${titBar(a.tit)}
+    <div class="tiny" style="margin-top:8px">Cada titular tributa su parte en su propia escala — por eso el reparto vive en el instrumento.</div></div>
+  <div class="lbl" style="margin:18px 0 6px">Acciones sobre este instrumento</div>
+  <div class="tiny">Reembolsar · Traspasar · Pignorar · Aportar — desde «⚡ Evento». El motor calcula; tú nunca tecleas un tipo impositivo.</div>`;
+}
+
+function fInmueble(id){
+  const a=seed.activos.inmuebles.find(x=>x.id===id);
+  const h=seed.pasivos[0];
+  return `${back('Patrimonio · Activos')}
+  <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div><div class="lbl">Ficha · Inmueble</div><div class="h1" style="font-size:22px">${a.nombre}</div></div>
+    <div style="margin-left:auto">${evBtn(a.id,a.nombre,'inmueble')}</div></div>
+  <div class="kv">
+    <div><div class="lbl">Valor actual</div><div class="v">${eur(a.valor)}</div></div>
+    <div><div class="lbl">Adquisición</div><div class="v">${a.adq} · ${eur(a.coste)}</div></div>
+    <div><div class="lbl">Plusvalía latente</div><div class="v gain">+${eur(a.plusv)}</div></div>
+    <div><div class="lbl">Liquidez</div><div class="v" style="font-size:12px">${liqBadge(a.liq)}</div></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+      <div class="lbl" style="margin-bottom:8px">Hipoteca asociada</div>
+      <div class="sub" style="display:flex;justify-content:space-between;padding:4px 0"><span>Capital pendiente</span><b class="num">${eur(h.pendiente)}</b></div>
+      <div class="sub" style="display:flex;justify-content:space-between;padding:4px 0"><span>Tipo</span><b class="num">${h.tipo.toLocaleString('es-ES')} %</b></div>
+      <div class="sub" style="display:flex;justify-content:space-between;padding:4px 0"><span>Cuota</span><b class="num">${eur(h.cuota)}/mes</b></div>
+    </div>
+    <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+      <div class="lbl" style="margin-bottom:6px">Reparto de titularidad</div>
+      <span class="tiny">${titTxt(a.tit)}</span>${titBar(a.tit)}
+      <div class="tiny" style="margin-top:10px">Acciones: Vender (regla >65) · Amortizar hipoteca — desde «⚡ Evento».</div>
+    </div>
+  </div>`;
+}
+
+function fSociedad(id){
+  return `${back('Patrimonio · Activos')}
+  <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div><div class="lbl">Ficha · Sociedad</div><div class="h1" style="font-size:22px">García Consulting SL</div></div>
+    <div style="margin-left:auto">${evBtn('gcsl','García Consulting SL','sociedad')}</div></div>
+  <div class="kv">
+    <div><div class="lbl">NIF</div><div class="v" style="font-size:13px">B-98··· (demo)</div></div>
+    <div><div class="lbl">Constitución</div><div class="v">2015</div></div>
+    <div><div class="lbl">Capital social</div><div class="v">${eur(3000)}</div></div>
+    <div><div class="lbl">Situación mercantil</div><div class="v" style="font-size:12.5px">Activa</div></div>
+    <div><div class="lbl">Objeto social</div><div class="v" style="font-size:12px;font-weight:500">Servicios de consultoría</div></div>
+  </div>
+  <div class="grid2" style="margin-top:16px">
+    <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+      <div class="lbl" style="margin-bottom:8px">Participación</div>
+      <table><thead><tr><th>Persona</th><th class="right">%</th></tr></thead>
+      <tbody><tr><td><b>Carlos García</b></td><td class="right num">100 %</td></tr></tbody></table>
+    </div>
+    <div style="border:1px solid var(--line-2);border-radius:10px;background:#fff;padding:13px 15px">
+      <div class="lbl" style="margin-bottom:8px">Activos de la sociedad</div>
+      <div class="empty" style="padding:12px 4px">Sin activos registrados a nombre de la sociedad.</div>
+    </div>
+  </div>
+  <div style="margin-top:14px;border:1px solid var(--line-2);border-radius:10px;background:var(--paper-2);padding:14px 16px">
+    <span class="tag-pend">Fiscalidad societaria · pendiente de definir</span>
+    <div class="sub" style="margin-top:8px">El liquidador de Impuesto de Sociedades aún no existe en Scenia. Los eventos de esta ficha (repartir dividendo, vender participación) <b>se registran sin cálculo fiscal</b> — no se muestran cifras que el motor no puede calcular.</div>
+  </div>`;
+}
+
+function fOtros(id){
+  const a=seed.activos.otros.find(x=>x.id===id);
+  return `${back('Patrimonio · Activos')}
+  <div style="display:flex;align-items:flex-start;gap:12px;margin-bottom:14px;flex-wrap:wrap">
+    <div><div class="lbl">Ficha · Otros activos</div><div class="h1" style="font-size:22px">${a.nombre}</div>
+    <div class="tiny" style="margin-top:2px">${a.tipo}</div></div>
+    <div style="margin-left:auto">${evBtn(a.id,a.nombre,'otros')}</div></div>
+  <div class="kv">
+    <div><div class="lbl">Valor actual</div><div class="v">${eur(a.valor)}</div></div>
+    <div><div class="lbl">Fecha de adquisición</div><div class="v">${a.adq}</div></div>
+    <div><div class="lbl">Titularidad</div><div class="v" style="font-size:12.5px">${titTxt(a.tit)}</div></div>
+    <div><div class="lbl">Liquidez</div><div class="v" style="font-size:12px">${liqBadge(a.liq)}</div></div>
+  </div>
+  <div class="tiny" style="margin-top:14px">La venta de este activo va por el <b>evento genérico</b> (sin cálculo fiscal): genera ganancia patrimonial en IRPF, pero está fuera de las 5 reglas del motor.</div>`;
+}
+
+/* ═══ CT1 · PLANTILLA DE EVENTO ═══ */
+const ELEMENTOS_MENU=[
+  {id:'fondoA', n:'Fondo A · RV global', t:'fondo'},
+  {id:'plan', n:'Plan de pensiones (Carlos)', t:'plan'},
+  {id:'javea', n:'Vivienda · Jávea', t:'inmueble'},
+  {id:'hipo', n:'Hipoteca Banco Levante', t:'pasivo'},
+  {id:'audi', n:'Audi Q8', t:'otros'},
+  {id:'gcsl', n:'García Consulting SL', t:'sociedad'},
+  {id:'carlos', n:'Carlos García', t:'persona'},
+  {id:'marta', n:'Marta Llorente', t:'persona'},
+  {id:'generico', n:'Evento genérico (ingreso · gasto · movimiento)', t:'generico'}
+];
+const ACCIONES={
+  fondo:[['reembolsar','Reembolsar','Plusvalía → base del ahorro (FIFO)'],['traspasar','Traspasar','Neutro · Art. 94'],['pignorar','Pignorar','No realiza plusvalía'],['aportar','Aportar','Sin consecuencia fiscal']],
+  plan:[['rescatar','Rescatar plan','Base general · capital / renta / mixto']],
+  inmueble:[['vender','Vender','Exención >65 por reinversión'],['amortizar','Amortizar hipoteca','Amortizar vs invertir'],['comprar','Comprar inmueble','Sin fiscalidad · crea activo']],
+  pasivo:[['amortizar','Amortizar hipoteca','Amortizar vs invertir']],
+  sociedad:[['dividendo','Repartir dividendo','Sin cálculo · IS pendiente'],['venderpart','Vender participación','Sin cálculo · IS pendiente']],
+  persona:[['jubilarse','Jubilarse','Pensión estimada a mano']],
+  otros:[['generico','Vender / movimiento (genérico)','Sin cálculo fiscal']],
+  generico:[['generico','Evento genérico','Sin cálculo fiscal']]
+};
+let EV={};
+function abrirEvento(cfg){
+  EV={paso: cfg.el?2:1, cfg, el:cfg.el, tipoEl:(cfg.tipoEl||'').split('|')[0], accion:null, anyo:cfg.anyo||2026, destino:cfg.destino||'plan'};
+  if(cfg.modo==='alta'){ renderAlta(cfg); openOv('ov-evento'); return; }
+  renderEvento(); openOv('ov-evento');
+}
+function renderAlta(cfg){
+  $('ev-sup').textContent='Alta de elemento'; $('ev-title').textContent='Nuevo elemento · '+cfg.grupo;
+  $('ev-body').innerHTML=`
+    <div class="field"><label class="lbl">Nombre</label><input type="text" id="alta-el-n" placeholder="Ej.: Fondo indexado global"></div>
+    <div class="grid2"><div class="field"><label class="lbl">Valor</label><input type="number" placeholder="0"></div>
+    <div class="field"><label class="lbl">Año de adquisición</label><input type="number" value="2026"></div></div>
+    <div class="tiny">Carga por capas: lo mínimo ahora, el detalle después desde su ficha.</div>`;
+  $('ev-foot').innerHTML=`<button class="btn" onclick="closeOv('ov-evento')">Cancelar</button>
+    <button class="btn primary" onclick="closeOv('ov-evento');toast('Alta simulada — el mockup no persiste elementos nuevos')">Guardar</button>`;
+}
+function renderEvento(){
+  const dNombre = EV.destino==='plan' ? 'Plan base (Situación actual)' : (escenarios.find(x=>x.id===EV.destino)||{}).nombre;
+  $('ev-sup').textContent='Nuevo evento · destino: '+dNombre;
+  if(EV.paso===1){
+    $('ev-title').textContent='¿Sobre qué elemento?';
+    $('ev-body').innerHTML=`<div class="opt-grid">${ELEMENTOS_MENU.map(e=>
+      `<button onclick="EV.el='${e.id}';EV.tipoEl='${e.t}';EV.paso=2;renderEvento()">${e.n}<span class="tiny">${e.t==='generico'?'sin cálculo fiscal':'menú de acciones de este elemento'}</span></button>`).join('')}</div>
+      <div class="tiny">Menú completo: el escenario es del cliente, no de un activo.</div>`;
+    $('ev-foot').innerHTML=`<button class="btn" onclick="closeOv('ov-evento')">Cancelar</button>`;
+    return;
+  }
+  if(EV.paso===2){
+    const acs=ACCIONES[EV.tipoEl]||ACCIONES.generico;
+    if(acs.length===1){ EV.accion=acs[0][0]; EV.paso=3; renderEvento(); return; }
+    $('ev-title').textContent='¿Qué decisión?';
+    $('ev-body').innerHTML=`<div class="tiny" style="margin-bottom:2px">Elemento: <b>${(ELEMENTOS_MENU.find(x=>x.id===EV.el)||{n:EV.cfg.elNombre}).n}</b></div>
+      <div class="opt-grid">${acs.map(a=>`<button onclick="EV.accion='${a[0]}';EV.paso=3;renderEvento()">${a[1]}<span class="tiny">${a[2]}</span></button>`).join('')}</div>`;
+    $('ev-foot').innerHTML=`<button class="btn" onclick="${EV.cfg.el?"closeOv('ov-evento')":"EV.paso=1;renderEvento()"}">‹ Atrás</button>`;
+    return;
+  }
+  renderEventoForm();
+}
+function campoImporte(lbl,id,v){ return `<div class="field"><label class="lbl">${lbl}</label><input type="number" id="${id}" value="${v}"></div>`; }
+function campoAnyo(id){ return `<div class="field"><label class="lbl">Año</label><input type="number" id="${id}" value="${EV.anyo}"></div>`; }
+function titLinea(){
+  const el=seed.activos.portfolio.concat(seed.activos.inmuebles,seed.activos.otros).find(x=>x.id===EV.el);
+  if(el&&el.tit&&Object.keys(el.tit).length>1)
+    return `<div class="hint-info"><b>ⓘ</b><span>Actúa sobre <b>${titTxt(el.tit)}</b> — proporcional al reparto de titularidad. Cada titular tributa su parte en su escala.</span></div>`;
+  return '';
+}
+function renderEventoForm(){
+  const a=EV.accion, F={};
+  let html='', preview='';
+  const nombreEl=(ELEMENTOS_MENU.find(x=>x.id===EV.el)||{n:EV.cfg.elNombre||''}).n;
+  $('ev-title').textContent={reembolsar:'Reembolsar',traspasar:'Traspasar',pignorar:'Pignorar',aportar:'Aportar',rescatar:'Rescatar plan',vender:'Vender inmueble',amortizar:'Amortizar hipoteca',comprar:'Comprar inmueble',jubilarse:'Jubilarse',dividendo:'Repartir dividendo',venderpart:'Vender participación',generico:'Evento genérico'}[a]+' · '+nombreEl;
+  if(a==='reembolsar') html=`<div class="grid2">${campoImporte('Importe anual','ev-imp',35000)}${campoAnyo('ev-a')}</div>
+    <div class="grid2">${campoImporte('Hasta el año','ev-a2',2031)}<div></div></div>${titLinea()}
+    <div class="calc-chip" style="align-self:flex-start">Plusvalía estimada (FIFO) → base del ahorro · cuota ≈ 2.400 €/año · orientativo</div>`;
+  if(a==='traspasar') html=`<div class="field"><label class="lbl">Fondo destino</label><input type="text" value="Fondo B · RF mixta"></div>${campoAnyo('ev-a')}${titLinea()}
+    <div class="calc-chip" style="align-self:flex-start">Neutro (Art. 94) · cuota 0 € · el destino hereda valor y fecha · orientativo</div>`;
+  if(a==='pignorar') html=`${campoImporte('Importe pignorado','ev-imp',100000)}${campoAnyo('ev-a')}
+    <div class="calc-chip" style="align-self:flex-start">No realiza plusvalía · cuota 0 € · coste financiero según entidad · orientativo</div>`;
+  if(a==='aportar') html=`<div class="grid2">${campoImporte('Importe','ev-imp',10000)}${campoAnyo('ev-a')}</div>
+    <div class="calc-chip" style="align-self:flex-start">Sin consecuencia fiscal en el momento de la aportación</div>`;
+  if(a==='rescatar') html=`<div><label class="lbl" style="display:block;margin-bottom:6px">Modalidad</label>
+    <div class="radio-row"><label><input type="radio" name="ev-mod" checked> Capital</label><label><input type="radio" name="ev-mod"> Renta</label><label><input type="radio" name="ev-mod"> Mixto</label></div></div>
+    <div class="grid2">${campoImporte('Importe anual','ev-imp',15000)}${campoAnyo('ev-a')}</div>
+    <div class="calc-chip" style="align-self:flex-start">Base general · se apila sobre los ingresos del año (Carlos: 95.000 €) · cuota ≈ 5.600 €/año · orientativo</div>`;
+  if(a==='vender') html=`<div class="grid2">${campoImporte('Importe de venta','ev-imp',420000)}${campoAnyo('ev-a')}</div>
+    <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" id="ev-reinv" class="chk" checked onchange="renderEventoForm()"> Reinversión en renta vitalicia (mayor de 65)</label>${titLinea()}
+    <div class="calc-chip" style="align-self:flex-start">${$('ev-reinv')&&!$('ev-reinv').checked?'Plusvalía ≈ 125.000 € → base del ahorro · cuota ≈ 27.300 € · orientativo':'Exención por reinversión >65 · límite (a verificar) · cuota ≈ 0 € · orientativo'}</div>`;
+  if(a==='amortizar') html=`<div class="grid2">${campoImporte('Importe a amortizar','ev-imp',50000)}${campoAnyo('ev-a')}</div>
+    <div class="calc-chip" style="align-self:flex-start">Interés ahorrado 2,9 % vs rentabilidad esperada 4,0 % · sin cuota fiscal directa · orientativo</div>`;
+  if(a==='comprar') html=`<div class="grid2">${campoImporte('Precio','ev-imp',250000)}${campoAnyo('ev-a')}</div>
+    <label style="display:inline-flex;align-items:center;gap:7px;font-size:12px"><input type="checkbox" class="chk"> Con hipoteca</label>
+    <div class="calc-chip" style="align-self:flex-start">Sin fiscalidad en IRPF · crea el activo y descuenta liquidez</div>`;
+  if(a==='jubilarse') html=`<div class="grid2">${campoAnyo('ev-a')}${campoImporte('Pensión anual estimada','ev-imp',32000)}</div>
+    <div class="intro-chip" style="align-self:flex-start">✎ Pensión introducida por el asesor · no calculada (motor de pensión: V2)</div>`;
+  if(a==='dividendo'||a==='venderpart') html=`<div class="grid2">${campoImporte('Importe','ev-imp',20000)}${campoAnyo('ev-a')}</div>
+    <div style="border:1px solid var(--line-2);border-radius:8px;background:var(--paper-2);padding:10px 12px">
+    <span class="tag-pend">Sin cálculo · liquidador de IS pendiente de definir</span>
+    <div class="tiny" style="margin-top:6px">El evento se registra en el escenario, pero Scenia no muestra cifras fiscales societarias que no puede calcular.</div></div>`;
+  if(a==='generico') html=`<div><label class="lbl" style="display:block;margin-bottom:6px">Tipo</label>
+    <div class="radio-row"><label><input type="radio" name="ev-gt" checked> Ingreso</label><label><input type="radio" name="ev-gt"> Gasto</label><label><input type="radio" name="ev-gt"> Movimiento libre</label></div></div>
+    <div class="field"><label class="lbl">Título</label><input type="text" id="ev-tit" placeholder="Ej.: Ingreso extraordinario"></div>
+    <div class="grid2">${campoImporte('Importe','ev-imp',10000)}${campoAnyo('ev-a')}</div>
+    ${campoImporte('Impacto fiscal estimado (opcional)','ev-fis','')}
+    <div class="intro-chip" style="align-self:flex-start">✎ Si tecleas un impacto fiscal, se marcará «introducido por el asesor, no calculado»</div>`;
+  $('ev-body').innerHTML=html;
+  $('ev-foot').innerHTML=`<button class="btn" onclick="EV.paso=2;renderEvento()">‹ Atrás</button>
+    <button class="btn primary" onclick="guardarEvento()">Guardar evento</button>`;
+}
+function guardarEvento(){
+  const a=EV.accion;
+  const imp=$('ev-imp')?+$('ev-imp').value:null;
+  const anyo=$('ev-a')?+$('ev-a').value:EV.anyo;
+  const nombreEl=(ELEMENTOS_MENU.find(x=>x.id===EV.el)||{n:EV.cfg.elNombre||''}).n;
+  const defs={
+    reembolsar:{t:`Reembolsar ${nombreEl} · ${eur(imp||0)}/año`, c:'IRPF (base del ahorro) ≈ 2.400 €/año · orientativo'},
+    traspasar:{t:`Traspasar ${nombreEl} → Fondo B (Art. 94)`, c:'Cuota 0 € · orientativo'},
+    pignorar:{t:`Pignorar ${nombreEl} · ${eur(imp||0)}`, c:'Cuota 0 € · orientativo'},
+    aportar:{t:`Aportar a ${nombreEl} · ${eur(imp||0)}`, c:'Sin consecuencia fiscal'},
+    rescatar:{t:`Rescatar plan · ${eur(imp||0)}/año`, c:'IRPF (base general) ≈ 5.600 €/año · orientativo'},
+    vender:{t:`Vender ${nombreEl} · ${eur(imp||0)}`, c:($('ev-reinv')&&$('ev-reinv').checked)?'Exención >65 · cuota ≈ 0 € · orientativo':'IRPF (base del ahorro) ≈ 27.300 € · orientativo'},
+    amortizar:{t:`Amortizar hipoteca · ${eur(imp||0)}`, c:'Sin cuota fiscal directa · orientativo'},
+    comprar:{t:`Comprar inmueble · ${eur(imp||0)}`, c:'Sin fiscalidad · descuenta liquidez'},
+    jubilarse:{t:`Jubilación (${anyo}) · pensión ${eur(imp||0)}/año`, intro:true},
+    dividendo:{t:`Repartir dividendo · ${eur(imp||0)}`, pend:true},
+    venderpart:{t:`Vender participación · ${eur(imp||0)}`, pend:true},
+    generico:{t:($('ev-tit')&&$('ev-tit').value.trim())||'Evento genérico', intro:true}
+  };
+  const d=defs[a]||defs.generico;
+  const fis=$('ev-fis')&&$('ev-fis').value;
+  const ev={ id:nextEvId++, anyo, titulo:d.t, el:nombreEl,
+    detalle: d.pend?'Registro sin cálculo · liquidador de IS pendiente de definir':'',
+    calc: d.c||null, intro: !!d.intro||(a==='generico'&&!!fis) };
+  if(d.pend){ ev.calc=null; ev.detalle='Registro sin cálculo · liquidador de IS pendiente de definir'; }
+  if(EV.destino==='plan') eventosBase.push(ev);
+  else { const esc=escenarios.find(x=>x.id===EV.destino); if(esc) esc.eventos.push(ev); }
+  closeOv('ov-evento'); refreshVista();
+  toast(`Evento añadido a ${EV.destino==='plan'?'el plan base — se refleja en Proyección':'el escenario'}`);
+}
+
+/* ═══ CT3 · INFORME ═══ */
+function openInforme(ctx){
+  S.informeCtx=ctx;
+  $('inf-title').textContent = ctx==='foto' ? 'Informe de la foto patrimonial' : 'Informe de la comparación';
+  $('inf-nombre').value = ctx==='foto'
+    ? 'Foto patrimonial · Familia García-Llorente · '+fmtFecha(HOY)
+    : 'Comparación de escenarios · '+escenarios.filter(e=>S.escCmp.includes(e.id)).map(e=>e.nombre).join(' vs ');
+  $('inf-nota').value=''; $('inf-nota').classList.remove('err'); $('inf-nota-err').classList.remove('on');
+  $('inf-fecha').textContent=fmtFecha(HOY);
+  openOv('ov-informe');
+}
+function informeGenerar(){
+  const nota=$('inf-nota').value.trim();
+  if(!nota){ $('inf-nota').classList.add('err'); $('inf-nota-err').classList.add('on'); return; }
+  historial.unshift({ fecha:fmtFecha(HOY), titulo:$('inf-nombre').value.trim()||'Informe',
+    tipo:S.informeCtx==='foto'?'Foto del patrimonio':'Comparación de escenarios' });
+  const c=seed.clientes.find(x=>x.id===S.clienteId); if(c){ c.rev='hoy'; c.revOrden=0; }
+  closeOv('ov-informe');
+  toast('Informe generado con tu Nota · disponible en el Historial');
+  if(S.cview==='historial') renderHistorial();
+}
+
+/* ═══ P7 · HISTORIAL ═══ */
+function renderHistorial(){
+  $('his-body').innerHTML=`
+  <div class="lbl" style="margin-bottom:4px">Historial</div>
+  <div class="h2" style="margin-bottom:14px">Informes emitidos</div>
+  ${historial.length?`<div class="tl">${historial.map(h=>`
+    <div class="tl-item">
+      <div style="display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:center">
+        <div><div style="font-size:12.5px;font-weight:700">${h.titulo}</div>
+        <div class="tiny">${h.fecha} · ${h.tipo} · con Nota del asesor</div></div>
+        <button class="btn sm" onclick="toast('Descarga de PDF simulada en esta demo')">Descargar PDF</button>
+      </div></div>`).join('')}</div>`
+  :'<div class="empty">Aún no hay informes. Genera el primero desde Patrimonio o desde el comparador.</div>'}
+  <div class="tiny" style="margin-top:10px">Cada informe queda registrado con su fecha — el argumento de renovación del fee.</div>`;
+}
+
+/* ═══ Init ═══ */
+document.addEventListener('keydown',e=>{ if(e.key==='Escape') document.querySelectorAll('.overlay.on').forEach(o=>o.classList.remove('on')); });
+showScreen('scr-cartera');
+renderCartera();
+
+</script>
+</body>
+</html>

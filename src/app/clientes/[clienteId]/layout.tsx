@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { ClientNav, PaperShell } from "@/components/shell/AppShell";
+import { ClientNav, PaperShell, Sheet } from "@/components/shell/AppShell";
 import { ClientContextStrip } from "@/components/shell/ClientContextStrip";
 import { getCliente, getPersonasDeCliente } from "@/lib/seed";
 
@@ -17,9 +17,11 @@ export default async function ClienteLayout({
 
   return (
     <PaperShell>
-      <ClientNav clienteId={cliente.id} clienteNombre={cliente.nombre} />
-      <ClientContextStrip cliente={cliente} personas={personas} />
-      <main className="px-5 py-5">{children}</main>
+      <Sheet>
+        <ClientNav clienteId={cliente.id} clienteNombre={cliente.nombre} />
+        <ClientContextStrip cliente={cliente} personas={personas} />
+        <div className="px-[22px] py-5">{children}</div>
+      </Sheet>
     </PaperShell>
   );
 }

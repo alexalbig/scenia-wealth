@@ -9,13 +9,9 @@ const SEGMENTS: Array<{
   { key: "financiero", label: "Financiero", className: "bg-blue" },
   { key: "inmobiliario", label: "Inmobiliario", className: "bg-ink-3" },
   { key: "empresarial", label: "Empresarial", className: "bg-coral" },
-  { key: "otros", label: "Otros", className: "bg-faint" },
+  { key: "otros", label: "Otros", className: "bg-faintest" },
 ];
 
-/**
- * Mini-barra apilada de composición patrimonial (P1).
- * financiero / inmobiliario / empresarial / otros
- */
 export function CompositionBar({
   composicion,
   className,
@@ -30,7 +26,10 @@ export function CompositionBar({
 
   return (
     <div
-      className={cn("flex h-1.5 w-full min-w-[88px] max-w-[140px] overflow-hidden rounded-[2px] bg-line", className)}
+      className={cn(
+        "mt-1.5 flex h-[5px] w-[120px] overflow-hidden rounded-[3px] bg-line",
+        className,
+      )}
       title={parts
         .map((p) => `${p.label} ${Math.round(p.value * 100)}%`)
         .join(" · ")}
@@ -41,7 +40,7 @@ export function CompositionBar({
       {parts.map((p) => (
         <span
           key={p.key}
-          className={cn("h-full", p.className)}
+          className={cn("block h-full", p.className)}
           style={{ width: `${p.value * 100}%` }}
         />
       ))}

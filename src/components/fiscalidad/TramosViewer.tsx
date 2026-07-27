@@ -1,4 +1,3 @@
-import { Card, Table, TBody, TD, TH, THead, TR } from "@/components/ui";
 import { formatEUR } from "@/lib/format";
 import {
   etiquetaEscala,
@@ -6,7 +5,6 @@ import {
   tramoDeBase,
   type EscalaTramos,
 } from "@/lib/fiscal";
-import { cn } from "@/lib/cn";
 
 const tipoFmt = new Intl.NumberFormat("es-ES", {
   style: "percent",
@@ -22,7 +20,7 @@ function formatTipo(tipo: number) {
  * Visor de tramos CORE.
  * Escalas separadas: base general (estatal + autonómica) vs base del ahorro.
  * Parámetros de solo lectura — firewall.
- * Tinta neutra: el tramo activo usa azul informativo, nunca verde/rojo/ámbar.
+ * Tinta neutra: el marcador de tramo activo usa ink, nunca verde/rojo/ámbar.
  */
 export function TramosViewer({
   baseGeneral,
@@ -51,7 +49,7 @@ export function TramosViewer({
         <section className="space-y-3">
           <p className="text-[12px] font-semibold text-ink">Base del ahorro</p>
           <EscalaCard escala="ahorro" base={baseAhorro} />
-          <p className="px-1 text-[11px] text-mute">
+          <p className="px-0.5 text-[11px] text-mute">
             Escala distinta de la base general. En el plan base sin eventos de
             realización la base del ahorro es 0 €.
           </p>
@@ -66,66 +64,62 @@ function EscalaCard({ escala, base }: { escala: EscalaTramos; base: number }) {
   const activo = tramoDeBase(base, escala);
 
   return (
-    <Card padding="sm">
-      <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2 px-1">
+    <div className="chartbox">
+      <div className="mb-2.5 flex flex-wrap items-center justify-between gap-2">
         <p className="label-upper">{etiquetaEscala(escala)}</p>
-        <p className="text-[11px] text-mute">
-          Base{" "}
-          <span className="font-semibold tabular-nums text-ink">
-            {formatEUR(base)}
-          </span>
-        </p>
+        <span className="text-[10.5px] font-semibold text-slate">
+          🔒 solo lectura
+        </span>
       </div>
 
-      <Table>
-        <THead>
-          <TR>
-            <TH>Desde</TH>
-            <TH>Hasta</TH>
-            <TH className="text-right">Tipo</TH>
-          </TR>
-        </THead>
-        <TBody>
-          {tramos.map((t, i) => {
-            const isActive = activo?.tramoIndex === i;
-            return (
-              <TR
-                key={`${escala}-${t.desde}`}
-                className={cn(isActive && "!bg-blue-soft hover:!bg-blue-soft")}
-              >
-                <TD
-                  numeric
-                  className={cn(
-                    "!text-left",
-                    isActive && "font-bold text-blue",
-                  )}
-                >
-                  {formatEUR(t.desde)}
-                </TD>
-                <TD
-                  numeric
-                  className={cn(
-                    "!text-left",
-                    isActive && "font-bold text-blue",
-                  )}
-                >
-                  {t.hasta === Infinity ? "—" : formatEUR(t.hasta)}
-                </TD>
-                <TD
-                  numeric
-                  className={cn(isActive && "font-bold text-blue")}
-                >
-                  {formatTipo(t.tipo)}
-                </TD>
-              </TR>
-            );
-          })}
-        </TBody>
-      </Table>
+      <div className="pt-3">
+        {tramos.map((t, i) => {
+          const isActive = activo?.tramoIndex === i;
+          const span = t.hasta === Infinity ? null : t.hasta - t.desde;
+          const fillPct =
+            t.hasta === Infinity
+              ? isActive
+                ? 18
+                : 0
+              : Math.min(
+                  Math.max((base - t.desde) / (span ?? 1), 0),
+                  1,
+                ) * 100;
 
-      <div className="mt-2 rounded-[6px] border border-line bg-paper-2 px-3 py-2">
+          return (
+            <div key={`${escala}-${t.desde}`} className="tramo">
+              <div className="tramo-bar">
+                <div
+                  className="tramo-fill"
+                  style={{ width: `${fillPct}%` }}
+                />
+                {isActive && (
+                  <div
+                    className="tramo-marker"
+                    style={{
+                      left: `${t.hasta === Infinity ? 18 : fillPct}%`,
+                    }}
+                    data-l={formatEUR(base)}
+                  />
+                )}
+              </div>
+              <div className="tramo-info">
+                <span className="tabular-nums text-mute">
+                  {formatEUR(t.desde)}
+                  {t.hasta === Infinity
+                    ? " en adelante"
+                    : ` – ${formatEUR(t.hasta)}`}
+                </span>
+                <b className="tabular-nums text-ink">{formatTipo(t.tipo)}</b>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="mt-2 rounded-[8px] border border-[#D4DDF6] bg-blue-soft px-2.5 py-2">
         {activo ? (
-          <p className="text-[12px] text-ink-3">
+          <p className="text-[11.5px] text-ink-3">
             Tramo activo · tipo marginal{" "}
             <span className="font-semibold tabular-nums text-ink">
               {formatTipo(activo.tramo.tipo)}
@@ -145,9 +139,9 @@ function EscalaCard({ escala, base }: { escala: EscalaTramos; base: number }) {
             <span className="text-mute">orientativo</span>
           </p>
         ) : (
-          <p className="text-[12px] text-mute">Sin tramo aplicable.</p>
+          <p className="text-[11.5px] text-mute">Sin tramo aplicable.</p>
         )}
       </div>
-    </Card>
+    </div>
   );
 }

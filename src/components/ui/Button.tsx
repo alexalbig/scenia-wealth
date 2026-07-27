@@ -10,20 +10,21 @@ interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
 }
 
+/** Primary = ink (mockup). Coral = CTA fuerte (+ Nuevo cliente). */
 const variants: Record<ButtonVariant, string> = {
   primary:
-    "bg-blue text-white hover:bg-[#314db0] border border-transparent",
+    "bg-ink text-white border border-ink hover:bg-ink-2",
   secondary:
-    "bg-paper text-ink border border-line-2 hover:bg-paper-2",
+    "bg-white text-ink border border-line-2 hover:bg-paper-2 hover:border-faintest",
   ghost:
-    "bg-transparent text-ink-3 border border-transparent hover:bg-paper-2",
+    "bg-transparent text-slate border border-transparent hover:bg-paper-2 hover:text-ink",
   coral:
-    "bg-coral text-white border border-transparent hover:bg-coral-deep",
+    "bg-coral text-white border border-coral hover:bg-coral-deep hover:border-coral-deep",
 };
 
 const sizes: Record<ButtonSize, string> = {
-  sm: "h-8 px-3 text-[12px]",
-  md: "h-9 px-4 text-[13px]",
+  sm: "px-2.5 py-1.5 text-[11px] rounded-[6px]",
+  md: "px-3.5 py-2 text-[12px] rounded-[8px]",
 };
 
 export function Button({
@@ -38,7 +39,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-1.5 rounded-[8px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex items-center justify-center gap-1.5 font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-45",
         variants[variant],
         sizes[size],
         className,

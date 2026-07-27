@@ -8,7 +8,10 @@ export function Table({
   return (
     <div className="w-full overflow-x-auto">
       <table
-        className={cn("w-full border-collapse text-left text-[12px]", className)}
+        className={cn(
+          "w-full border-collapse text-left text-[12.5px]",
+          className,
+        )}
         {...rest}
       >
         {children}
@@ -23,7 +26,7 @@ export function THead({
   ...rest
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <thead className={cn("border-b border-line-2", className)} {...rest}>
+    <thead className={cn(className)} {...rest}>
       {children}
     </thead>
   );
@@ -35,9 +38,21 @@ export function TBody({
   ...rest
 }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return (
-    <tbody className={cn("divide-y divide-line", className)} {...rest}>
+    <tbody className={cn(className)} {...rest}>
       {children}
     </tbody>
+  );
+}
+
+export function TFoot({
+  className,
+  children,
+  ...rest
+}: React.HTMLAttributes<HTMLTableSectionElement>) {
+  return (
+    <tfoot className={cn(className)} {...rest}>
+      {children}
+    </tfoot>
   );
 }
 
@@ -47,10 +62,7 @@ export function TR({
   ...rest
 }: React.HTMLAttributes<HTMLTableRowElement>) {
   return (
-    <tr
-      className={cn("hover:bg-paper-2/80 transition-colors", className)}
-      {...rest}
-    >
+    <tr className={cn(className)} {...rest}>
       {children}
     </tr>
   );
@@ -64,7 +76,7 @@ export function TH({
   return (
     <th
       className={cn(
-        "label-upper px-3 py-2.5 font-semibold text-mute",
+        "whitespace-nowrap px-3 py-[9px] text-left text-[10.5px] font-semibold uppercase tracking-[0.05em] text-mute",
         className,
       )}
       {...rest}
@@ -84,7 +96,7 @@ export function TD({
   return (
     <td
       className={cn(
-        "px-3 py-2.5 text-ink align-middle",
+        "px-3 py-[11px] align-middle text-[12.5px] text-ink",
         numeric && "tabular-nums text-right font-semibold",
         className,
       )}

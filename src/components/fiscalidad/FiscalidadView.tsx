@@ -35,16 +35,16 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
 
   if (!cliente.completo) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <p className="label-upper">P4 · Fiscalidad</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             Foto fiscal
           </h2>
         </div>
         <Card>
           <p className="label-upper mb-1">Cliente ligero</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             {cliente.nombre}
           </h2>
           <p className="mt-2 text-[13px] text-slate">
@@ -58,10 +58,10 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
 
   if (!ccaaConCobertura(cliente.ccaa)) {
     return (
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div>
           <p className="label-upper">P4 · Fiscalidad</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             Foto fiscal
           </h2>
         </div>
@@ -87,11 +87,11 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
   const baseA = baseAhorroPersona(cliente.id, pid);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
           <p className="label-upper">P4 · Fiscalidad</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
+          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
             Foto fiscal · plan base
           </h2>
           <p className="mt-0.5 text-[11px] text-mute">
@@ -99,26 +99,25 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
             <span className="normal-case tracking-normal">orientativas</span>
           </p>
         </div>
+        <FiscalControls
+          personas={personas}
+          personaId={pid}
+          onPersona={setPersonaId}
+          anios={anios}
+          anio={anio}
+          onAnio={setAnio}
+          eurMode={eurMode}
+          onEurMode={setEurMode}
+        />
       </div>
-
-      <FiscalControls
-        personas={personas}
-        personaId={pid}
-        onPersona={setPersonaId}
-        anios={anios}
-        anio={anio}
-        onAnio={setAnio}
-        eurMode={eurMode}
-        onEurMode={setEurMode}
-      />
 
       {kpis && (
         <div className="grid gap-3 sm:grid-cols-2">
-          <Card variant="dark">
-            <p className="label-upper !text-faint mb-2">
+          <div className="chartbox">
+            <p className="label-upper mb-1">
               IRPF total proyectado
             </p>
-            <p className="text-[28px] font-bold tracking-[-0.03em] tabular-nums text-dark-text">
+            <p className="text-[22px] font-bold tracking-[-0.01em] tabular-nums text-ink">
               {formatEUR(
                 enEuros(
                   kpis.irpfTotal,
@@ -127,20 +126,20 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
                 ),
               )}
             </p>
-            <p className="mt-1 text-[11px] text-faint">
+            <p className="mt-1 text-[11px] text-mute">
               {kpis.anioInicio}–{kpis.anioFin} · orientativo
             </p>
-          </Card>
+          </div>
 
-          <Card padding="sm">
-            <p className="label-upper mb-2">Tipo efectivo medio (ETR)</p>
-            <p className="text-[28px] font-bold tracking-[-0.03em] tabular-nums text-ink">
+          <div className="chartbox">
+            <p className="label-upper mb-1">Tipo efectivo medio (ETR)</p>
+            <p className="text-[22px] font-bold tracking-[-0.01em] tabular-nums text-ink">
               {formatETR(kpis.etr)}
             </p>
             <p className="mt-1 text-[11px] text-mute">
               IRPF / ingresos proyectados · orientativo
             </p>
-          </Card>
+          </div>
         </div>
       )}
 

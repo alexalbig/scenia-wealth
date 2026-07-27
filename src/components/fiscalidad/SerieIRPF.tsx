@@ -1,4 +1,4 @@
-import { Card, Table, TBody, TD, TH, THead, TR } from "@/components/ui";
+import { Table, TBody, TD, TH, THead, TR } from "@/components/ui";
 import { formatEUR } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import { enEuros, type EurMode, type PuntoSerieIRPF } from "@/lib/fiscal";
@@ -22,7 +22,7 @@ export function SerieIRPF({
   const punto = serie.find((p) => p.anio === anio);
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
         <p className="label-upper">Serie de IRPF</p>
         <p className="text-[11px] text-mute">
@@ -31,8 +31,8 @@ export function SerieIRPF({
         </p>
       </div>
 
-      <Card padding="sm">
-        <div className="mb-3 flex h-28 items-end gap-1 px-1">
+      <div className="chartbox">
+        <div className="mb-3 flex h-28 items-end gap-1">
           {serie.map((p) => {
             const active = p.anio === anio;
             const h = Math.max(6, Math.round((p.irpf / max) * 100));
@@ -48,7 +48,7 @@ export function SerieIRPF({
                   className={cn(
                     "w-full rounded-t-[3px] transition-colors",
                     active
-                      ? "bg-blue"
+                      ? "bg-ink"
                       : "bg-ink-3/25 group-hover:bg-ink-3/40",
                   )}
                   style={{ height: `${h}%` }}
@@ -56,7 +56,7 @@ export function SerieIRPF({
                 <span
                   className={cn(
                     "text-[9.5px] tabular-nums",
-                    active ? "font-bold text-blue" : "text-mute",
+                    active ? "font-bold text-ink" : "text-mute",
                   )}
                 >
                   {String(p.anio).slice(2)}
@@ -83,19 +83,19 @@ export function SerieIRPF({
                   key={p.anio}
                   className={cn(
                     "cursor-pointer",
-                    active && "!bg-blue-soft hover:!bg-blue-soft",
+                    active && "!bg-paper-2 hover:!bg-paper-2",
                   )}
                   onClick={() => onAnio(p.anio)}
                 >
                   <TD
                     className={cn(
                       "font-semibold",
-                      active && "text-blue",
+                      active && "text-ink",
                     )}
                   >
                     {p.anio}
                   </TD>
-                  <TD numeric className={cn(active && "text-blue")}>
+                  <TD numeric className={cn(active && "font-semibold text-ink")}>
                     {formatEUR(enEuros(p.irpf, p.anio, eurMode))}
                   </TD>
                   <TD numeric>
@@ -111,7 +111,7 @@ export function SerieIRPF({
         </Table>
 
         {punto && (
-          <p className="mt-2 px-1 text-[12px] text-slate">
+          <p className="mt-2 text-[11px] text-slate">
             Año fijado{" "}
             <span className="font-semibold text-ink">{punto.anio}</span>
             {" · IRPF "}
@@ -122,7 +122,7 @@ export function SerieIRPF({
             <span className="text-mute">orientativo</span>
           </p>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

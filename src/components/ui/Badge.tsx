@@ -17,10 +17,8 @@ interface BadgeProps {
 const variants: Record<BadgeVariant, string> = {
   neutral: "bg-paper-2 text-slate",
   blue: "bg-blue-soft text-blue",
-  coral: "bg-coral-soft text-coral",
-  /** Solo hechos objetivos (plusvalía, liquidez alta) */
+  coral: "bg-coral-soft text-coral-deep",
   green: "bg-green-bg text-green",
-  /** Solo semáforo de liquidez media/baja */
   amber: "bg-amber-bg text-amber",
   segment: "bg-paper-2 text-slate",
 };
@@ -33,7 +31,7 @@ export function Badge({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-[6px] px-2 py-0.5 text-[10.5px] font-semibold tracking-wide",
+        "inline-flex items-center rounded-[6px] px-2 py-[3px] text-[10.5px] font-semibold tracking-[0.02em]",
         variants[variant],
         className,
       )}
@@ -43,7 +41,6 @@ export function Badge({
   );
 }
 
-/** Semáforo de liquidez — hecho objetivo del activo (firewall-compatible). */
 export function LiquidityBadge({ level }: { level: "alta" | "media" | "baja" }) {
   if (level === "alta") {
     return <Badge variant="green">Liquidez alta</Badge>;

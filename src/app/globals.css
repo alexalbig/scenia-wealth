@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  /* Tinta — escala de 7 niveles */
   --ink: #0c1424;
   --ink-2: #1a2438;
   --ink-3: #3a4660;
@@ -9,22 +8,16 @@
   --mute: #8a95a8;
   --faint: #9aa4b6;
   --faintest: #b8c0ce;
-
-  /* Papel y líneas */
   --paper: #fbfcfe;
   --paper-2: #f4f6fa;
   --line: #eef1f6;
   --line-2: #e2e6ee;
-
-  /* Acentos */
   --blue: #3a5bc8;
   --blue-2: #3a5bc8;
   --coral: #ff6b5a;
   --coral-deep: #d14a38;
   --green: #0e7c4a;
   --green-bg: #e3f5ec;
-
-  /* Contextuales */
   --blue-soft: #e7ecfb;
   --coral-soft: #fbeae7;
   --amber: #b5732a;
@@ -33,6 +26,8 @@
   --dark-border: #2a3650;
   --dark-text: #e8ecf4;
   --green-light: #5fd89a;
+  --dk-tagbg: #3a2e1a;
+  --dk-tag: #e0a868;
 }
 
 @theme inline {
@@ -61,6 +56,8 @@
   --color-dark-border: var(--dark-border);
   --color-dark-text: var(--dark-text);
   --color-green-light: var(--green-light);
+  --color-dk-tagbg: var(--dk-tagbg);
+  --color-dk-tag: var(--dk-tag);
   --font-sans: var(--font-dm-sans);
   --radius-work: 8px;
 }
@@ -84,15 +81,333 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* Cifras financieras: tabular-nums siempre en tablas */
 .tabular-nums {
   font-variant-numeric: tabular-nums;
 }
 
+/* Labels · patrón mockup */
 .label-upper {
   font-size: 10.5px;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--mute);
+}
+
+/* Hoja de papel sobre escenario */
+.sheet {
+  background: var(--paper);
+  border: 1px solid var(--line-2);
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+/* Chips de serie / métrica */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.chips button {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line-2);
+  color: var(--slate);
+  background: #fff;
+}
+.chips button:hover {
+  color: var(--ink);
+}
+.chips button[data-on="true"],
+.chips button.on {
+  background: var(--ink);
+  color: #fff;
+  border-color: var(--ink);
+}
+
+/* Segmented €hoy / €futuro */
+.seg {
+  display: inline-flex;
+  border: 1px solid var(--line-2);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.seg button {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 11px;
+  color: var(--slate);
+  background: #fff;
+}
+.seg button[data-on="true"],
+.seg button.on {
+  background: var(--ink);
+  color: #fff;
+}
+
+/* Contenedores de gráfico / panel */
+.chartbox {
+  background: #fff;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 14px;
+}
+.split {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 14px;
+}
+@media (max-width: 900px) {
+  .split {
+    grid-template-columns: 1fr;
+  }
+}
+.sidep {
+  background: #fff;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+/* Escenarios · lista */
+.esc-grid {
+  display: grid;
+  grid-template-columns: 290px 1fr;
+  gap: 14px;
+}
+@media (max-width: 940px) {
+  .esc-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.esc-item {
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  cursor: pointer;
+  margin-bottom: 8px;
+}
+.esc-item:hover {
+  border-color: var(--faintest);
+}
+.esc-item[data-on="true"],
+.esc-item.on {
+  border-color: var(--ink);
+  background: var(--paper-2);
+}
+.esc-item .base-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--blue);
+  background: var(--blue-soft);
+  border-radius: 4px;
+  padding: 2px 6px;
+}
+
+/* Tramos fiscales · barras densas */
+.tramo {
+  margin-bottom: 8px;
+}
+.tramo-bar {
+  position: relative;
+  height: 26px;
+  border-radius: 6px;
+  background: var(--paper-2);
+  border: 1px solid var(--line-2);
+  overflow: hidden;
+}
+.tramo-fill {
+  position: absolute;
+  inset: 0;
+  width: 0;
+  background: #e7ecfb;
+  border-right: 1px solid #d4ddf6;
+}
+.tramo-info {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  padding: 3px 2px;
+}
+.tramo-marker {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+  background: var(--ink);
+}
+.tramo-marker::after {
+  content: attr(data-l);
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9.5px;
+  font-weight: 700;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+/* Chips cálculo vs introducido (regla 6) */
+.calc-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: var(--paper-2);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.intro-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--ink-3);
+  background: #fff;
+  border: 1px dashed var(--faintest);
+  border-radius: 6px;
+  padding: 3px 8px;
+}
+
+/* Sello datos a fecha */
+.sello {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--slate);
+  border: 1px solid var(--line-2);
+  border-radius: 6px;
+  padding: 4px 9px;
+  background: #fff;
+}
+.sello b {
+  color: var(--ink-3);
+  font-weight: 700;
+}
+
+/* Bordes de tabla (sin sombras; densidad mockup) */
+thead th {
+  border-bottom: 1px solid var(--line-2);
+}
+tbody td {
+  border-bottom: 1px solid var(--line);
+}
+tr.group-head td {
+  background: var(--paper-2);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-3);
+  padding: 7px 12px;
+  border-bottom: 1px solid var(--line-2);
+}
+tr.subtotal td {
+  font-weight: 600;
+  color: var(--ink-3);
+  background: #fff;
+  font-size: 11.5px;
+  border-bottom: 1px solid var(--line-2);
+}
+tfoot td {
+  border-top: 1px solid var(--line-2);
+  border-bottom: none;
+  font-weight: 700;
+  background: var(--paper-2);
+  font-size: 12px;
+  padding: 10px 12px;
+  color: var(--ink);
+}
+tr.rowlink {
+  cursor: pointer;
+}
+tr.rowlink:hover td {
+  background: var(--paper);
+}
+
+/* Hint informativo (azul suave) */
+.hint-info {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: var(--ink-3);
+  background: var(--blue-soft);
+  border: 1px solid #d4ddf6;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+.hint-info b:first-child {
+  color: var(--blue);
+  font-weight: 700;
+}
+
+/* Badges de liquidez (mockup .liq) */
+.liq {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 10.5px;
+  font-weight: 600;
+}
+.liq.a {
+  color: var(--green);
+}
+.liq.b {
+  color: var(--amber);
+}
+
+/**
+ * CT2 · Fila fiscal — firewall por diseño.
+ * Colores neutros fijados en el componente; className externo
+ * no puede pintar verde/rojo/ámbar en el texto de la fila.
+ */
+[data-firewall="neutral-only"] {
+  background: #fff;
+  border: 1px solid var(--line-2);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+[data-firewall="neutral-only"],
+[data-firewall="neutral-only"] * {
+  color: var(--ink) !important;
+}
+[data-firewall="neutral-only"] .ff-lbl {
+  font-size: 10.5px !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--slate) !important;
+}
+[data-firewall="neutral-only"] .ff-name {
+  font-size: 11px !important;
+  font-weight: 600;
+  color: var(--slate) !important;
+}
+[data-firewall="neutral-only"] .ff-val {
+  font-size: 17px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+  color: var(--ink) !important;
+}
+[data-firewall="neutral-only"] .ff-note {
+  font-size: 10.5px !important;
+  color: var(--mute) !important;
+  margin-top: 10px;
+  font-style: italic;
 }

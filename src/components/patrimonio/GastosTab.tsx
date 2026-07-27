@@ -1,6 +1,16 @@
 "use client";
 
-import { Button, Card, Table, TBody, TD, TH, THead, TR } from "@/components/ui";
+import {
+  Button,
+  Card,
+  Table,
+  TBody,
+  TD,
+  TFoot,
+  TH,
+  THead,
+  TR,
+} from "@/components/ui";
 import { formatEUR } from "@/lib/format";
 import { labelVinculo } from "@/lib/patrimonio";
 import type { Gasto, Inmueble, Persona, Sociedad } from "@/lib/types";
@@ -24,10 +34,7 @@ export function GastosTab({
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="label-upper">Gastos recurrentes</p>
-          <p className="text-[11px] text-mute">
-            Solo los intereses de deuda cuentan como gasto (no el capital)
-          </p>
+          <p className="label-upper">Gastos · por categoría</p>
         </div>
         <Button size="sm" variant="secondary" onClick={onEvento}>
           + Evento genérico
@@ -62,19 +69,21 @@ export function GastosTab({
             )}
           </TBody>
           {gastos.length > 0 && (
-            <tfoot>
-              <tr className="border-t border-line-2 bg-paper-2">
-                <td className="px-3 py-2.5 text-[12px] font-semibold" colSpan={2}>
-                  Total
-                </td>
-                <td className="px-3 py-2.5 text-right text-[12px] font-bold tabular-nums">
-                  {formatEUR(total)}
-                </td>
-              </tr>
-            </tfoot>
+            <TFoot>
+              <TR>
+                <TD>Total gastos</TD>
+                <TD numeric>{formatEUR(total)}</TD>
+                <TD />
+              </TR>
+            </TFoot>
           )}
         </Table>
       </Card>
+
+      <p className="text-[11px] text-mute">
+        Solo los <b className="font-semibold text-ink-3">intereses</b> de la
+        deuda cuentan como gasto; la amortización de capital es ahorro.
+      </p>
     </div>
   );
 }
