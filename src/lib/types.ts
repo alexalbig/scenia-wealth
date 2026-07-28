@@ -33,6 +33,8 @@ export interface HistorialInforme {
   /** ISO YYYY-MM-DD */
   fecha: string;
   titulo: string;
+  /** p. ej. «Foto del patrimonio» · «Comparación de escenarios» */
+  tipo: string;
 }
 
 export type Segmento =
@@ -51,7 +53,11 @@ export type TipoFiscalInstrumento =
 export type TipoOtroActivo =
   | "vehiculo"
   | "arte"
+  | "joyas"
   | "efectivo"
+  | "mobiliario"
+  | "cripto"
+  | "coleccion"
   | "otro";
 
 export type TipoPasivo = "hipoteca" | "credito";
@@ -124,6 +130,8 @@ export interface Instrumento {
   tipoFiscal: TipoFiscalInstrumento;
   valor: number;
   fechaAdquisicion: string; // YYYY-MM-DD
+  /** Coste de adquisición (FIFO / plusvalía) */
+  costeAdquisicion?: number;
   /** Plusvalía latente (hecho objetivo — único uso del verde) */
   plusvaliaLatente?: number;
   titularidades: Titularidad[];
@@ -137,6 +145,8 @@ export interface Inmueble {
   nombre: string;
   valor: number;
   fechaAdquisicion: string;
+  costeAdquisicion?: number;
+  plusvaliaLatente?: number;
   titularidades: Titularidad[];
   pasivoId?: string;
   sociedadId?: string;
@@ -178,7 +188,11 @@ export interface Gasto {
   clienteId: string;
   categoria: string;
   importeAnual: number;
-  vinculadoA?: OwnerRef | { kind: "inmueble"; inmuebleId: string } | null;
+  vinculadoA?:
+    | OwnerRef
+    | { kind: "inmueble"; inmuebleId: string }
+    | { kind: "otro"; otroId: string }
+    | null;
 }
 
 export interface Evento {
