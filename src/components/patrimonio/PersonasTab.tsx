@@ -1,74 +1,115 @@
 "use client";
 
-import Link from "next/link";
-import { Badge, Button, Card, Table, TBody, TD, TH, THead, TR } from "@/components/ui";
-import { formatEUR } from "@/lib/format";
-import { ageFromBirthYear } from "@/lib/format";
+import { useRouter } from "next/navigation";
 import {
-  ingresosPorPersona,
-  personaLabel,
-  titularidadAgregada,
-} from "@/lib/patrimonio";
+  Avatar,
+  Button,
+  initialsFromName,
+  Table,
+  TBody,
+  TD,
+  TH,
+  THead,
+  TR,
+} from "@/components/ui";
+import { RowCrud } from "@/components/patrimonio/RowCrud";
+import { ageFromBirthYear, formatEUR } from "@/lib/format";
+import { personaLabel } from "@/lib/patrimonio";
 import type { Persona } from "@/lib/types";
 
 export function PersonasTab({
   clienteId,
   personas,
+  ingresosOf,
+  patrimonioOf,
   onAdd,
+  onEdit,
+  onDelete,
 }: {
   clienteId: string;
   personas: Persona[];
+  ingresosOf: (personaId: string) => number;
+  patrimonioOf: (personaId: string) => number;
   onAdd: () => void;
+  onEdit: (p: Persona) => void;
+  onDelete: (id: string) => void;
 }) {
+  const router = useRouter();
+
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="label-upper">Personas del expediente</p>
-        <Button size="sm" variant="secondary" onClick={onAdd}>
-          + Añadir persona
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <div className="lbl">Personas del expediente</div>
+        <Button size="sm" variant="ghost" onClick={onAdd}>
+          + Añadir
         </Button>
       </div>
-
-      <Card padding="sm">
-        <Table>
-          <THead>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Persona</TH>
+            <TH>Edad</TH>
+            <TH>CCAA</TH>
+            <TH className="right">Ingresos del año</TH>
+            <TH className="right">Patrimonio atribuido</TH>
+            <TH />
+          </TR>
+        </THead>
+        <TBody>
+          {personas.length === 0 && (
             <TR>
-              <TH>Nombre</TH>
-              <TH>Edad</TH>
-              <TH>CCAA</TH>
-              <TH className="text-right">Ingresos del año</TH>
-              <TH className="text-right">Titularidad agregada</TH>
+              <TD colSpan={6} className="mut">
+                Sin personas. Usa «+ Añadir» para cargar la primera.
+              </TD>
             </TR>
-          </THead>
-          <TBody>
-            {personas.map((p) => (
-              <TR key={p.id}>
+          )}
+          {personas.map((p) => {
+            const label = personaLabel(p);
+            return (
+              <TR
+                key={p.id}
+                className="rowlink"
+                onClick={() =>
+                  router.push(`/clientes/${clienteId}/fichas/persona/${p.id}`)
+                }
+              >
                 <TD>
-                  <Link
-                    href={`/clientes/${clienteId}/fichas/persona/${p.id}`}
-                    className="font-semibold text-ink hover:underline"
+                  <div
+                    style={{ display: "flex", alignItems: "center", gap: 9 }}
                   >
-                    {personaLabel(p)}
-                  </Link>
+                    <Avatar initials={initialsFromName(label)} />
+                    <b>{label}</b>
+                  </div>
                 </TD>
-                <TD>{ageFromBirthYear(p.birthYear)}</TD>
-                <TD>
-                  <Badge variant="neutral">{p.ccaa}</Badge>
+                <TD className="num">{ageFromBirthYear(p.birthYear)}</TD>
+                <TD className="slt">{p.ccaa}</TD>
+                <TD className="right num strong">
+                  {formatEUR(ingresosOf(p.id))}
                 </TD>
-                <TD numeric>{formatEUR(ingresosPorPersona(clienteId, p.id))}</TD>
-                <TD numeric>{formatEUR(titularidadAgregada(clienteId, p.id))}</TD>
+                <TD className="right num">
+                  {formatEUR(patrimonioOf(p.id))}
+                </TD>
+                <TD className="right">
+                  <RowCrud
+                    onEdit={() => onEdit(p)}
+                    onDelete={() => onDelete(p.id)}
+                  />
+                </TD>
               </TR>
-            ))}
-            {personas.length === 0 && (
-              <TR>
-                <TD colSpan={5} className="py-6 text-center text-mute">
-                  Sin personas en este expediente.
-                </TD>
-              </TR>
-            )}
-          </TBody>
-        </Table>
-      </Card>
-    </div>
+            );
+          })}
+        </TBody>
+      </Table>
+      <div className="tiny" style={{ marginTop: 10 }}>
+        Los ingresos alimentan el motor fiscal (regla del rescate del plan).
+      </div>
+    </>
   );
 }

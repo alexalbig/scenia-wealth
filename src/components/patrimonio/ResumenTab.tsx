@@ -1,201 +1,328 @@
 "use client";
 
-import { Card, Button } from "@/components/ui";
+import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui";
 import { formatEUR } from "@/lib/format";
-import { cn } from "@/lib/cn";
-import type { totalesActivos } from "@/lib/patrimonio";
 
-type Totales = ReturnType<typeof totalesActivos>;
+type Totales = {
+  financiero: number;
+  inmobiliario: number;
+  empresarial: number;
+  otros: number;
+  pasivos: number;
+  bruto: number;
+  neto: number;
+};
 
 interface ResumenTabProps {
   clienteId: string;
   totales: Totales;
   capacidad: number;
-  datosAFecha: string;
   onTab: (tab: string) => void;
   onInforme: () => void;
   onAdd: (categoria: string) => void;
-  /** Desglose opcional para darkcard (ingresos/gastos/amort) */
   ahorroDetalle?: {
     ingresos: number;
     gastos: number;
     amortizacionCapital: number;
   };
+  labels?: {
+    financiero?: string;
+    inmobiliario?: string;
+    empresarial?: string;
+    otros?: string;
+  };
+  sociedadId?: string;
 }
 
-const ASSET_BLOCKS: Array<{
-  key: keyof Pick<Totales, "financiero" | "inmobiliario" | "empresarial" | "otros">;
-  label: string;
-  tab: string;
-  tone: string;
-}> = [
-  {
-    key: "financiero",
-    label: "Financiero",
-    tab: "activos",
-    tone: "bg-[#E7ECFB] text-[#20358A] border-[#D4DDF6]",
-  },
-  {
-    key: "inmobiliario",
-    label: "Inmobiliario",
-    tab: "activos",
-    tone: "bg-[#EAEDF3] text-ink-2 border-[#DCE1EA]",
-  },
-  {
-    key: "empresarial",
-    label: "Empresarial",
-    tab: "activos",
-    tone: "bg-coral-soft text-coral-deep border-[#F6DCD6]",
-  },
-  {
-    key: "otros",
-    label: "Otros",
-    tab: "activos",
-    tone: "bg-paper-2 text-ink-3 border-line-2",
-  },
-];
-
+/**
+ * Mockup `tplResumen` — `.grid3` + `.treemap` + `.darkcard` + neto.
+ * Marcado idéntico al HTML de referencia.
+ */
 export function ResumenTab({
+  clienteId,
   totales,
   capacidad,
-  datosAFecha,
   onTab,
   onInforme,
   onAdd,
   ahorroDetalle,
+  labels = {},
+  sociedadId,
 }: ResumenTabProps) {
-  const assetSum =
-    totales.financiero +
-    totales.inmobiliario +
-    totales.empresarial +
-    totales.otros;
-  const maxSide = Math.max(assetSum, totales.pasivos, 1);
+  const router = useRouter();
+  const a = ahorroDetalle;
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="label-upper">Resumen</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            Foto del patrimonio
-          </h2>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="sello">
-            Datos a fecha de <b>{datosAFecha}</b>
-          </span>
-          <Button size="sm" variant="secondary" onClick={onInforme}>
+    <div className="grid3">
+      <div>
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 10,
+          }}
+        >
+          <div>
+            <div className="lbl">Foto del patrimonio</div>
+            <div className="h2">
+              Activos {formatEUR(totales.bruto)} · Pasivos{" "}
+              {formatEUR(totales.pasivos)}
+            </div>
+          </div>
+          <Button variant="primary" onClick={onInforme}>
             Generar informe
           </Button>
         </div>
-      </div>
 
-      <div className="grid gap-3.5 lg:grid-cols-[1fr_260px]">
-        <div className="flex h-[230px] gap-2">
-          <div className="flex flex-[1.4] flex-col gap-2">
-            {ASSET_BLOCKS.map((b) => {
-              const value = totales[b.key];
-              const flex = Math.max(value / maxSide, value > 0 ? 0.14 : 0.1);
-              const empty = value <= 0;
-              return (
-                <div
-                  key={b.key}
-                  className="relative flex min-h-0"
-                  style={{ flexGrow: empty ? 0.45 : flex * 3.2 }}
-                >
-                  <button
-                    type="button"
-                    onClick={() => onTab(b.tab)}
-                    className={cn(
-                      "flex w-full flex-col justify-between rounded-[10px] border p-3 text-left transition-[filter] hover:brightness-[0.96]",
-                      empty
-                        ? "border-dashed border-faintest bg-white text-mute"
-                        : b.tone,
-                    )}
-                  >
-                    <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
-                      {b.label}
-                    </span>
-                    <span className="text-[16px] font-bold tabular-nums tracking-[-0.01em]">
-                      {empty ? "—" : formatEUR(value)}
-                    </span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Añadir ${b.label}`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAdd(b.label);
-                    }}
-                    className="absolute right-2.5 top-2.5 flex h-5 w-5 items-center justify-center rounded-[6px] bg-white/65 text-[12px] font-bold hover:bg-white"
-                  >
-                    +
-                  </button>
+        <div className="treemap">
+          <div className="tm-col" style={{ flex: 2.05 }}>
+            <div
+              className="tm-block tm-fin"
+              style={{ flex: 1 }}
+              role="button"
+              tabIndex={0}
+              onClick={() => onTab("activos")}
+              onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
+            >
+              <div>
+                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
+                  Financiero
                 </div>
-              );
-            })}
+                <div className="tm-v num">{formatEUR(totales.financiero)}</div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                }}
+              >
+                <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
+                  {labels.financiero ?? "Portfolio"}
+                </span>
+                <button
+                  type="button"
+                  className="tm-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdd("financiero");
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => onTab("pasivos")}
-            className="flex min-w-[120px] flex-1 flex-col justify-between rounded-[10px] border border-dashed border-faintest bg-white p-3 text-left text-ink-3 hover:brightness-[0.98]"
-          >
-            <span className="text-[11px] font-semibold uppercase tracking-[0.06em]">
-              Pasivos
-            </span>
-            <span className="text-[16px] font-bold tabular-nums tracking-[-0.01em]">
-              {formatEUR(totales.pasivos)}
-            </span>
-          </button>
+          <div className="tm-col" style={{ flex: 2.05 }}>
+            <div
+              className="tm-block tm-inm"
+              style={{ flex: 1 }}
+              role="button"
+              tabIndex={0}
+              onClick={() => onTab("activos")}
+              onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
+            >
+              <div>
+                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
+                  Inmobiliario
+                </div>
+                <div className="tm-v num">{formatEUR(totales.inmobiliario)}</div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                }}
+              >
+                <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
+                  {labels.inmobiliario ?? "Inmuebles"}
+                </span>
+                <button
+                  type="button"
+                  className="tm-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdd("inmobiliario");
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="tm-col" style={{ flex: 1 }}>
+            <div
+              className="tm-block tm-emp"
+              style={{ flex: 1.1 }}
+              role="button"
+              tabIndex={0}
+              onClick={() => {
+                if (sociedadId) {
+                  router.push(
+                    `/clientes/${clienteId}/fichas/sociedad/${sociedadId}`,
+                  );
+                } else onTab("activos");
+              }}
+              onKeyDown={(e) => {
+                if (e.key !== "Enter") return;
+                if (sociedadId) {
+                  router.push(
+                    `/clientes/${clienteId}/fichas/sociedad/${sociedadId}`,
+                  );
+                } else onTab("activos");
+              }}
+            >
+              <div>
+                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
+                  Empresarial
+                </div>
+                <div className="tm-v" style={{ fontSize: 13 }}>
+                  {labels.empresarial ?? "Sin sociedades"}
+                </div>
+              </div>
+              <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
+                no valorada
+              </span>
+            </div>
+
+            <div
+              className="tm-block tm-otr"
+              style={{ flex: 0.9 }}
+              role="button"
+              tabIndex={0}
+              onClick={() => onTab("activos")}
+              onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
+            >
+              <div>
+                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
+                  Otros
+                </div>
+                <div className="tm-v num" style={{ fontSize: 14 }}>
+                  {formatEUR(totales.otros)}
+                </div>
+              </div>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-end",
+                }}
+              >
+                <span
+                  className="tiny"
+                  style={{ color: "inherit", opacity: 0.85 }}
+                >
+                  {labels.otros ?? "Otros"}
+                </span>
+                <button
+                  type="button"
+                  className="tm-add"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAdd("otros");
+                  }}
+                >
+                  +
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="tm-block tm-pas"
+              style={{ flex: 0.65 }}
+              role="button"
+              tabIndex={0}
+              onClick={() => onTab("pasivos")}
+              onKeyDown={(e) => e.key === "Enter" && onTab("pasivos")}
+            >
+              <div className="lbl" style={{ color: "inherit" }}>
+                Pasivos
+              </div>
+              <div className="tm-v num" style={{ fontSize: 14 }}>
+                −{formatEUR(totales.pasivos)}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <Card variant="dark" padding="lg" className="flex flex-col">
-          <div className="mb-1 flex items-center justify-between gap-2">
-            <p className="text-[10.5px] font-semibold uppercase tracking-[0.06em] text-[#7E8DB0]">
-              Capacidad de ahorro
-            </p>
-            <span className="rounded-[5px] bg-dk-tagbg px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.05em] text-dk-tag">
-              Anual
-            </span>
-          </div>
-          <p className="text-[24px] font-bold tracking-[-0.02em] tabular-nums text-green-light">
-            {formatEUR(capacidad)}
-          </p>
-          {ahorroDetalle && (
-            <div className="mt-3">
-              <div className="flex justify-between py-1 text-[11.5px] text-[#B4C0D8]">
+        <div className="legend">
+          <span>
+            <i className="c-fin" />
+            Financiero
+          </span>
+          <span>
+            <i className="c-inm" />
+            Inmobiliario
+          </span>
+          <span>
+            <i className="c-emp" />
+            Empresarial
+          </span>
+          <span>
+            <i className="c-otr" />
+            Otros
+          </span>
+          <span style={{ marginLeft: "auto" }} className="tiny">
+            Pincha un bloque para bajar al detalle · «+» da de alta en esa
+            categoría
+          </span>
+        </div>
+      </div>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div className="darkcard">
+          <div className="lbl">Capacidad de ahorro anual</div>
+          <div className="big num">{formatEUR(capacidad)} / año</div>
+          {a && (
+            <div style={{ marginTop: 10 }}>
+              <div className="row">
                 <span>Ingresos</span>
-                <span className="tabular-nums">{formatEUR(ahorroDetalle.ingresos)}</span>
+                <b className="num">{formatEUR(a.ingresos)}</b>
               </div>
-              <div className="flex justify-between border-t border-dark-line py-1 text-[11.5px] text-[#B4C0D8]">
-                <span>Gastos</span>
-                <span className="tabular-nums">
-                  −{formatEUR(ahorroDetalle.gastos)}
-                </span>
+              <div className="row">
+                <span>Gastos (solo intereses de deuda)</span>
+                <b className="num">−{formatEUR(a.gastos)}</b>
               </div>
-              <div className="flex justify-between border-t border-dark-line py-1 text-[11.5px] text-[#B4C0D8]">
-                <span>Amort. capital</span>
-                <span className="tabular-nums">
-                  +{formatEUR(ahorroDetalle.amortizacionCapital)}
-                </span>
+              <div className="row">
+                <span>Reducción de deuda (amortización)</span>
+                <b className="num">+{formatEUR(a.amortizacionCapital)}</b>
               </div>
             </div>
           )}
-          <Button
-            size="sm"
-            variant="secondary"
-            className="mt-auto w-full border-dark-border bg-ink-2 text-dark-text hover:bg-ink"
-            onClick={() => onTab("ahorro")}
-          >
-            Ver detalle
-          </Button>
-        </Card>
-      </div>
+          <div style={{ marginTop: 10 }}>
+            <span className="ftag">Calculado en la pestaña Ahorro</span>
+          </div>
+        </div>
 
-      <div className="flex justify-between text-[12px] font-semibold tabular-nums text-ink">
-        <span>Bruto {formatEUR(totales.bruto)}</span>
-        <span>Neto {formatEUR(totales.neto)}</span>
+        <div
+          style={{
+            border: "1px solid var(--line-2)",
+            borderRadius: 10,
+            background: "#fff",
+            padding: "13px 15px",
+          }}
+        >
+          <div className="lbl">Patrimonio neto</div>
+          <div
+            style={{
+              fontSize: 22,
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+            }}
+            className="num"
+          >
+            {formatEUR(totales.neto)}
+          </div>
+          <div className="tiny" style={{ marginTop: 2 }}>
+            {formatEUR(totales.bruto)} de activos − {formatEUR(totales.pasivos)}{" "}
+            de pasivos
+          </div>
+        </div>
       </div>
     </div>
   );

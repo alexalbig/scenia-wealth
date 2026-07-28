@@ -55,13 +55,43 @@ export function formatTitularidades(
         const personaId = t.owner.personaId;
         const p = personas.find((x) => x.id === personaId);
         const name = p ? p.nombre : personaId;
-        return `${name} ${Math.round(t.porcentaje * 100)} %`;
+        return `${name} ${Math.round(t.porcentaje * 100)}%`;
       }
       const sociedadId = t.owner.sociedadId;
       const s = seed.sociedades.find((x) => x.id === sociedadId);
-      return `${s?.nombre ?? "Sociedad"} ${Math.round(t.porcentaje * 100)} %`;
+      return `${s?.nombre ?? "Sociedad"} ${Math.round(t.porcentaje * 100)}%`;
     })
-    .join(" / ");
+    .join(" · ");
+}
+
+const TIT_COLORS = ["var(--blue)", "#8FA0BE", "var(--faintest)"];
+
+export function titularidadSegments(
+  titularidades: Titularidad[],
+): Array<{ pct: number; color: string }> {
+  return titularidades.map((t, i) => ({
+    pct: Math.round(t.porcentaje * 100),
+    color: TIT_COLORS[i % TIT_COLORS.length],
+  }));
+}
+
+export function tipoFiscalMockup(tipo: Instrumento["tipoFiscal"]) {
+  switch (tipo) {
+    case "fondo":
+      return "Fondo traspasable";
+    case "plan_pensiones":
+      return "Plan de pensiones";
+    case "accion":
+      return "Acción";
+    default:
+      return "Otro";
+  }
+}
+
+export function liquidezInstrumento(
+  tipo: Instrumento["tipoFiscal"],
+): "a" | "b" {
+  return tipo === "fondo" || tipo === "accion" ? "a" : "b";
 }
 
 export function tipoFiscalLabel(tipo: Instrumento["tipoFiscal"]) {
@@ -83,8 +113,16 @@ export function tipoOtroLabel(tipo: OtroActivo["tipo"]) {
       return "Vehículo";
     case "arte":
       return "Arte";
+    case "joyas":
+      return "Joyas";
     case "efectivo":
-      return "Efectivo";
+      return "Efectivo / liquidez";
+    case "mobiliario":
+      return "Mobiliario y enseres";
+    case "cripto":
+      return "Criptomonedas";
+    case "coleccion":
+      return "Colección";
     default:
       return "Otro";
   }
@@ -105,6 +143,29 @@ export function fuenteIngresoLabel(fuente: Ingreso["fuente"]) {
   }
 }
 
+/** Año (YYYY) desde ISO — fichas mockup. */
+export function yearFromIso(iso: string) {
+  return iso.slice(0, 4);
+}
+
+/** Texto corto de titularidad tipo mockup `titTxt` · «Carlos 60 % · Marta 40 %». */
+export function titTxtCorto(
+  titularidades: Titularidad[],
+  personas: Persona[],
+): string {
+  return titularidades
+    .map((t) => {
+      const owner = t.owner;
+      if (owner.kind === "persona") {
+        const p = personas.find((x) => x.id === owner.personaId);
+        const name = p?.nombre ?? owner.personaId;
+        return `${name} ${Math.round(t.porcentaje * 100)} %`;
+      }
+      return `Sociedad ${Math.round(t.porcentaje * 100)} %`;
+    })
+    .join(" · ");
+}
+
 export function formatFechaES(iso: string) {
   const [y, m, d] = iso.split("-").map(Number);
   if (!y || !m || !d) return iso;
@@ -113,6 +174,13 @@ export function formatFechaES(iso: string) {
     month: "short",
     year: "numeric",
   }).format(new Date(y, m - 1, d));
+}
+
+/** Mockup `fmtFecha` · dd/mm/aaaa — sin toLocaleDateString (evita hydration mismatch). */
+export function formatFechaDMY(iso: string) {
+  const [y, m, d] = iso.split("-");
+  if (!y || !m || !d) return iso;
+  return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
 }
 
 /** Nivel 1: cuota anual ≈ cuota×12 − intereses (orientativo). */
@@ -172,11 +240,79 @@ export function titularidadAgregada(
   return total;
 }
 
+/** Filas de patrimonio atribuido a una persona (tabla F1). */
+export function patrimonioAtribuidoFilas(
+  clienteId: string,
+  personaId: string,
+): Array<{
+  id: string;
+  nombre: string;
+  pctLabel: string;
+  valor: number | null;
+}> {
+  const rows: Array<{
+    id: string;
+    nombre: string;
+    pctLabel: string;
+    valor: number | null;
+  }> = [];
+
+  const pctOf = (titularidades: Titularidad[]) => {
+    const t = titularidades.find(
+      (x) => x.owner.kind === "persona" && x.owner.personaId === personaId,
+    );
+    return t?.porcentaje ?? 0;
+  };
+
+  for (const i of getInstrumentos(clienteId)) {
+    const pct = pctOf(i.titularidades);
+    if (pct <= 0) continue;
+    rows.push({
+      id: i.id,
+      nombre: i.nombre,
+      pctLabel: `${Math.round(pct * 100)} %`,
+      valor: i.valor * pct,
+    });
+  }
+  for (const inm of getInmuebles(clienteId)) {
+    const pct = pctOf(inm.titularidades);
+    if (pct <= 0) continue;
+    rows.push({
+      id: inm.id,
+      nombre: inm.nombre,
+      pctLabel: `${Math.round(pct * 100)} %`,
+      valor: inm.valor * pct,
+    });
+  }
+  for (const a of getOtrosActivos(clienteId)) {
+    const pct = pctOf(a.titularidades);
+    if (pct <= 0) continue;
+    rows.push({
+      id: a.id,
+      nombre: a.nombre,
+      pctLabel: `${Math.round(pct * 100)} %`,
+      valor: a.valor * pct,
+    });
+  }
+  for (const s of getSociedades(clienteId)) {
+    const pct = s.participaciones[personaId] ?? 0;
+    if (pct <= 0) continue;
+    rows.push({
+      id: s.id,
+      nombre: s.nombre,
+      pctLabel: `${Math.round(pct * 100)} %`,
+      valor: null, // F4 sin valoración
+    });
+  }
+  return rows;
+}
+
 export function labelVinculo(
   gasto: Gasto,
   personas: Persona[],
   inmuebles: Inmueble[],
   sociedades: Sociedad[],
+  otros: OtroActivo[] = [],
 ): string {
   const v = gasto.vinculadoA;
   if (!v) return "Sin vincular";
@@ -191,6 +327,10 @@ export function labelVinculo(
   if (v.kind === "sociedad") {
     const s = sociedades.find((x) => x.id === v.sociedadId);
     return s?.nombre ?? "Sociedad";
+  }
+  if (v.kind === "otro") {
+    const a = otros.find((x) => x.id === v.otroId);
+    return a?.nombre ?? "Otro activo";
   }
   return "Sin vincular";
 }

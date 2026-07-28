@@ -1,49 +1,37 @@
 import type { ComposicionPatrimonio } from "@/lib/types";
-import { cn } from "@/lib/cn";
 
-const SEGMENTS: Array<{
-  key: keyof ComposicionPatrimonio;
-  label: string;
-  className: string;
-}> = [
-  { key: "financiero", label: "Financiero", className: "bg-blue" },
-  { key: "inmobiliario", label: "Inmobiliario", className: "bg-ink-3" },
-  { key: "empresarial", label: "Empresarial", className: "bg-coral" },
-  { key: "otros", label: "Otros", className: "bg-faintest" },
-];
-
+/** Mockup `.comp` — fracciones 0–1; si llegan euros (bags viejos), normaliza. */
 export function CompositionBar({
   composicion,
-  className,
+  style,
 }: {
   composicion: ComposicionPatrimonio;
-  className?: string;
+  style?: React.CSSProperties;
 }) {
-  const parts = SEGMENTS.map((s) => ({
-    ...s,
-    value: composicion[s.key] ?? 0,
-  })).filter((p) => p.value > 0.001);
+  const raw =
+    composicion.financiero +
+    composicion.inmobiliario +
+    composicion.empresarial +
+    composicion.otros;
+  const scale = raw > 1.5 ? raw : 1;
+  const pct = (v: number) =>
+    scale > 0 ? Math.round((v / scale) * 100) : 0;
 
   return (
-    <div
-      className={cn(
-        "mt-1.5 flex h-[5px] w-[120px] overflow-hidden rounded-[3px] bg-line",
-        className,
-      )}
-      title={parts
-        .map((p) => `${p.label} ${Math.round(p.value * 100)}%`)
-        .join(" · ")}
-      aria-label={parts
-        .map((p) => `${p.label} ${Math.round(p.value * 100)}%`)
-        .join(", ")}
-    >
-      {parts.map((p) => (
-        <span
-          key={p.key}
-          className={cn("block h-full", p.className)}
-          style={{ width: `${p.value * 100}%` }}
-        />
-      ))}
+    <div className="comp" style={style}>
+      <i
+        className="c-fin"
+        style={{ width: `${pct(composicion.financiero)}%` }}
+      />
+      <i
+        className="c-inm"
+        style={{ width: `${pct(composicion.inmobiliario)}%` }}
+      />
+      <i
+        className="c-emp"
+        style={{ width: `${pct(composicion.empresarial)}%` }}
+      />
+      <i className="c-otr" style={{ width: `${pct(composicion.otros)}%` }} />
     </div>
   );
 }

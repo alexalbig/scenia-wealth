@@ -1,24 +1,26 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
-  Badge,
   Button,
-  Card,
+  LiqBadge,
   Table,
   TBody,
   TD,
   TFoot,
   TH,
   THead,
+  TitBar,
   TR,
 } from "@/components/ui";
+import { RowCrud } from "@/components/patrimonio/RowCrud";
 import { formatEUR } from "@/lib/format";
 import {
-  formatFechaES,
   formatTitularidades,
-  tipoFiscalLabel,
+  liquidezInstrumento,
+  tipoFiscalMockup,
   tipoOtroLabel,
+  titularidadSegments,
 } from "@/lib/patrimonio";
 import type {
   Inmueble,
@@ -29,6 +31,35 @@ import type {
   Sociedad,
 } from "@/lib/types";
 
+function EvBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      ⚡ Evento
+    </Button>
+  );
+}
+
+function AddBtn({ onClick }: { onClick: () => void }) {
+  return (
+    <Button
+      size="sm"
+      variant="ghost"
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+    >
+      + Añadir
+    </Button>
+  );
+}
+
 export function ActivosTab({
   clienteId,
   personas,
@@ -38,6 +69,15 @@ export function ActivosTab({
   otros,
   pasivos,
   onEvento,
+  onAdd,
+  onEditInstrumento,
+  onEditInmueble,
+  onEditSociedad,
+  onEditOtro,
+  onDeleteInstrumento,
+  onDeleteInmueble,
+  onDeleteSociedad,
+  onDeleteOtro,
 }: {
   clienteId: string;
   personas: Persona[];
@@ -50,303 +90,422 @@ export function ActivosTab({
     contexto: "instrumento" | "inmueble" | "sociedad" | "otro",
     nombre: string,
   ) => void;
+  onAdd: (kind: "instrumento" | "inmueble" | "sociedad" | "otro") => void;
+  onEditInstrumento: (i: Instrumento) => void;
+  onEditInmueble: (i: Inmueble) => void;
+  onEditSociedad: (s: Sociedad) => void;
+  onEditOtro: (a: OtroActivo) => void;
+  onDeleteInstrumento: (id: string) => void;
+  onDeleteInmueble: (id: string) => void;
+  onDeleteSociedad: (id: string) => void;
+  onDeleteOtro: (id: string) => void;
 }) {
+  const router = useRouter();
   const totalFin = instrumentos.reduce((s, i) => s + i.valor, 0);
   const totalInm = inmuebles.reduce((s, i) => s + i.valor, 0);
   const totalOtros = otros.reduce((s, a) => s + a.valor, 0);
-  const totalSoc = 0; // sin valoración — hueco F4
-  const totalGeneral = totalFin + totalInm + totalOtros + totalSoc;
+  const totalGeneral = totalFin + totalInm + totalOtros;
+  const yearOf = (iso: string) => iso.slice(0, 4);
+
+  function participacionLabel(s: Sociedad) {
+    return Object.entries(s.participaciones)
+      .map(([pid, pct]) => {
+        const p = personas.find((x) => x.id === pid);
+        return `${p ? p.nombre : pid} ${Math.round(pct * 100)} %`;
+      })
+      .join(" · ");
+  }
 
   return (
-    <div className="space-y-3">
-      <p className="label-upper">Activos · agrupados por tipo</p>
-
-      <Card padding="none" className="overflow-hidden">
-        <Table>
-          <TBody>
-            {/* ── Portfolio financiero ── */}
-            <TR className="group-head">
-              <TD colSpan={8}>Portfolio financiero</TD>
-            </TR>
-            <TR>
-              <TD colSpan={8} className="border-b-0 p-0">
-                <table className="w-full border-collapse text-left text-[12.5px]">
-                  <THead>
+    <>
+      <div className="lbl" style={{ marginBottom: 8 }}>
+        Activos · agrupados por tipo
+      </div>
+      <Table>
+        <TBody>
+          <TR className="group-head">
+            <TD colSpan={8}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>Portfolio financiero</span>
+                <AddBtn onClick={() => onAdd("instrumento")} />
+              </div>
+            </TD>
+          </TR>
+          <TR>
+            <TD colSpan={8} style={{ padding: 0, border: "none" }}>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Instrumento</TH>
+                    <TH>Tipo fiscal</TH>
+                    <TH className="right">Valor</TH>
+                    <TH>Adquisición</TH>
+                    <TH className="right">Plusvalía latente</TH>
+                    <TH>Titularidad</TH>
+                    <TH>Liquidez</TH>
+                    <TH />
+                  </TR>
+                </THead>
+                <TBody>
+                  {instrumentos.length === 0 && (
                     <TR>
-                      <TH>Instrumento</TH>
-                      <TH>Tipo fiscal</TH>
-                      <TH className="text-right">Valor</TH>
-                      <TH>Adquisición</TH>
-                      <TH className="text-right">Plusvalía latente</TH>
-                      <TH>Titularidad</TH>
-                      <TH />
+                      <TD colSpan={8} className="mut">
+                        Sin instrumentos. «+ Añadir» carga lo que el cliente ya
+                        tiene.
+                      </TD>
                     </TR>
-                  </THead>
-                  <TBody>
-                    {instrumentos.map((i) => (
-                      <TR key={i.id} className="rowlink">
-                        <TD>
-                          <Link
-                            href={`/clientes/${clienteId}/fichas/portfolio/${i.id}`}
-                            className="font-semibold text-ink hover:underline"
-                          >
-                            {i.nombre}
-                          </Link>
-                        </TD>
-                        <TD className="text-slate">
-                          {tipoFiscalLabel(i.tipoFiscal)}
-                        </TD>
-                        <TD numeric>{formatEUR(i.valor)}</TD>
-                        <TD className="tabular-nums text-slate">
-                          {formatFechaES(i.fechaAdquisicion)}
-                        </TD>
-                        <TD numeric>
-                          {i.plusvaliaLatente != null ? (
-                            <span className="text-green">
-                              +{formatEUR(i.plusvaliaLatente)}
-                            </span>
-                          ) : (
-                            <span className="text-mute">—</span>
-                          )}
-                        </TD>
-                        <TD className="text-[11px] text-slate">
+                  )}
+                  {instrumentos.map((i) => (
+                    <TR
+                      key={i.id}
+                      className="rowlink"
+                      onClick={() =>
+                        router.push(
+                          `/clientes/${clienteId}/fichas/portfolio/${i.id}`,
+                        )
+                      }
+                    >
+                      <TD>
+                        <b>{i.nombre}</b>
+                      </TD>
+                      <TD className="slt">{tipoFiscalMockup(i.tipoFiscal)}</TD>
+                      <TD className="right num strong">{formatEUR(i.valor)}</TD>
+                      <TD className="num slt">{yearOf(i.fechaAdquisicion)}</TD>
+                      <TD className="right num">
+                        {i.plusvaliaLatente != null ? (
+                          <span className="gain">
+                            +{formatEUR(i.plusvaliaLatente)}
+                          </span>
+                        ) : (
+                          <span className="mut">—</span>
+                        )}
+                      </TD>
+                      <TD>
+                        <span className="tiny">
                           {formatTitularidades(i.titularidades, personas)}
-                        </TD>
-                        <TD className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
+                        </span>
+                        <TitBar
+                          segments={titularidadSegments(i.titularidades)}
+                        />
+                      </TD>
+                      <TD>
+                        <LiqBadge level={liquidezInstrumento(i.tipoFiscal)} />
+                      </TD>
+                      <TD className="right">
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 4,
+                            alignItems: "center",
+                          }}
+                        >
+                          <RowCrud
+                            onEdit={() => onEditInstrumento(i)}
+                            onDelete={() => onDeleteInstrumento(i.id)}
+                          />
+                          <EvBtn
                             onClick={() => onEvento("instrumento", i.nombre)}
-                          >
-                            Evento
-                          </Button>
-                        </TD>
-                      </TR>
-                    ))}
-                    {instrumentos.length === 0 && (
-                      <TR>
-                        <TD colSpan={7} className="py-4 text-center text-mute">
-                          Sin instrumentos.
-                        </TD>
-                      </TR>
-                    )}
-                    <TR className="subtotal">
-                      <TD colSpan={2}>Subtotal portfolio</TD>
-                      <TD numeric>{formatEUR(totalFin)}</TD>
-                      <TD colSpan={4} />
+                          />
+                        </span>
+                      </TD>
                     </TR>
-                  </TBody>
-                </table>
-              </TD>
-            </TR>
+                  ))}
+                  <TR className="subtotal">
+                    <TD colSpan={2}>Subtotal portfolio</TD>
+                    <TD className="right num">{formatEUR(totalFin)}</TD>
+                    <TD colSpan={5} />
+                  </TR>
+                </TBody>
+              </Table>
+            </TD>
+          </TR>
 
-            {/* ── Inmuebles ── */}
-            <TR className="group-head">
-              <TD colSpan={8}>Inmuebles</TD>
-            </TR>
-            <TR>
-              <TD colSpan={8} className="border-b-0 p-0">
-                <table className="w-full border-collapse text-left text-[12.5px]">
-                  <THead>
+          <TR className="group-head">
+            <TD colSpan={8}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>Inmuebles</span>
+                <AddBtn onClick={() => onAdd("inmueble")} />
+              </div>
+            </TD>
+          </TR>
+          <TR>
+            <TD colSpan={8} style={{ padding: 0, border: "none" }}>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Inmueble</TH>
+                    <TH className="right">Valor</TH>
+                    <TH>Adquisición</TH>
+                    <TH>Hipoteca asociada</TH>
+                    <TH>Titularidad</TH>
+                    <TH>Liquidez</TH>
+                    <TH />
+                  </TR>
+                </THead>
+                <TBody>
+                  {inmuebles.length === 0 && (
                     <TR>
-                      <TH>Inmueble</TH>
-                      <TH className="text-right">Valor</TH>
-                      <TH>Adquisición</TH>
-                      <TH>Hipoteca asociada</TH>
-                      <TH>Titularidad</TH>
-                      <TH />
+                      <TD colSpan={7} className="mut">
+                        Sin inmuebles.
+                      </TD>
                     </TR>
-                  </THead>
-                  <TBody>
-                    {inmuebles.map((inm) => {
-                      const hip = pasivos.find((p) => p.id === inm.pasivoId);
-                      return (
-                        <TR key={inm.id} className="rowlink">
-                          <TD>
-                            <Link
-                              href={`/clientes/${clienteId}/fichas/inmueble/${inm.id}`}
-                              className="font-semibold text-ink hover:underline"
-                            >
-                              {inm.nombre}
-                            </Link>
-                          </TD>
-                          <TD numeric>{formatEUR(inm.valor)}</TD>
-                          <TD className="tabular-nums text-slate">
-                            {formatFechaES(inm.fechaAdquisicion)}
-                          </TD>
-                          <TD className="text-slate">
-                            {hip
-                              ? `${formatEUR(hip.capitalPendiente)} · ${hip.prestamista}`
-                              : "—"}
-                          </TD>
-                          <TD className="text-[11px] text-slate">
+                  )}
+                  {inmuebles.map((inm) => {
+                    const hip = pasivos.find((p) => p.id === inm.pasivoId);
+                    return (
+                      <TR
+                        key={inm.id}
+                        className="rowlink"
+                        onClick={() =>
+                          router.push(
+                            `/clientes/${clienteId}/fichas/inmueble/${inm.id}`,
+                          )
+                        }
+                      >
+                        <TD>
+                          <b>{inm.nombre}</b>
+                        </TD>
+                        <TD className="right num strong">
+                          {formatEUR(inm.valor)}
+                        </TD>
+                        <TD className="num slt">
+                          {yearOf(inm.fechaAdquisicion)}
+                        </TD>
+                        <TD className="slt">
+                          {hip ? `Hipoteca ${hip.prestamista}` : "—"}
+                        </TD>
+                        <TD>
+                          <span className="tiny">
                             {formatTitularidades(inm.titularidades, personas)}
-                          </TD>
-                          <TD className="text-right">
-                            <Button
-                              size="sm"
-                              variant="ghost"
+                          </span>
+                          <TitBar
+                            segments={titularidadSegments(inm.titularidades)}
+                          />
+                        </TD>
+                        <TD>
+                          <LiqBadge level="b" />
+                        </TD>
+                        <TD className="right">
+                          <span
+                            style={{
+                              display: "inline-flex",
+                              gap: 4,
+                              alignItems: "center",
+                            }}
+                          >
+                            <RowCrud
+                              onEdit={() => onEditInmueble(inm)}
+                              onDelete={() => onDeleteInmueble(inm.id)}
+                            />
+                            <EvBtn
                               onClick={() => onEvento("inmueble", inm.nombre)}
-                            >
-                              Evento
-                            </Button>
-                          </TD>
-                        </TR>
-                      );
-                    })}
-                    {inmuebles.length === 0 && (
-                      <TR>
-                        <TD colSpan={6} className="py-4 text-center text-mute">
-                          Sin inmuebles.
+                            />
+                          </span>
                         </TD>
                       </TR>
-                    )}
-                    <TR className="subtotal">
-                      <TD>Subtotal inmuebles</TD>
-                      <TD numeric>{formatEUR(totalInm)}</TD>
-                      <TD colSpan={4} />
-                    </TR>
-                  </TBody>
-                </table>
-              </TD>
-            </TR>
+                    );
+                  })}
+                  <TR className="subtotal">
+                    <TD>Subtotal inmuebles</TD>
+                    <TD className="right num">{formatEUR(totalInm)}</TD>
+                    <TD colSpan={5} />
+                  </TR>
+                </TBody>
+              </Table>
+            </TD>
+          </TR>
 
-            {/* ── Empresarial ── */}
-            <TR className="group-head">
-              <TD colSpan={8}>Inversiones empresariales</TD>
-            </TR>
-            <TR>
-              <TD colSpan={8} className="border-b-0 p-0">
-                <table className="w-full border-collapse text-left text-[12.5px]">
-                  <THead>
+          <TR className="group-head">
+            <TD colSpan={8}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>Inversiones empresariales</span>
+                <AddBtn onClick={() => onAdd("sociedad")} />
+              </div>
+            </TD>
+          </TR>
+          <TR>
+            <TD colSpan={8} style={{ padding: 0, border: "none" }}>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Sociedad</TH>
+                    <TH>Participación</TH>
+                    <TH className="right">Valor</TH>
+                    <TH>Liquidez</TH>
+                    <TH />
+                  </TR>
+                </THead>
+                <TBody>
+                  {sociedades.length === 0 && (
                     <TR>
-                      <TH>Sociedad</TH>
-                      <TH className="text-right">Participación</TH>
-                      <TH className="text-right">Valor</TH>
-                      <TH />
+                      <TD colSpan={5} className="mut">
+                        Sin sociedades.
+                      </TD>
                     </TR>
-                  </THead>
-                  <TBody>
-                    {sociedades.map((s) => {
-                      const pct = Object.values(s.participaciones).reduce(
-                        (a, b) => a + b,
-                        0,
-                      );
-                      return (
-                        <TR key={s.id} className="rowlink">
-                          <TD>
-                            <Link
-                              href={`/clientes/${clienteId}/fichas/sociedad/${s.id}`}
-                              className="font-semibold text-ink hover:underline"
-                            >
-                              {s.nombre}
-                            </Link>
-                          </TD>
-                          <TD numeric>{Math.round(pct * 100)} %</TD>
-                          <TD className="text-right text-mute">
-                            Pendiente de definir
-                          </TD>
-                          <TD className="text-right">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => onEvento("sociedad", s.nombre)}
-                            >
-                              Evento
-                            </Button>
-                          </TD>
-                        </TR>
-                      );
-                    })}
-                    {sociedades.length === 0 && (
-                      <TR>
-                        <TD colSpan={4} className="py-4 text-center text-mute">
-                          Sin sociedades.
-                        </TD>
-                      </TR>
-                    )}
-                  </TBody>
-                </table>
-              </TD>
-            </TR>
+                  )}
+                  {sociedades.map((s) => (
+                    <TR
+                      key={s.id}
+                      className="rowlink"
+                      onClick={() =>
+                        router.push(
+                          `/clientes/${clienteId}/fichas/sociedad/${s.id}`,
+                        )
+                      }
+                    >
+                      <TD>
+                        <b>{s.nombre}</b>
+                      </TD>
+                      <TD className="slt">{participacionLabel(s)}</TD>
+                      <TD className="right">
+                        <span className="mut">no valorada</span>
+                      </TD>
+                      <TD>
+                        <LiqBadge level="b" />
+                      </TD>
+                      <TD className="right">
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 4,
+                            alignItems: "center",
+                          }}
+                        >
+                          <RowCrud
+                            onEdit={() => onEditSociedad(s)}
+                            onDelete={() => onDeleteSociedad(s.id)}
+                          />
+                          <EvBtn
+                            onClick={() => onEvento("sociedad", s.nombre)}
+                          />
+                        </span>
+                      </TD>
+                    </TR>
+                  ))}
+                </TBody>
+              </Table>
+            </TD>
+          </TR>
 
-            {/* ── Otros ── */}
-            <TR className="group-head">
-              <TD colSpan={8}>Otros activos</TD>
-            </TR>
-            <TR>
-              <TD colSpan={8} className="border-b-0 p-0">
-                <table className="w-full border-collapse text-left text-[12.5px]">
-                  <THead>
+          <TR className="group-head">
+            <TD colSpan={8}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <span>Otros activos</span>
+                <AddBtn onClick={() => onAdd("otro")} />
+              </div>
+            </TD>
+          </TR>
+          <TR>
+            <TD colSpan={8} style={{ padding: 0, border: "none" }}>
+              <Table>
+                <THead>
+                  <TR>
+                    <TH>Activo</TH>
+                    <TH>Tipo</TH>
+                    <TH className="right">Valor</TH>
+                    <TH>Titularidad</TH>
+                    <TH>Liquidez</TH>
+                    <TH />
+                  </TR>
+                </THead>
+                <TBody>
+                  {otros.length === 0 && (
                     <TR>
-                      <TH>Activo</TH>
-                      <TH>Tipo</TH>
-                      <TH className="text-right">Valor</TH>
-                      <TH>Titularidad</TH>
-                      <TH />
+                      <TD colSpan={6} className="mut">
+                        Sin otros activos.
+                      </TD>
                     </TR>
-                  </THead>
-                  <TBody>
-                    {otros.map((a) => (
-                      <TR key={a.id} className="rowlink">
-                        <TD>
-                          <Link
-                            href={`/clientes/${clienteId}/fichas/otro/${a.id}`}
-                            className="font-semibold text-ink hover:underline"
-                          >
-                            {a.nombre}
-                          </Link>
-                        </TD>
-                        <TD>
-                          <Badge variant="coral">{tipoOtroLabel(a.tipo)}</Badge>
-                        </TD>
-                        <TD numeric>{formatEUR(a.valor)}</TD>
-                        <TD className="text-[11px] text-slate">
+                  )}
+                  {otros.map((a) => (
+                    <TR
+                      key={a.id}
+                      className="rowlink"
+                      onClick={() =>
+                        router.push(
+                          `/clientes/${clienteId}/fichas/otro/${a.id}`,
+                        )
+                      }
+                    >
+                      <TD>
+                        <b>{a.nombre}</b>
+                      </TD>
+                      <TD className="slt">{tipoOtroLabel(a.tipo)}</TD>
+                      <TD className="right num strong">{formatEUR(a.valor)}</TD>
+                      <TD>
+                        <span className="tiny">
                           {formatTitularidades(a.titularidades, personas)}
-                        </TD>
-                        <TD className="text-right">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => onEvento("otro", a.nombre)}
-                          >
-                            Evento
-                          </Button>
-                        </TD>
-                      </TR>
-                    ))}
-                    {otros.length === 0 && (
-                      <TR>
-                        <TD colSpan={5} className="py-4 text-center text-mute">
-                          Sin otros activos.
-                        </TD>
-                      </TR>
-                    )}
-                    <TR className="subtotal">
-                      <TD colSpan={2}>Subtotal otros</TD>
-                      <TD numeric>{formatEUR(totalOtros)}</TD>
-                      <TD colSpan={2} />
+                        </span>
+                        <TitBar
+                          segments={titularidadSegments(a.titularidades)}
+                        />
+                      </TD>
+                      <TD>
+                        <LiqBadge level="b" />
+                      </TD>
+                      <TD className="right">
+                        <span
+                          style={{
+                            display: "inline-flex",
+                            gap: 4,
+                            alignItems: "center",
+                          }}
+                        >
+                          <RowCrud
+                            onEdit={() => onEditOtro(a)}
+                            onDelete={() => onDeleteOtro(a.id)}
+                          />
+                          <EvBtn onClick={() => onEvento("otro", a.nombre)} />
+                        </span>
+                      </TD>
                     </TR>
-                  </TBody>
-                </table>
-              </TD>
-            </TR>
-          </TBody>
-          <TFoot>
-            <TR>
-              <TD colSpan={5}>Total activos</TD>
-              <TD colSpan={3} numeric>
-                {formatEUR(totalGeneral)}
-              </TD>
-            </TR>
-          </TFoot>
-        </Table>
-      </Card>
-
-      <p className="text-[11px] text-mute">
-        Pincha el nombre para abrir su ficha · «Evento» añade una decisión sobre
-        ese elemento.
-      </p>
-    </div>
+                  ))}
+                  <TR className="subtotal">
+                    <TD colSpan={2}>Subtotal otros</TD>
+                    <TD className="right num">{formatEUR(totalOtros)}</TD>
+                    <TD colSpan={3} />
+                  </TR>
+                </TBody>
+              </Table>
+            </TD>
+          </TR>
+        </TBody>
+        <TFoot>
+          <TR>
+            <TD colSpan={5}>Total activos</TD>
+            <TD colSpan={3} className="right num">
+              {formatEUR(totalGeneral)}
+            </TD>
+          </TR>
+        </TFoot>
+      </Table>
+      <div className="tiny" style={{ marginTop: 10 }}>
+        «+ Añadir» carga un elemento que existe hoy · «⚡ Evento» describe una
+        decisión futura sobre un elemento ya existente.
+      </div>
+    </>
   );
 }

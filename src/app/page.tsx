@@ -1,18 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { AppTopBar, PaperShell, Sheet } from "@/components/shell/AppShell";
 import { CompositionBar } from "@/components/cartera/CompositionBar";
 import { AltaClienteModal } from "@/components/cartera/AltaClienteModal";
 import {
-  Badge,
+  Avatar,
   Button,
+  Pill,
   Table,
   TBody,
   TD,
-  TFoot,
   TH,
   THead,
   TR,
@@ -20,9 +19,13 @@ import {
 import {
   getEscenariosDeCliente,
   getPersonasDeCliente,
-  patrimonioTotalCartera,
   seed,
 } from "@/lib/seed";
+import {
+  createExpedienteFromAlta,
+  listCustomClientes,
+  readExpediente,
+} from "@/lib/expediente-storage";
 import { formatEUR, monthsAgoLabel } from "@/lib/format";
 import { cn } from "@/lib/cn";
 import type { Cliente, Segmento } from "@/lib/types";
@@ -45,35 +48,72 @@ interface CarteraRow {
 function initials(nombre: string) {
   return nombre
     .replace(/^Familia\s+/i, "")
-    .split(/\s+/)
+    .split(/[\s-]+/)
+    .filter(Boolean)
     .slice(0, 2)
     .map((w) => w[0])
     .join("")
     .toUpperCase();
 }
 
-function buildRows(): CarteraRow[] {
-  return seed.clientes.map((cliente) => {
-    const personas = getPersonasDeCliente(cliente.id);
-    const sociedades = seed.sociedades.filter((s) =>
-      cliente.sociedadIds.includes(s.id),
-    );
-    const searchBlob = [
-      cliente.nombre,
-      cliente.segmento,
-      ...personas.map((p) => `${p.nombre} ${p.apellidos}`),
-      ...sociedades.map((s) => s.nif),
-      ...sociedades.map((s) => s.nombre),
-    ]
-      .join(" ")
-      .toLowerCase();
+function rowFromCliente(
+  cliente: Cliente,
+  personas: Array<{ nombre: string; apellidos: string }>,
+  sociedades: Array<{ nif: string; nombre: string }>,
+  escenarios: number,
+): CarteraRow {
+  const searchBlob = [
+    cliente.nombre,
+    cliente.segmento,
+    ...personas.map((p) => `${p.nombre} ${p.apellidos}`),
+    ...sociedades.map((s) => s.nif),
+    ...sociedades.map((s) => s.nombre),
+  ]
+    .join(" ")
+    .toLowerCase();
+  return { cliente, escenarios, searchBlob };
+}
 
-    return {
-      cliente,
-      escenarios: getEscenariosDeCliente(cliente.id).length,
-      searchBlob,
-    };
+function buildSeedRows(): CarteraRow[] {
+  return seed.clientes.map((c) => {
+    const personas = getPersonasDeCliente(c.id);
+    const sociedades = seed.sociedades.filter((s) =>
+      c.sociedadIds.includes(s.id),
+    );
+    return rowFromCliente(
+      c,
+      personas,
+      sociedades,
+      getEscenariosDeCliente(c.id).length || 1,
+    );
   });
+}
+
+function buildRows(): CarteraRow[] {
+  const seedIds = new Set(seed.clientes.map((c) => c.id));
+  const seedRows = seed.clientes.map((c) => {
+    const bag = readExpediente(c.id);
+    const cliente = bag?.cliente ?? c;
+    const personas = bag?.personas ?? getPersonasDeCliente(c.id);
+    const sociedades =
+      bag?.sociedades ??
+      seed.sociedades.filter((s) => c.sociedadIds.includes(s.id));
+    return rowFromCliente(
+      cliente,
+      personas,
+      sociedades,
+      getEscenariosDeCliente(c.id).length || 1,
+    );
+  });
+
+  const customRows = listCustomClientes()
+    .filter((c) => !seedIds.has(c.id))
+    .map((c) => {
+      const bag = readExpediente(c.id);
+      return rowFromCliente(c, bag?.personas ?? [], bag?.sociedades ?? [], 1);
+    });
+
+  return [...seedRows, ...customRows];
 }
 
 function compareRows(a: CarteraRow, b: CarteraRow, key: SortKey, dir: SortDir) {
@@ -133,16 +173,25 @@ export default function CarteraPage() {
   const [sortKey, setSortKey] = useState<SortKey>("patrimonio");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [altaOpen, setAltaOpen] = useState(false);
-  const [extraClientes, setExtraClientes] = useState<CarteraRow[]>([]);
+  const [sessionReady, setSessionReady] = useState(false);
+  const [sessionTick, setSessionTick] = useState(0);
 
-  const baseRows = useMemo(() => buildRows(), []);
+  useEffect(() => {
+    setSessionReady(true);
+  }, []);
+
+  const baseRows = useMemo(() => {
+    if (!sessionReady) return buildSeedRows();
+    return buildRows();
+  }, [sessionReady, sessionTick]);
 
   const rows = useMemo(() => {
-    const all = [...baseRows, ...extraClientes];
     const q = query.trim().toLowerCase();
-    const filtered = q ? all.filter((r) => r.searchBlob.includes(q)) : all;
+    const filtered = q
+      ? baseRows.filter((r) => r.searchBlob.includes(q))
+      : baseRows;
     return [...filtered].sort((a, b) => compareRows(a, b, sortKey, sortDir));
-  }, [baseRows, extraClientes, query, sortKey, sortDir]);
+  }, [baseRows, query, sortKey, sortDir]);
 
   const footerCount = rows.length;
   const footerPatrimonio = rows.reduce(
@@ -161,26 +210,16 @@ export default function CarteraPage() {
 
   return (
     <PaperShell>
-      <AppTopBar
-        title="Cartera"
-        action={
-          <Button size="sm" variant="coral" onClick={() => setAltaOpen(true)}>
-            + Nuevo cliente
-          </Button>
-        }
-      />
+      <AppTopBar />
 
       <Sheet>
-        <div className="flex flex-wrap items-end justify-between gap-4 px-[22px] pb-3.5 pt-5">
-          <div className="min-w-[220px] flex-1">
-            <p className="label-upper">Cartera</p>
-            <h1 className="text-[28px] font-bold tracking-[-0.02em] text-ink">
-              Cartera de clientes
-            </h1>
+        <div className="scr-head">
+          <div className="grow">
+            <div className="lbl">Cartera</div>
+            <div className="h1">Cartera de clientes</div>
           </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <label className="flex min-w-[230px] items-center gap-1.5 rounded-[8px] border border-line-2 bg-white px-2.5 py-1.5">
-              <span className="sr-only">Buscar por nombre o NIF</span>
+          <div className="toolbar">
+            <div className="search">
               <svg
                 width="13"
                 height="13"
@@ -194,17 +233,20 @@ export default function CarteraPage() {
                 <path d="M20 20l-3.5-3.5" />
               </svg>
               <input
-                type="search"
+                type="text"
                 placeholder="Buscar por nombre o NIF"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                className="w-full border-0 bg-transparent text-[12.5px] text-ink outline-none placeholder:text-faint"
+                aria-label="Buscar por nombre o NIF"
               />
-            </label>
+            </div>
+            <Button variant="coral" onClick={() => setAltaOpen(true)}>
+              + Nuevo cliente
+            </Button>
           </div>
         </div>
 
-        <div className="px-[22px] pb-5">
+        <div style={{ padding: "0 22px" }}>
           <Table>
             <THead>
               <TR>
@@ -246,135 +288,105 @@ export default function CarteraPage() {
               {rows.map(({ cliente, escenarios }) => (
                 <TR
                   key={cliente.id}
-                  className="cursor-pointer hover:[&>td]:bg-paper-2"
+                  className="rowlink"
                   onClick={() =>
                     router.push(`/clientes/${cliente.id}/patrimonio`)
                   }
                 >
                   <TD>
-                    <div className="flex items-center gap-2.5">
-                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-soft text-[11px] font-bold text-blue">
-                        {initials(cliente.nombre)}
-                      </span>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                      }}
+                    >
+                      <Avatar initials={initials(cliente.nombre)} />
                       <div>
-                        <Link
-                          href={`/clientes/${cliente.id}/patrimonio`}
-                          className="font-bold text-ink hover:text-blue"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          {cliente.nombre}
-                        </Link>
+                        <b>{cliente.nombre}</b>
                       </div>
                     </div>
                   </TD>
                   <TD>
-                    <Badge
-                      variant={
-                        cliente.segmento === "Empresario" ? "coral" : "segment"
+                    <Pill
+                      tone={
+                        cliente.segmento === "Empresario" ? "emp" : "default"
                       }
                     >
                       {cliente.segmento}
-                    </Badge>
+                    </Pill>
                   </TD>
-                  <TD numeric>
-                    <div className="inline-flex flex-col items-end">
-                      <span className="font-bold">{formatEUR(cliente.patrimonioNeto)}</span>
-                      <CompositionBar composicion={cliente.composicion} />
+                  <TD className="right">
+                    <div className="num strong">
+                      {formatEUR(cliente.patrimonioNeto)}
                     </div>
+                    <CompositionBar
+                      composicion={cliente.composicion}
+                      style={{ marginLeft: "auto" }}
+                    />
                   </TD>
-                  <TD numeric className="!font-normal text-ink-3">
-                    {escenarios}
-                  </TD>
-                  <TD className="text-slate">
+                  <TD className="right num">{escenarios}</TD>
+                  <TD className="slt">
                     {monthsAgoLabel(cliente.ultimaRevisionMeses)}
                   </TD>
                 </TR>
               ))}
               {rows.length === 0 && (
                 <TR>
-                  <TD colSpan={5} className="py-8 text-center text-mute">
-                    Ningún cliente coincide con la búsqueda.
+                  <TD colSpan={5}>
+                    <div className="empty">
+                      Ningún cliente coincide con la búsqueda.
+                    </div>
                   </TD>
                 </TR>
               )}
             </TBody>
-            <TFoot>
-              <TR>
-                <TD
-                  colSpan={2}
-                  className="border-t border-line-2 border-b-0 bg-paper-2 py-3 text-[12px] font-bold"
-                >
-                  {footerCount} {footerCount === 1 ? "cliente" : "clientes"}
-                </TD>
-                <TD
-                  numeric
-                  className="border-t border-line-2 border-b-0 bg-paper-2 py-3 text-[12px] font-bold"
-                >
-                  {formatEUR(footerPatrimonio)}
-                </TD>
-                <TD
-                  colSpan={2}
-                  className="border-t border-line-2 border-b-0 bg-paper-2"
-                />
-              </TR>
-            </TFoot>
           </Table>
+        </div>
 
-          <div className="mt-2 flex flex-wrap gap-3">
-            {[
-              ["Financiero", "bg-blue"],
-              ["Inmobiliario", "bg-ink-3"],
-              ["Empresarial", "bg-coral"],
-              ["Otros", "bg-faintest"],
-            ].map(([label, cls]) => (
-              <span
-                key={label}
-                className="inline-flex items-center gap-1.5 text-[10.5px] text-slate"
-              >
-                <i className={cn("inline-block h-[9px] w-[9px] rounded-[2px]", cls)} />
-                {label}
-              </span>
-            ))}
+        {/* Pie a ancho de sheet · captura mockup */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 16,
+            background: "var(--paper-2)",
+            borderTop: "1px solid var(--line-2)",
+            padding: "11px 34px",
+            fontSize: 12,
+            fontWeight: 700,
+          }}
+        >
+          <div>
+            {footerCount} {footerCount === 1 ? "cliente" : "clientes"}
           </div>
-
-          {query.trim() === "" && extraClientes.length === 0 && (
-            <p className="mt-3 text-[11px] text-mute">
-              Patrimonio neto · {seed.cuenta.nombre} · total seed{" "}
-              {formatEUR(patrimonioTotalCartera())}
-            </p>
-          )}
+          <div
+            style={{
+              display: "flex",
+              alignItems: "baseline",
+              gap: 10,
+            }}
+          >
+            <span className="num">{formatEUR(footerPatrimonio)}</span>
+            <span className="tiny" style={{ fontWeight: 500 }}>
+              patrimonio neto seguido
+            </span>
+          </div>
         </div>
       </Sheet>
 
       <AltaClienteModal
         open={altaOpen}
         onClose={() => setAltaOpen(false)}
-        onCreated={({ nombre, segmento }) => {
-          const id = `cliente-nuevo-${Date.now()}`;
-          const nuevo: CarteraRow = {
-            cliente: {
-              id,
-              cuentaId: seed.cuenta.id,
-              nombre,
-              segmento: segmento as Segmento,
-              ccaa: "Comunitat Valenciana",
-              personaIds: [],
-              sociedadIds: [],
-              patrimonioNeto: 0,
-              composicion: {
-                financiero: 0,
-                inmobiliario: 0,
-                empresarial: 0,
-                otros: 0,
-              },
-              ultimaRevisionMeses: 0,
-              completo: false,
-              datosAFecha: new Date().toISOString().slice(0, 10),
-            },
-            escenarios: 1,
-            searchBlob: `${nombre} ${segmento}`.toLowerCase(),
-          };
-          setExtraClientes((prev) => [...prev, nuevo]);
+        onCreated={({ nombre, segmento, personas }) => {
+          const bag = createExpedienteFromAlta({
+            nombre,
+            segmento: segmento as Segmento,
+            personas,
+          });
+          setSessionTick((t) => t + 1);
+          router.push(`/clientes/${bag.cliente.id}/patrimonio`);
         }}
       />
     </PaperShell>

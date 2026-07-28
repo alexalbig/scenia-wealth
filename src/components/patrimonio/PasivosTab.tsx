@@ -1,18 +1,9 @@
 "use client";
 
-import {
-  Button,
-  Card,
-  Table,
-  TBody,
-  TD,
-  TFoot,
-  TH,
-  THead,
-  TR,
-} from "@/components/ui";
-import { formatEUR, formatPercent } from "@/lib/format";
-import { formatTitularidades } from "@/lib/patrimonio";
+import { Button, Table, TBody, TD, TFoot, TH, THead, TitBar, TR } from "@/components/ui";
+import { RowCrud } from "@/components/patrimonio/RowCrud";
+import { formatEUR } from "@/lib/format";
+import { formatTitularidades, titularidadSegments } from "@/lib/patrimonio";
 import type { Inmueble, Pasivo, Persona } from "@/lib/types";
 
 export function PasivosTab({
@@ -20,83 +11,114 @@ export function PasivosTab({
   pasivos,
   inmuebles,
   onEvento,
+  onAdd,
+  onEdit,
+  onDelete,
 }: {
   personas: Persona[];
   pasivos: Pasivo[];
   inmuebles: Inmueble[];
   onEvento: (nombre: string) => void;
+  onAdd: () => void;
+  onEdit: (p: Pasivo) => void;
+  onDelete: (id: string) => void;
 }) {
   const total = pasivos.reduce((s, p) => s + p.capitalPendiente, 0);
 
   return (
-    <div className="space-y-3">
-      <p className="label-upper">Pasivos</p>
-
-      <Card padding="none" className="overflow-hidden">
-        <Table>
-          <THead>
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <div className="lbl">Pasivos</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="sm" variant="ghost" onClick={onAdd}>
+            + Añadir
+          </Button>
+        </div>
+      </div>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Deuda</TH>
+            <TH>Prestamista</TH>
+            <TH className="right">Capital pendiente</TH>
+            <TH className="right">Tipo</TH>
+            <TH className="right">Cuota</TH>
+            <TH>Inmueble</TH>
+            <TH>Titularidad</TH>
+            <TH />
+          </TR>
+        </THead>
+        <TBody>
+          {pasivos.length === 0 && (
             <TR>
-              <TH>Deuda</TH>
-              <TH>Prestamista</TH>
-              <TH className="text-right">Capital pendiente</TH>
-              <TH className="text-right">Tipo</TH>
-              <TH className="text-right">Cuota</TH>
-              <TH>Inmueble</TH>
-              <TH>Titularidad</TH>
-              <TH />
+              <TD colSpan={8} className="mut">
+                Sin pasivos.
+              </TD>
             </TR>
-          </THead>
-          <TBody>
-            {pasivos.map((p) => {
-              const inm = inmuebles.find((i) => i.id === p.inmuebleId);
-              const label =
-                p.tipo === "hipoteca"
-                  ? `Hipoteca · ${p.prestamista}`
-                  : `Crédito · ${p.prestamista}`;
-              return (
-                <TR key={p.id}>
-                  <TD className="font-semibold">{label}</TD>
-                  <TD className="text-slate">{p.prestamista}</TD>
-                  <TD numeric>{formatEUR(p.capitalPendiente)}</TD>
-                  <TD numeric>{formatPercent(p.tipoInteres)}</TD>
-                  <TD numeric>{formatEUR(p.cuotaMensual)}/mes</TD>
-                  <TD className="text-slate">{inm?.nombre ?? "—"}</TD>
-                  <TD className="text-[11px] text-slate">
+          )}
+          {pasivos.map((p) => {
+            const inm = inmuebles.find((i) => i.id === p.inmuebleId);
+            const label =
+              p.tipo === "hipoteca"
+                ? `Hipoteca ${p.prestamista}`
+                : `Crédito ${p.prestamista}`;
+            return (
+              <TR key={p.id}>
+                <TD>
+                  <b>{label}</b>
+                </TD>
+                <TD className="slt">{p.prestamista}</TD>
+                <TD className="right num strong">
+                  {formatEUR(p.capitalPendiente)}
+                </TD>
+                <TD className="right num">
+                  {(p.tipoInteres * 100).toLocaleString("es-ES")} %
+                </TD>
+                <TD className="right num">{formatEUR(p.cuotaMensual)}/mes</TD>
+                <TD className="slt">{inm?.nombre ?? "—"}</TD>
+                <TD>
+                  <span className="tiny">
                     {formatTitularidades(p.titularidades, personas)}
-                  </TD>
-                  <TD className="text-right">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onEvento(p.prestamista)}
-                    >
-                      Evento
+                  </span>
+                  <TitBar segments={titularidadSegments(p.titularidades)} />
+                </TD>
+                <TD className="right">
+                  <span
+                    style={{
+                      display: "inline-flex",
+                      gap: 4,
+                      alignItems: "center",
+                    }}
+                  >
+                    <RowCrud
+                      onEdit={() => onEdit(p)}
+                      onDelete={() => onDelete(p.id)}
+                    />
+                    <Button size="sm" onClick={() => onEvento(label)}>
+                      ⚡ Evento
                     </Button>
-                  </TD>
-                </TR>
-              );
-            })}
-            {pasivos.length === 0 && (
-              <TR>
-                <TD colSpan={8} className="py-6 text-center text-mute">
-                  Sin pasivos.
+                  </span>
                 </TD>
               </TR>
-            )}
-          </TBody>
-          {pasivos.length > 0 && (
-            <TFoot>
-              <TR>
-                <TD colSpan={2}>Total pasivos</TD>
-                <TD numeric>{formatEUR(total)}</TD>
-                <TD colSpan={5} />
-              </TR>
-            </TFoot>
-          )}
-        </Table>
-      </Card>
-
-      <div className="hint-info">
+            );
+          })}
+        </TBody>
+        <TFoot>
+          <TR>
+            <TD colSpan={2}>Total pasivos</TD>
+            <TD className="right num">{formatEUR(total)}</TD>
+            <TD colSpan={5} />
+          </TR>
+        </TFoot>
+      </Table>
+      <div className="hint-info" style={{ marginTop: 12 }}>
         <b>ⓘ</b>
         <span>
           La cuota nunca va entera a un sitio: los <b>intereses</b> cuentan como
@@ -104,6 +126,6 @@ export function PasivosTab({
           anual orientativa (nivel 1).
         </span>
       </div>
-    </div>
+    </>
   );
 }

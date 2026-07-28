@@ -2,7 +2,7 @@
 
 import {
   Button,
-  Card,
+  Pill,
   Table,
   TBody,
   TD,
@@ -11,79 +11,123 @@ import {
   THead,
   TR,
 } from "@/components/ui";
+import { RowCrud } from "@/components/patrimonio/RowCrud";
 import { formatEUR } from "@/lib/format";
 import { labelVinculo } from "@/lib/patrimonio";
-import type { Gasto, Inmueble, Persona, Sociedad } from "@/lib/types";
+import type {
+  Gasto,
+  Inmueble,
+  OtroActivo,
+  Persona,
+  Sociedad,
+} from "@/lib/types";
 
+/** Mockup `tplGastos` */
 export function GastosTab({
   gastos,
   personas,
   inmuebles,
   sociedades,
+  otros,
   onEvento,
+  onAdd,
+  onEdit,
+  onDelete,
 }: {
   gastos: Gasto[];
   personas: Persona[];
   inmuebles: Inmueble[];
   sociedades: Sociedad[];
+  otros: OtroActivo[];
   onEvento: () => void;
+  onAdd: () => void;
+  onEdit: (g: Gasto) => void;
+  onDelete: (id: string) => void;
 }) {
   const total = gastos.reduce((s, g) => s + g.importeAnual, 0);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="label-upper">Gastos · por categoría</p>
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <div className="lbl">Gastos · por categoría</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="sm" variant="ghost" onClick={onAdd}>
+            + Añadir
+          </Button>
+          <Button size="sm" onClick={onEvento}>
+            ⚡ Evento
+          </Button>
         </div>
-        <Button size="sm" variant="secondary" onClick={onEvento}>
-          + Evento genérico
-        </Button>
       </div>
-
-      <Card padding="sm">
-        <Table>
-          <THead>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Categoría</TH>
+            <TH className="right">Importe anual</TH>
+            <TH>Vinculado a</TH>
+            <TH />
+          </TR>
+        </THead>
+        <TBody>
+          {gastos.length === 0 && (
             <TR>
-              <TH>Categoría</TH>
-              <TH>Vincular a</TH>
-              <TH className="text-right">Importe anual</TH>
+              <TD colSpan={4} className="mut">
+                Sin gastos.
+              </TD>
             </TR>
-          </THead>
-          <TBody>
-            {gastos.map((g) => (
-              <TR key={g.id}>
-                <TD className="font-semibold">{g.categoria}</TD>
-                <TD className="text-slate">
-                  {labelVinculo(g, personas, inmuebles, sociedades)}
-                </TD>
-                <TD numeric>{formatEUR(g.importeAnual)}</TD>
-              </TR>
-            ))}
-            {gastos.length === 0 && (
-              <TR>
-                <TD colSpan={3} className="py-6 text-center text-mute">
-                  Sin gastos registrados.
-                </TD>
-              </TR>
-            )}
-          </TBody>
-          {gastos.length > 0 && (
-            <TFoot>
-              <TR>
-                <TD>Total gastos</TD>
-                <TD numeric>{formatEUR(total)}</TD>
-                <TD />
-              </TR>
-            </TFoot>
           )}
-        </Table>
-      </Card>
-
-      <p className="text-[11px] text-mute">
-        Solo los <b className="font-semibold text-ink-3">intereses</b> de la
-        deuda cuentan como gasto; la amortización de capital es ahorro.
-      </p>
-    </div>
+          {gastos.map((g) => {
+            const vinc = labelVinculo(
+              g,
+              personas,
+              inmuebles,
+              sociedades,
+              otros,
+            );
+            return (
+              <TR key={g.id}>
+                <TD>
+                  <b>{g.categoria}</b>
+                </TD>
+                <TD className="right num strong">
+                  {formatEUR(g.importeAnual)}
+                </TD>
+                <TD>
+                  {vinc === "Sin vincular" ? (
+                    <span className="mut">Sin vincular</span>
+                  ) : (
+                    <Pill tone="blue">{vinc}</Pill>
+                  )}
+                </TD>
+                <TD className="right">
+                  <RowCrud
+                    onEdit={() => onEdit(g)}
+                    onDelete={() => onDelete(g.id)}
+                  />
+                </TD>
+              </TR>
+            );
+          })}
+        </TBody>
+        <TFoot>
+          <TR>
+            <TD>Total gastos</TD>
+            <TD className="right num">{formatEUR(total)}</TD>
+            <TD colSpan={2} />
+          </TR>
+        </TFoot>
+      </Table>
+      <div className="tiny" style={{ marginTop: 10 }}>
+        Solo los <b>intereses</b> de la deuda cuentan como gasto; la amortización
+        de capital es ahorro.
+      </div>
+    </>
   );
 }

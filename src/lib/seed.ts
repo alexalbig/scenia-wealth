@@ -65,7 +65,7 @@ export const seed: SeedData = {
       },
       ultimaRevisionMeses: 1.5,
       completo: true,
-      datosAFecha: "2026-06-30",
+      datosAFecha: "2026-07-27",
     },
     {
       id: "cliente-beltran",
@@ -169,11 +169,11 @@ export const seed: SeedData = {
       id: SOCIEDAD_GC,
       clienteId: CLIENTE_GL,
       nombre: "García Consulting SL",
-      nif: "B12345678",
+      nif: "B-98··· (demo)",
       capitalSocial: 3_000,
-      fechaConstitucion: "2010-03-15",
+      fechaConstitucion: "2015-01-01",
       situacion: "Activa",
-      objetoSocial: "Consultoría de gestión empresarial",
+      objetoSocial: "Servicios de consultoría",
       participaciones: { [PERSONA_CARLOS]: 1 },
     },
   ],
@@ -182,10 +182,11 @@ export const seed: SeedData = {
     {
       id: FONDO_A,
       clienteId: CLIENTE_GL,
-      nombre: "Fondo A",
+      nombre: "Fondo A · RV global",
       tipoFiscal: "fondo",
       valor: 300_000,
       fechaAdquisicion: "2014-06-15",
+      costeAdquisicion: 180_000,
       plusvaliaLatente: 120_000,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 0.6 },
@@ -195,7 +196,7 @@ export const seed: SeedData = {
     {
       id: PLAN_CARLOS,
       clienteId: CLIENTE_GL,
-      nombre: "Plan de pensiones Carlos",
+      nombre: "Plan de pensiones",
       tipoFiscal: "plan_pensiones",
       valor: 120_000,
       fechaAdquisicion: "2009-01-01",
@@ -209,9 +210,11 @@ export const seed: SeedData = {
     {
       id: INMUEBLE_JAVEA,
       clienteId: CLIENTE_GL,
-      nombre: "Vivienda en Jávea",
+      nombre: "Vivienda · Jávea",
       valor: 420_000,
-      fechaAdquisicion: "2012-09-01",
+      fechaAdquisicion: "2009-01-01",
+      costeAdquisicion: 295_000,
+      plusvaliaLatente: 125_000,
       pasivoId: PASIVO_HIPOTECA,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 0.5 },
@@ -239,9 +242,9 @@ export const seed: SeedData = {
       id: PASIVO_HIPOTECA,
       clienteId: CLIENTE_GL,
       tipo: "hipoteca",
-      prestamista: "CaixaBank",
+      prestamista: "Banco Levante",
       capitalPendiente: 180_000,
-      tipoInteres: 0.022,
+      tipoInteres: 0.029,
       cuotaMensual: 950,
       inmuebleId: INMUEBLE_JAVEA,
       titularidades: [
@@ -272,18 +275,46 @@ export const seed: SeedData = {
 
   gastos: [
     {
+      id: "gas-intereses",
+      clienteId: CLIENTE_GL,
+      categoria: "Intereses de deuda",
+      importeAnual: 5_220,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_JAVEA },
+    },
+    {
+      id: "gas-suministros",
+      clienteId: CLIENTE_GL,
+      categoria: "Suministros y comunidad",
+      importeAnual: 4_800,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_JAVEA },
+    },
+    {
       id: "gas-familiar",
       clienteId: CLIENTE_GL,
-      categoria: "Gastos familiares",
+      categoria: "Familia y estilo de vida",
       importeAnual: 36_000,
       vinculadoA: null,
     },
     {
-      id: "gas-intereses-hipoteca",
+      id: "gas-seguros",
       clienteId: CLIENTE_GL,
-      categoria: "Intereses hipoteca",
-      importeAnual: 4_000, // aproximación nivel 1, orientativa
-      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_JAVEA },
+      categoria: "Seguros",
+      importeAnual: 2_400,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-vehiculo",
+      clienteId: CLIENTE_GL,
+      categoria: "Vehículo",
+      importeAnual: 3_600,
+      vinculadoA: { kind: "otro", otroId: OTRO_AUDI },
+    },
+    {
+      id: "gas-otros",
+      clienteId: CLIENTE_GL,
+      categoria: "Otros",
+      importeAnual: 6_000,
+      vinculadoA: null,
     },
   ],
 
@@ -296,11 +327,10 @@ export const seed: SeedData = {
       impuestosPeriodo: 0,
       rentabilidadEsperada: 0.04,
       inflacion: 0.02,
-      // Hitos del plan base (sin cifras fiscales inventadas)
+      // Hitos del plan base (mockup eventosBase)
       eventoIds: [
-        "evt-base-revision-2027",
         "evt-base-jubilacion-2033",
-        "evt-base-revision-2035",
+        "evt-base-jubilacion-2036",
       ],
     },
     {
@@ -356,46 +386,41 @@ export const seed: SeedData = {
 
   eventos: [
     {
-      id: "evt-base-revision-2027",
-      escenarioId: ESC_BASE,
-      tipo: "generico",
-      anio: 2027,
-      etiqueta: "Revisión anual del plan",
-      notas: "Hito de seguimiento · sin impacto fiscal",
-    },
-    {
       id: "evt-base-jubilacion-2033",
       escenarioId: ESC_BASE,
       tipo: "jubilarse",
       anio: 2033,
-      etiqueta: "Jubilación prevista · Carlos",
+      etiqueta: "Jubilación de Carlos (65)",
       targetId: PERSONA_CARLOS,
       introducidoPorAsesor: true,
-      notas: "Edad 65 · pensión estimada a introducir por el asesor",
+      notas: "Pensión estimada 32.000 €/año · introducida por el asesor",
     },
     {
-      id: "evt-base-revision-2035",
+      id: "evt-base-jubilacion-2036",
       escenarioId: ESC_BASE,
-      tipo: "generico",
-      anio: 2035,
-      etiqueta: "Revisión anual del plan",
-      notas: "Hito de seguimiento · sin impacto fiscal",
+      tipo: "jubilarse",
+      anio: 2036,
+      etiqueta: "Jubilación de Marta (65)",
+      targetId: PERSONA_MARTA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 14.500 €/año · introducida por el asesor",
     },
     {
       id: "evt-a-reembolso",
       escenarioId: ESC_A,
       tipo: "reembolsar_fondo",
       anio: 2026,
-      etiqueta: "Reembolso Fondo A",
+      etiqueta: "Reembolsar Fondo A · 35.000 €/año",
       targetId: FONDO_A,
       impuestosPeriodo: 14_200,
+      notas: "2026–2031",
     },
     {
       id: "evt-b-traspaso",
       escenarioId: ESC_B,
       tipo: "traspasar_fondo",
       anio: 2026,
-      etiqueta: "Traspaso Fondo A → Fondo B",
+      etiqueta: "Traspasar Fondo A → Fondo B (Art. 94)",
       targetId: FONDO_A,
       impuestosPeriodo: 0,
     },
@@ -404,9 +429,10 @@ export const seed: SeedData = {
       escenarioId: ESC_B,
       tipo: "rescatar_plan",
       anio: 2026,
-      etiqueta: "Rescate plan de pensiones (mixto)",
+      etiqueta: "Rescatar plan · renta · 15.000 €/año",
       targetId: PLAN_CARLOS,
       impuestosPeriodo: 9_800,
+      notas: "2026–2033",
     },
   ],
 };
@@ -431,22 +457,25 @@ export const ids = {
 /** P7 · Informes emitidos (solo García-Llorente tiene historial en el seed). */
 export const historialInformes: HistorialInforme[] = [
   {
+    id: "hist-gl-hoy",
+    clienteId: CLIENTE_GL,
+    fecha: "2026-07-27",
+    titulo: "Foto patrimonial · Familia García-Llorente · 27/07/2026",
+    tipo: "Foto del patrimonio",
+  },
+  {
     id: "hist-gl-1",
     clienteId: CLIENTE_GL,
-    fecha: "2026-06-18",
+    fecha: "2026-05-12",
     titulo: "Informe de la foto patrimonial",
+    tipo: "Foto del patrimonio",
   },
   {
     id: "hist-gl-2",
     clienteId: CLIENTE_GL,
-    fecha: "2026-04-02",
-    titulo: "Comparación de escenarios · Reembolso vs traspaso",
-  },
-  {
-    id: "hist-gl-3",
-    clienteId: CLIENTE_GL,
-    fecha: "2025-11-22",
-    titulo: "Informe de la foto patrimonial",
+    fecha: "2026-06-20",
+    titulo: "Comparación · A Reembolso vs B Traspaso + rescate",
+    tipo: "Comparación de escenarios",
   },
 ];
 

@@ -1,16 +1,7 @@
 "use client";
 
-import {
-  Button,
-  Card,
-  Table,
-  TBody,
-  TD,
-  TFoot,
-  TH,
-  THead,
-  TR,
-} from "@/components/ui";
+import { Button, Table, TBody, TD, TFoot, TH, THead, TR } from "@/components/ui";
+import { RowCrud } from "@/components/patrimonio/RowCrud";
 import { formatEUR } from "@/lib/format";
 import { fuenteIngresoLabel, personaLabel } from "@/lib/patrimonio";
 import type { Ingreso, Persona } from "@/lib/types";
@@ -19,69 +10,89 @@ export function IngresosTab({
   personas,
   ingresos,
   onEvento,
+  onAdd,
+  onEdit,
+  onDelete,
 }: {
   personas: Persona[];
   ingresos: Ingreso[];
   onEvento: () => void;
+  onAdd: () => void;
+  onEdit: (i: Ingreso) => void;
+  onDelete: (id: string) => void;
 }) {
   const total = ingresos.reduce((s, i) => s + i.importeAnual, 0);
 
   return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="label-upper">Ingresos · por persona y fuente</p>
+    <>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          marginBottom: 8,
+        }}
+      >
+        <div className="lbl">Ingresos · por persona y fuente</div>
+        <div style={{ display: "flex", gap: 6 }}>
+          <Button size="sm" variant="ghost" onClick={onAdd}>
+            + Añadir
+          </Button>
+          <Button size="sm" onClick={onEvento}>
+            ⚡ Evento
+          </Button>
         </div>
-        <Button size="sm" variant="secondary" onClick={onEvento}>
-          + Evento genérico
-        </Button>
       </div>
-
-      <Card padding="sm">
-        <Table>
-          <THead>
+      <Table>
+        <THead>
+          <TR>
+            <TH>Persona</TH>
+            <TH>Fuente</TH>
+            <TH className="right">Importe anual</TH>
+            <TH />
+          </TR>
+        </THead>
+        <TBody>
+          {ingresos.length === 0 && (
             <TR>
-              <TH>Persona</TH>
-              <TH>Fuente</TH>
-              <TH className="text-right">Importe anual</TH>
+              <TD colSpan={4} className="mut">
+                Sin ingresos. El alta alimenta el liquidador de base general.
+              </TD>
             </TR>
-          </THead>
-          <TBody>
-            {ingresos.map((ing) => {
-              const p = personas.find((x) => x.id === ing.personaId);
-              return (
-                <TR key={ing.id}>
-                  <TD className="font-semibold">
-                    {p ? personaLabel(p) : ing.personaId}
-                  </TD>
-                  <TD>{fuenteIngresoLabel(ing.fuente)}</TD>
-                  <TD numeric>{formatEUR(ing.importeAnual)}</TD>
-                </TR>
-              );
-            })}
-            {ingresos.length === 0 && (
-              <TR>
-                <TD colSpan={3} className="py-6 text-center text-mute">
-                  Sin ingresos registrados.
+          )}
+          {ingresos.map((ing) => {
+            const p = personas.find((x) => x.id === ing.personaId);
+            return (
+              <TR key={ing.id}>
+                <TD>
+                  <b>{p ? personaLabel(p) : ing.personaId}</b>
+                </TD>
+                <TD className="slt">{fuenteIngresoLabel(ing.fuente)}</TD>
+                <TD className="right num strong">
+                  {formatEUR(ing.importeAnual)}
+                </TD>
+                <TD className="right">
+                  <RowCrud
+                    onEdit={() => onEdit(ing)}
+                    onDelete={() => onDelete(ing.id)}
+                  />
                 </TD>
               </TR>
-            )}
-          </TBody>
-          {ingresos.length > 0 && (
-            <TFoot>
-              <TR>
-                <TD colSpan={2}>Total ingresos</TD>
-                <TD numeric>{formatEUR(total)}</TD>
-              </TR>
-            </TFoot>
-          )}
-        </Table>
-      </Card>
-
-      <p className="text-[11px] text-mute">
+            );
+          })}
+        </TBody>
+        <TFoot>
+          <TR>
+            <TD colSpan={2}>Total ingresos</TD>
+            <TD className="right num">{formatEUR(total)}</TD>
+            <TD />
+          </TR>
+        </TFoot>
+      </Table>
+      <div className="tiny" style={{ marginTop: 10 }}>
         El total por persona es el input del liquidador de base general — el
         rescate del plan se apila sobre estos ingresos.
-      </p>
-    </div>
+      </div>
+    </>
   );
 }

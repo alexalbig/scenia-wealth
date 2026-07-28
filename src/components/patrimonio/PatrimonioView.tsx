@@ -1,8 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Tabs, Card } from "@/components/ui";
+import { SheetPad, Tabs, Toast } from "@/components/ui";
 import { ResumenTab } from "@/components/patrimonio/ResumenTab";
 import { PersonasTab } from "@/components/patrimonio/PersonasTab";
 import { ActivosTab } from "@/components/patrimonio/ActivosTab";
@@ -12,21 +12,22 @@ import { GastosTab } from "@/components/patrimonio/GastosTab";
 import { AhorroTab } from "@/components/patrimonio/AhorroTab";
 import { InformeModal } from "@/components/patrimonio/InformeModal";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
-import { formatEUR } from "@/lib/format";
 import {
-  capacidadAhorro,
-  formatFechaES,
-  getGastos,
-  getIngresos,
-  getInmuebles,
-  getInstrumentos,
-  getOtrosActivos,
-  getPasivos,
-  getSociedades,
-  totalesActivos,
-} from "@/lib/patrimonio";
-import { getPersonasDeCliente } from "@/lib/seed";
-import type { Cliente } from "@/lib/types";
+  AltaElementoModal,
+  type AltaTarget,
+} from "@/components/patrimonio/AltaElementoModal";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
+import { formatFechaDMY } from "@/lib/patrimonio";
+import type {
+  Gasto,
+  Ingreso,
+  Inmueble,
+  Instrumento,
+  OtroActivo,
+  Pasivo,
+  Persona,
+  Sociedad,
+} from "@/lib/types";
 
 const TABS = [
   { id: "resumen", label: "Resumen" },
@@ -44,12 +45,48 @@ function isTabId(v: string | null): v is TabId {
   return !!v && TABS.some((t) => t.id === v);
 }
 
-export function PatrimonioView({ cliente }: { cliente: Cliente }) {
+const RESUMEN_KIND: Record<string, AltaTarget["kind"]> = {
+  financiero: "instrumento",
+  inmobiliario: "inmueble",
+  empresarial: "sociedad",
+  otros: "otro",
+};
+
+export function PatrimonioView() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab");
-  const tab: TabId = isTabId(tabParam) ? tabParam : "resumen";
+  const tab: TabId = isTabId(searchParams.get("tab"))
+    ? (searchParams.get("tab") as TabId)
+    : "resumen";
 
+  const {
+    bag,
+    totales,
+    ahorro,
+    planBase,
+    ingresosPersona,
+    patrimonioAtribuido,
+    addEvento,
+    addHistorial,
+    upsertPersona,
+    removePersona,
+    upsertInstrumento,
+    removeInstrumento,
+    upsertInmueble,
+    removeInmueble,
+    upsertSociedad,
+    removeSociedad,
+    upsertOtro,
+    removeOtro,
+    upsertPasivo,
+    removePasivo,
+    upsertIngreso,
+    removeIngreso,
+    upsertGasto,
+    removeGasto,
+  } = useExpediente();
+
+  const cliente = bag.cliente;
   const [informeOpen, setInformeOpen] = useState(false);
   const [evento, setEvento] = useState<{
     contexto:
@@ -62,24 +99,8 @@ export function PatrimonioView({ cliente }: { cliente: Cliente }) {
       | "gasto";
     nombre: string;
   } | null>(null);
+  const [alta, setAlta] = useState<AltaTarget | null>(null);
   const [toast, setToast] = useState<string | null>(null);
-
-  const personas = useMemo(
-    () => getPersonasDeCliente(cliente.id),
-    [cliente.id],
-  );
-  const instrumentos = useMemo(
-    () => getInstrumentos(cliente.id),
-    [cliente.id],
-  );
-  const inmuebles = useMemo(() => getInmuebles(cliente.id), [cliente.id]);
-  const otros = useMemo(() => getOtrosActivos(cliente.id), [cliente.id]);
-  const pasivos = useMemo(() => getPasivos(cliente.id), [cliente.id]);
-  const ingresos = useMemo(() => getIngresos(cliente.id), [cliente.id]);
-  const gastos = useMemo(() => getGastos(cliente.id), [cliente.id]);
-  const sociedades = useMemo(() => getSociedades(cliente.id), [cliente.id]);
-  const totales = useMemo(() => totalesActivos(cliente.id), [cliente.id]);
-  const ahorro = useMemo(() => capacidadAhorro(cliente.id), [cliente.id]);
 
   function setTab(id: string) {
     router.replace(`/clientes/${cliente.id}/patrimonio?tab=${id}`, {
@@ -89,177 +110,237 @@ export function PatrimonioView({ cliente }: { cliente: Cliente }) {
 
   function flash(msg: string) {
     setToast(msg);
-    setTimeout(() => setToast(null), 2200);
+    window.setTimeout(() => setToast(null), 2600);
   }
 
-  const datosLabel = formatFechaES(cliente.datosAFecha);
-
-  if (!cliente.completo) {
-    return (
-      <div className="space-y-4">
-        <Tabs items={[...TABS]} value={tab} onChange={setTab} />
-        <Card>
-          <p className="label-upper mb-1">Cliente ligero</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
-            {cliente.nombre}
-          </h2>
-          <p className="mt-2 text-[13px] text-slate">
-            Este expediente solo puebla la Cartera. Patrimonio neto{" "}
-            <span className="font-semibold tabular-nums text-ink">
-              {formatEUR(cliente.patrimonioNeto)}
-            </span>
-            . La foto completa está en Familia García-Llorente.
-          </p>
-          {tab === "resumen" && (
-            <div className="mt-4">
-              <ResumenTab
-                clienteId={cliente.id}
-                totales={{
-                  financiero: Math.round(
-                    cliente.patrimonioNeto * cliente.composicion.financiero,
-                  ),
-                  inmobiliario: Math.round(
-                    cliente.patrimonioNeto * cliente.composicion.inmobiliario,
-                  ),
-                  empresarial: Math.round(
-                    cliente.patrimonioNeto * cliente.composicion.empresarial,
-                  ),
-                  otros: Math.round(
-                    cliente.patrimonioNeto * cliente.composicion.otros,
-                  ),
-                  pasivos: 0,
-                  bruto: cliente.patrimonioNeto,
-                  neto: cliente.patrimonioNeto,
-                }}
-                capacidad={0}
-                datosAFecha={datosLabel}
-                onTab={setTab}
-                onInforme={() => setInformeOpen(true)}
-                onAdd={(cat) => flash(`Alta de ${cat} — pendiente de formulario`)}
-              />
-            </div>
-          )}
-        </Card>
-        <InformeModal
-          open={informeOpen}
-          onClose={() => setInformeOpen(false)}
-          datosAFecha={datosLabel}
-        />
-      </div>
-    );
+  function withClienteId<T extends { clienteId: string }>(item: T): T {
+    return { ...item, clienteId: cliente.id };
   }
+
+  const datosDMY = formatFechaDMY(cliente.datosAFecha);
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <div>
-          <p className="label-upper">P3 · Patrimonio</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
-            Foto del expediente
-          </h2>
+    <>
+      <Tabs items={[...TABS]} value={tab} onChange={setTab} />
+      {!cliente.completo && (
+        <div className="hint-info" style={{ margin: "0 22px 0" }}>
+          <b>ⓘ</b>
+          <span>
+            Cliente de cartera (foto ligera). Puedes explorar las pestañas; el
+            expediente editable completo y el motor demo están en{" "}
+            <b>Familia García-Llorente</b>, o crea uno nuevo con «+ Nuevo
+            cliente».
+          </span>
         </div>
-        {toast && (
-          <p className="rounded-[6px] bg-paper-2 px-2.5 py-1 text-[11px] text-ink-3">
-            {toast}
-          </p>
+      )}
+      <SheetPad>
+        {tab === "resumen" && (
+          <ResumenTab
+            clienteId={cliente.id}
+            totales={totales}
+            capacidad={ahorro.capacidad}
+            onTab={setTab}
+            onInforme={() => setInformeOpen(true)}
+            onAdd={(cat) => {
+              const kind = RESUMEN_KIND[cat];
+              if (kind) setAlta({ kind });
+            }}
+            ahorroDetalle={{
+              ingresos: ahorro.ingresos,
+              gastos: ahorro.gastos,
+              amortizacionCapital: ahorro.amortizacionCapital,
+            }}
+            labels={{
+              financiero:
+                bag.instrumentos.map((i) => i.nombre).join(" · ") || "—",
+              inmobiliario:
+                bag.inmuebles.map((i) => i.nombre).join(" · ") || "—",
+              empresarial: bag.sociedades[0]?.nombre,
+              otros: bag.otrosActivos.map((a) => a.nombre).join(" · ") || "—",
+            }}
+            sociedadId={bag.sociedades[0]?.id}
+          />
         )}
-      </div>
 
-      <Tabs
-        items={[...TABS]}
-        value={tab}
-        onChange={setTab}
-        className="-mx-[22px] border-x-0 px-[22px]"
-      />
+        {tab === "personas" && (
+          <PersonasTab
+            clienteId={cliente.id}
+            personas={bag.personas}
+            ingresosOf={ingresosPersona}
+            patrimonioOf={patrimonioAtribuido}
+            onAdd={() => setAlta({ kind: "persona" })}
+            onEdit={(p) => setAlta({ kind: "persona", item: p })}
+            onDelete={(id) => {
+              removePersona(id);
+              flash("Persona eliminada");
+            }}
+          />
+        )}
 
-      {tab === "resumen" && (
-        <ResumenTab
-          clienteId={cliente.id}
-          totales={totales}
-          capacidad={ahorro.capacidad}
-          datosAFecha={datosLabel}
-          onTab={setTab}
-          onInforme={() => setInformeOpen(true)}
-          onAdd={(cat) => flash(`Alta de ${cat} — pendiente de formulario`)}
-          ahorroDetalle={{
-            ingresos: ahorro.ingresos,
-            gastos: ahorro.gastos,
-            amortizacionCapital: ahorro.amortizacionCapital,
-          }}
-        />
-      )}
+        {tab === "activos" && (
+          <ActivosTab
+            clienteId={cliente.id}
+            personas={bag.personas}
+            instrumentos={bag.instrumentos}
+            inmuebles={bag.inmuebles}
+            sociedades={bag.sociedades}
+            otros={bag.otrosActivos}
+            pasivos={bag.pasivos}
+            onEvento={(contexto, nombre) => setEvento({ contexto, nombre })}
+            onAdd={(kind) => setAlta({ kind })}
+            onEditInstrumento={(i) => setAlta({ kind: "instrumento", item: i })}
+            onEditInmueble={(i) => setAlta({ kind: "inmueble", item: i })}
+            onEditSociedad={(s) => setAlta({ kind: "sociedad", item: s })}
+            onEditOtro={(a) => setAlta({ kind: "otro", item: a })}
+            onDeleteInstrumento={(id) => {
+              removeInstrumento(id);
+              flash("Instrumento eliminado");
+            }}
+            onDeleteInmueble={(id) => {
+              removeInmueble(id);
+              flash("Inmueble eliminado");
+            }}
+            onDeleteSociedad={(id) => {
+              removeSociedad(id);
+              flash("Sociedad eliminada");
+            }}
+            onDeleteOtro={(id) => {
+              removeOtro(id);
+              flash("Activo eliminado");
+            }}
+          />
+        )}
 
-      {tab === "personas" && (
-        <PersonasTab
-          clienteId={cliente.id}
-          personas={personas}
-          onAdd={() => flash("Añadir persona — pendiente de formulario")}
-        />
-      )}
+        {tab === "pasivos" && (
+          <PasivosTab
+            personas={bag.personas}
+            pasivos={bag.pasivos}
+            inmuebles={bag.inmuebles}
+            onEvento={(nombre) => setEvento({ contexto: "pasivo", nombre })}
+            onAdd={() => setAlta({ kind: "pasivo" })}
+            onEdit={(p) => setAlta({ kind: "pasivo", item: p })}
+            onDelete={(id) => {
+              removePasivo(id);
+              flash("Pasivo eliminado");
+            }}
+          />
+        )}
 
-      {tab === "activos" && (
-        <ActivosTab
-          clienteId={cliente.id}
-          personas={personas}
-          instrumentos={instrumentos}
-          inmuebles={inmuebles}
-          sociedades={sociedades}
-          otros={otros}
-          pasivos={pasivos}
-          onEvento={(contexto, nombre) => setEvento({ contexto, nombre })}
-        />
-      )}
+        {tab === "ingresos" && (
+          <IngresosTab
+            personas={bag.personas}
+            ingresos={bag.ingresos}
+            onEvento={() =>
+              setEvento({ contexto: "ingreso", nombre: "Ingresos" })
+            }
+            onAdd={() => setAlta({ kind: "ingreso" })}
+            onEdit={(i) => setAlta({ kind: "ingreso", item: i })}
+            onDelete={(id) => {
+              removeIngreso(id);
+              flash("Ingreso eliminado");
+            }}
+          />
+        )}
 
-      {tab === "pasivos" && (
-        <PasivosTab
-          personas={personas}
-          pasivos={pasivos}
-          inmuebles={inmuebles}
-          onEvento={(nombre) => setEvento({ contexto: "pasivo", nombre })}
-        />
-      )}
+        {tab === "gastos" && (
+          <GastosTab
+            gastos={bag.gastos}
+            personas={bag.personas}
+            inmuebles={bag.inmuebles}
+            sociedades={bag.sociedades}
+            otros={bag.otrosActivos}
+            onEvento={() => setEvento({ contexto: "gasto", nombre: "Gastos" })}
+            onAdd={() => setAlta({ kind: "gasto" })}
+            onEdit={(g) => setAlta({ kind: "gasto", item: g })}
+            onDelete={(id) => {
+              removeGasto(id);
+              flash("Gasto eliminado");
+            }}
+          />
+        )}
 
-      {tab === "ingresos" && (
-        <IngresosTab
-          personas={personas}
-          ingresos={ingresos}
-          onEvento={() =>
-            setEvento({ contexto: "ingreso", nombre: "Ingresos" })
-          }
-        />
-      )}
-
-      {tab === "gastos" && (
-        <GastosTab
-          gastos={gastos}
-          personas={personas}
-          inmuebles={inmuebles}
-          sociedades={sociedades}
-          onEvento={() => setEvento({ contexto: "gasto", nombre: "Gastos" })}
-        />
-      )}
-
-      {tab === "ahorro" && (
-        <AhorroTab
-          ingresos={ahorro.ingresos}
-          gastos={ahorro.gastos}
-          amortizacionCapital={ahorro.amortizacionCapital}
-          capacidad={ahorro.capacidad}
-        />
-      )}
+        {tab === "ahorro" && (
+          <AhorroTab
+            ingresos={ahorro.ingresos}
+            gastos={ahorro.gastos}
+            amortizacionCapital={ahorro.amortizacionCapital}
+            capacidad={ahorro.capacidad}
+          />
+        )}
+      </SheetPad>
 
       <InformeModal
         open={informeOpen}
         onClose={() => setInformeOpen(false)}
-        datosAFecha={datosLabel}
+        tituloInformeDefault={`Foto patrimonial · ${cliente.nombre} · ${datosDMY}`}
+        datosAFecha={datosDMY}
+        tipoInforme="Foto del patrimonio"
+        onGenerated={(info) =>
+          addHistorial({
+            fecha: new Date().toISOString().slice(0, 10),
+            titulo: info.titulo,
+            tipo: info.tipo,
+          })
+        }
       />
-
       <EventoModal
         open={!!evento}
         onClose={() => setEvento(null)}
         contexto={evento?.contexto ?? "instrumento"}
         elementoNombre={evento?.nombre ?? ""}
+        clienteId={cliente.id}
+        escenarios={bag.escenarios.map((e) => ({
+          id: e.id,
+          nombre: e.nombre,
+        }))}
+        escenarioInicialId={planBase?.id}
+        onCreated={(payload) => {
+          addEvento(payload, { escenarioId: planBase?.id });
+          flash("Evento añadido al plan base — se refleja en Proyección");
+        }}
       />
-    </div>
+      <AltaElementoModal
+        open={!!alta}
+        target={alta}
+        personas={bag.personas}
+        pasivos={bag.pasivos}
+        inmuebles={bag.inmuebles}
+        sociedades={bag.sociedades}
+        onClose={() => setAlta(null)}
+        onSavePersona={(p: Persona) => {
+          upsertPersona(p);
+          flash("Persona guardada");
+        }}
+        onSaveInstrumento={(i: Instrumento) => {
+          upsertInstrumento(withClienteId(i));
+          flash("Instrumento guardado");
+        }}
+        onSaveInmueble={(i: Inmueble) => {
+          upsertInmueble(withClienteId(i));
+          flash("Inmueble guardado");
+        }}
+        onSaveSociedad={(s: Sociedad) => {
+          upsertSociedad(withClienteId(s));
+          flash("Sociedad guardada");
+        }}
+        onSaveOtro={(a: OtroActivo) => {
+          upsertOtro(withClienteId(a));
+          flash("Activo guardado");
+        }}
+        onSavePasivo={(p: Pasivo) => {
+          upsertPasivo(withClienteId(p));
+          flash("Pasivo guardado");
+        }}
+        onSaveIngreso={(i: Ingreso) => {
+          upsertIngreso(withClienteId(i));
+          flash("Ingreso guardado");
+        }}
+        onSaveGasto={(g: Gasto) => {
+          upsertGasto(withClienteId(g));
+          flash("Gasto guardado");
+        }}
+      />
+      <Toast message={toast} />
+    </>
   );
 }
