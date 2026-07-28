@@ -1,48 +1,61 @@
 "use client";
 
-import { Button } from "@/components/ui";
-import { formatFechaES } from "@/lib/patrimonio";
+import { useState } from "react";
+import { Button, SheetPad, Toast } from "@/components/ui";
+import { formatFechaDMY } from "@/lib/patrimonio";
 import type { HistorialInforme } from "@/lib/types";
 
-function mockDownload(titulo: string) {
-  window.alert(
-    `Mockup: «${titulo}» — la descarga de PDF no está disponible en este prototipo.`,
-  );
-}
-
+/**
+ * P7 · Historial — marcado literal del mockup `renderHistorial`.
+ */
 export function HistorialView({ entries }: { entries: HistorialInforme[] }) {
+  const [toast, setToast] = useState<string | null>(null);
+
+  function flash(msg: string) {
+    setToast(msg);
+    window.setTimeout(() => setToast(null), 2600);
+  }
+
   return (
-    <div>
-      <p className="label-upper mb-1">Historial</p>
-      <h2 className="mb-3.5 text-[17px] font-bold tracking-[-0.02em] text-ink">
+    <SheetPad>
+      <div className="lbl" style={{ marginBottom: 4 }}>
+        Historial
+      </div>
+      <div className="h2" style={{ marginBottom: 14 }}>
         Informes emitidos
-      </h2>
+      </div>
 
       {entries.length === 0 ? (
-        <p className="px-3 py-8 text-center text-[12px] text-mute">
+        <div className="empty">
           Aún no hay informes. Genera el primero desde Patrimonio o desde el
           comparador.
-        </p>
+        </div>
       ) : (
-        <div className="relative pl-[22px] before:absolute before:bottom-1.5 before:left-[7px] before:top-1.5 before:w-px before:bg-line-2">
-          {entries.map((entry) => (
-            <div
-              key={entry.id}
-              className="relative py-2.5 pb-3.5 before:absolute before:-left-[19px] before:top-[15px] before:h-[9px] before:w-[9px] before:rounded-[3px] before:border-2 before:border-ink-3 before:bg-paper"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2.5">
+        <div className="tl">
+          {entries.map((h) => (
+            <div key={h.id} className="tl-item">
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  gap: 10,
+                  flexWrap: "wrap",
+                  alignItems: "center",
+                }}
+              >
                 <div>
-                  <p className="text-[12.5px] font-bold text-ink">
-                    {entry.titulo}
-                  </p>
-                  <p className="mt-0.5 text-[10.5px] text-mute">
-                    {formatFechaES(entry.fecha)} · con Nota del asesor
-                  </p>
+                  <div style={{ fontSize: 12.5, fontWeight: 700 }}>
+                    {h.titulo}
+                  </div>
+                  <div className="tiny">
+                    {formatFechaDMY(h.fecha)} · {h.tipo} · con Nota del asesor
+                  </div>
                 </div>
                 <Button
                   size="sm"
-                  variant="secondary"
-                  onClick={() => mockDownload(entry.titulo)}
+                  onClick={() =>
+                    flash("Descarga de PDF simulada en esta demo")
+                  }
                 >
                   Descargar PDF
                 </Button>
@@ -52,10 +65,11 @@ export function HistorialView({ entries }: { entries: HistorialInforme[] }) {
         </div>
       )}
 
-      <p className="mt-2.5 text-[11px] text-mute">
+      <div className="tiny" style={{ marginTop: 10 }}>
         Cada informe queda registrado con su fecha — el argumento de renovación
         del fee.
-      </p>
-    </div>
+      </div>
+      <Toast message={toast} />
+    </SheetPad>
   );
 }

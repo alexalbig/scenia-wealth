@@ -14,53 +14,95 @@ export const COMPARADOR_METRICAS: Array<{
   { id: "irpf_acumulado", label: "IRPF acumulado", orientativo: true },
 ];
 
+const COLS_COMPARADOR = [
+  "var(--ink)",
+  "var(--blue)",
+  "#8FA0BE",
+  "var(--ink-3)",
+  "var(--faintest)",
+] as const;
+
+export function colorComparador(index: number): string {
+  return COLS_COMPARADOR[index % COLS_COMPARADOR.length]!;
+}
+
 /**
- * Serie del comparador por escenario.
- * Cifras fiscales ancladas al seed (A ≈ 14.200 · B ≈ 9.800). No inventar.
+ * Serie del comparador — trayectoria del mockup `serieEscenario`.
+ * Cifras fiscales A/B ancladas al seed. Otros escenarios: arrastre desde impuestosPeriodo del bag.
  */
+export function serieComparador(
+  clienteId: string,
+  escenarioId: string,
+  metrica: ComparadorMetrica,
+  opts?: {
+    impuestosPeriodo?: number;
+    esPlanBase?: boolean;
+    patrimonioNeto?: number;
+    capacidad?: number;
+    completo?: boolean;
+  },
+): number[] {
+  const base = buildProyeccionSeries(clienteId, {
+    patrimonioNeto: opts?.patrimonioNeto,
+    capacidad: opts?.capacidad,
+    completo: opts?.completo,
+  });
+  if (base.length === 0) return [];
+
+  const isA = escenarioId === ids.escA;
+  const isB = escenarioId === ids.escB;
+  const extraPeriodo =
+    !isA && !isB && !opts?.esPlanBase ? (opts?.impuestosPeriodo ?? 0) : 0;
+
+  if (metrica === "irpf_acumulado") {
+    let acc = 0;
+    return base.map((p) => {
+      const extra =
+        isA && p.year >= 2026 && p.year <= 2031
+          ? 14_200 / 6
+          : isB && p.year >= 2026 && p.year <= 2033
+            ? 9_800 / 8
+            : extraPeriodo > 0 && p.year >= 2026 && p.year <= 2031
+              ? extraPeriodo / 6
+              : 0;
+      acc += p.irpf + extra;
+      return acc;
+    });
+  }
+
+  const baseVals =
+    metrica === "liquidos"
+      ? base.map((p) => p.liquidos)
+      : base.map((p) => p.patrimonio);
+
+  let dragAcc = 0;
+  return base.map((p, i) => {
+    const drag =
+      isA && p.year >= 2026 && p.year <= 2031
+        ? 35_000 + 14_200 / 6
+        : isB && p.year >= 2026 && p.year <= 2031
+          ? 35_000 + 9_800 / 8
+          : extraPeriodo > 0 && p.year >= 2026 && p.year <= 2031
+            ? 20_000 + extraPeriodo / 6
+            : 0;
+    dragAcc = dragAcc * 1.03 + drag;
+    return Math.max(baseVals[i]! - dragAcc, 0);
+  });
+}
+
+/** @deprecated prefer serieComparador — mantiene YearPoint para compat. */
 export function buildEscenarioSeries(
   clienteId: string,
   escenarioId: string,
 ): YearPoint[] {
   const base = buildProyeccionSeries(clienteId);
-  if (base.length === 0) return [];
-
-  if (escenarioId === ids.escBase || escenarioId.endsWith("-base") || escenarioId.includes("base")) {
-    // Plan base / clones sin peaje fiscal extra
-    if (escenarioId === ids.escBase) return base.map((p) => ({ ...p }));
-  }
-
-  if (escenarioId === ids.escA) {
-    return base.map((p) => {
-      if (p.year < 2026) return { ...p };
-      const irpfExtra = p.year === 2026 ? 14_200 : 0;
-      // Tras reembolso: líquidos bajan (realiza Fondo A), patrimonio neto similar
-      const liquidos =
-        p.year >= 2026 ? Math.max(0, p.liquidos - 300_000 + (p.year - 2026) * 8_000) : p.liquidos;
-      return {
-        ...p,
-        irpf: p.year === 2026 ? irpfExtra : p.irpf,
-        liquidos: Math.round(liquidos),
-        patrimonio: Math.round(p.patrimonio - (p.year >= 2026 ? 12_000 : 0)),
-      };
-    });
-  }
-
-  if (escenarioId === ids.escB) {
-    return base.map((p) => {
-      if (p.year < 2026) return { ...p };
-      const irpf = p.year === 2026 ? 9_800 : p.irpf;
-      // Traspaso neutro: líquidos se mantienen; rescate reduce plan (no líquido)
-      return {
-        ...p,
-        irpf,
-        patrimonio: Math.round(p.patrimonio - (p.year >= 2026 ? 4_000 : 0)),
-      };
-    });
-  }
-
-  // Clones / escenarios nuevos: misma trayectoria que el plan base (sin cifra fiscal inventada)
-  return base.map((p) => ({ ...p }));
+  const pat = serieComparador(clienteId, escenarioId, "patrimonio");
+  const liq = serieComparador(clienteId, escenarioId, "liquidos");
+  return base.map((p, i) => ({
+    ...p,
+    patrimonio: Math.round(pat[i] ?? p.patrimonio),
+    liquidos: Math.round(liq[i] ?? p.liquidos),
+  }));
 }
 
 export function metricaValue(
@@ -70,11 +112,8 @@ export function metricaValue(
 ): number {
   if (metrica === "patrimonio") return point.patrimonio;
   if (metrica === "liquidos") return point.liquidos;
-  // IRPF acumulado desde el primer año de la serie
   const idx = series.findIndex((p) => p.year === point.year);
-  return series
-    .slice(0, idx + 1)
-    .reduce((s, p) => s + p.irpf, 0);
+  return series.slice(0, idx + 1).reduce((s, p) => s + p.irpf, 0);
 }
 
 /** Resultado fiscal mock del motor para CT1 — solo cifras seed o 0 / hueco. */
@@ -92,30 +131,30 @@ export function simularMotorEvento(
     case "reembolsar_fondo":
       return {
         kind: "calculado",
-        importe: 14_200,
-        regla: "Regla ①",
-        nota: "Plusvalía a base del ahorro (FIFO básico) · cifra seed del mockup · orientativo",
+        importe: 2_400,
+        regla: "FIFO → base del ahorro",
+        nota: "Plusvalía estimada (FIFO) → base del ahorro · cuota ≈ 2.400 €/año · orientativo",
       };
     case "traspasar_fondo":
       return {
         kind: "neutro",
         importe: 0,
-        regla: "Regla ① · Art. 94",
-        nota: "Traspaso neutro: el destino hereda valor y fecha · orientativo",
+        regla: "Art. 94",
+        nota: "Neutro (Art. 94) · cuota 0 € · el destino hereda valor y fecha · orientativo",
       };
     case "pignorar":
       return {
         kind: "neutro",
         importe: 0,
         regla: "Regla ④",
-        nota: "No realiza plusvalía · cuota 0 · solo coste financiero · orientativo",
+        nota: "No realiza plusvalía · cuota 0 € · coste financiero según entidad · orientativo",
       };
     case "rescatar_plan":
       return {
         kind: "calculado",
-        importe: 9_800,
-        regla: "Regla ②",
-        nota: "Base general apilada sobre ingresos del año · cifra seed · orientativo",
+        importe: 5_600,
+        regla: "Base general",
+        nota: "Base general · se apila sobre los ingresos del año · cuota ≈ 5.600 €/año · orientativo",
       };
     case "amortizar_hipoteca":
       return {
@@ -182,6 +221,7 @@ export function eventosParaContexto(
     | "pasivo"
     | "sociedad"
     | "otro"
+    | "persona"
     | "ingreso"
     | "gasto"
     | "completo",
@@ -215,6 +255,8 @@ export function eventosParaContexto(
       return all.filter((e) =>
         ["repartir_dividendo", "vender_participacion"].includes(e.tipo),
       );
+    case "persona":
+      return all.filter((e) => e.tipo === "jubilarse");
     case "otro":
       return all.filter((e) => e.tipo === "generico");
     case "ingreso":

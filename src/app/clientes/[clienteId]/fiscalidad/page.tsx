@@ -1,15 +1,9 @@
-import { notFound } from "next/navigation";
+"use client";
+
 import { FiscalidadView } from "@/components/fiscalidad/FiscalidadView";
-import { getCliente } from "@/lib/seed";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 
-export default async function FiscalidadPage({
-  params,
-}: {
-  params: Promise<{ clienteId: string }>;
-}) {
-  const { clienteId } = await params;
-  const cliente = getCliente(clienteId);
-  if (!cliente) notFound();
-
-  return <FiscalidadView cliente={cliente} />;
+export default function FiscalidadPage() {
+  const { bag } = useExpediente();
+  return <FiscalidadView cliente={bag.cliente} />;
 }

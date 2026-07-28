@@ -1,103 +1,104 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card } from "@/components/ui";
+import { SheetPad } from "@/components/ui";
 import { FiscalControls } from "@/components/fiscalidad/FiscalControls";
 import { TramosViewer } from "@/components/fiscalidad/TramosViewer";
 import { SerieIRPF } from "@/components/fiscalidad/SerieIRPF";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR } from "@/lib/format";
+import { ids } from "@/lib/seed";
 import {
   anioPorDefecto,
-  aniosSerie,
+  aniosToolbarFiscal,
   baseAhorroPersona,
   baseGeneralPersona,
   ccaaConCobertura,
-  enEuros,
+  cuotaIRPFPersona,
+  factorFiscalAnyo,
+  irpfVidaPresentado,
   kpisVida,
-  personasFiscales,
-  serieIRPF,
+  serieIRPFPlanBase,
   type EurMode,
 } from "@/lib/fiscal";
 import type { Cliente } from "@/lib/types";
 
+/**
+ * P4 · Fiscalidad — marcado literal del mockup `renderFiscalidad`.
+ * El liquidador mock (KPIs, cuota, serie) solo existe para García-Llorente
+ * (firewall 8: no inventar cifras fiscales). El resto de expedientes
+ * completos muestran bases reales del bag y un aviso honesto.
+ */
 export function FiscalidadView({ cliente }: { cliente: Cliente }) {
-  const personas = useMemo(
-    () => personasFiscales(cliente.id),
-    [cliente.id],
-  );
-  const anios = useMemo(() => aniosSerie(), []);
+  const { bag, ingresosPersona } = useExpediente();
+  const personas = bag.personas;
+  const isGL = cliente.id === ids.clienteGarciaLlorente;
 
-  const [personaId, setPersonaId] = useState(
-    () => personas[0]?.id ?? "",
-  );
+  const anios = useMemo(() => aniosToolbarFiscal(), []);
+  const serie = useMemo(() => (isGL ? serieIRPFPlanBase() : []), [isGL]);
+
+  const [personaId, setPersonaId] = useState(() => personas[0]?.id ?? "");
   const [anio, setAnio] = useState(anioPorDefecto);
-  const [eurMode, setEurMode] = useState<EurMode>("futuro");
+  const [eurMode, setEurMode] = useState<EurMode>("hoy");
 
   if (!cliente.completo) {
     return (
-      <div className="space-y-3">
-        <div>
-          <p className="label-upper">P4 · Fiscalidad</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            Foto fiscal
-          </h2>
-        </div>
-        <Card>
-          <p className="label-upper mb-1">Cliente ligero</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            {cliente.nombre}
-          </h2>
-          <p className="mt-2 text-[13px] text-slate">
+      <SheetPad>
+        <div className="lbl">Fiscalidad · foto del plan base</div>
+        <div className="h2">Cómo está fiscalmente este cliente</div>
+        <div className="chartbox" style={{ marginTop: 14 }}>
+          <p className="tiny" style={{ margin: 0 }}>
             Este expediente solo puebla la Cartera. La foto fiscal completa
             está en Familia García-Llorente.
           </p>
-        </Card>
-      </div>
+        </div>
+      </SheetPad>
     );
   }
 
   if (!ccaaConCobertura(cliente.ccaa)) {
     return (
-      <div className="space-y-3">
-        <div>
-          <p className="label-upper">P4 · Fiscalidad</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            Foto fiscal
-          </h2>
-        </div>
-        <Card>
-          <p className="text-[13px] text-ink">
+      <SheetPad>
+        <div className="lbl">Fiscalidad · foto del plan base</div>
+        <div className="h2">Cómo está fiscalmente este cliente</div>
+        <div className="chartbox" style={{ marginTop: 14 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink)" }}>
             El cálculo fiscal solo está disponible para la Comunitat
             Valenciana.
           </p>
-          <p className="mt-2 text-[12px] text-mute">
+          <p className="tiny" style={{ marginTop: 6 }}>
             CCAA del expediente: {cliente.ccaa}
           </p>
-        </Card>
-      </div>
+        </div>
+      </SheetPad>
     );
   }
 
   const personaActiva =
     personas.find((p) => p.id === personaId) ?? personas[0];
   const pid = personaActiva?.id ?? "";
-  const serie = serieIRPF(cliente.id, pid);
-  const kpis = kpisVida(cliente.id, pid);
-  const baseG = baseGeneralPersona(cliente.id, pid);
-  const baseA = baseAhorroPersona(cliente.id, pid);
+  const nombreCorto = personaActiva?.nombre ?? "";
+
+  const kpis = isGL ? kpisVida(cliente.id, pid) : null;
+  const baseG = isGL ? baseGeneralPersona(cliente.id, pid) : ingresosPersona(pid);
+  const baseA = isGL ? baseAhorroPersona(cliente.id, pid) : 0;
+  const cuota = isGL ? cuotaIRPFPersona(pid) : 0;
+  const factor = factorFiscalAnyo(anio, eurMode);
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+    <SheetPad>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 14,
+          flexWrap: "wrap",
+          marginBottom: 14,
+        }}
+      >
         <div>
-          <p className="label-upper">P4 · Fiscalidad</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            Foto fiscal · plan base
-          </h2>
-          <p className="mt-0.5 text-[11px] text-mute">
-            Situación actual · Comunitat Valenciana · cifras{" "}
-            <span className="normal-case tracking-normal">orientativas</span>
-          </p>
+          <div className="lbl">Fiscalidad · foto del plan base</div>
+          <div className="h2">Cómo está fiscalmente este cliente</div>
         </div>
         <FiscalControls
           personas={personas}
@@ -111,54 +112,79 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
         />
       </div>
 
-      {kpis && (
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="chartbox">
-            <p className="label-upper mb-1">
-              IRPF total proyectado
-            </p>
-            <p className="text-[22px] font-bold tracking-[-0.01em] tabular-nums text-ink">
-              {formatEUR(
-                enEuros(
-                  kpis.irpfTotal,
-                  Math.round((kpis.anioInicio + kpis.anioFin) / 2),
-                  eurMode,
-                ),
-              )}
-            </p>
-            <p className="mt-1 text-[11px] text-mute">
-              {kpis.anioInicio}–{kpis.anioFin} · orientativo
-            </p>
+      {isGL && kpis && (
+        <div className="grid2" style={{ marginBottom: 14 }}>
+          <div
+            style={{
+              border: "1px solid var(--line-2)",
+              borderRadius: 10,
+              background: "#fff",
+              padding: "13px 15px",
+            }}
+          >
+            <div className="lbl">
+              IRPF proyectado {kpis.anioInicio}–{kpis.anioFin} · {nombreCorto}
+            </div>
+            <div style={{ fontSize: 22, fontWeight: 700 }} className="num">
+              {formatEUR(irpfVidaPresentado(kpis.irpfTotal, eurMode))}
+            </div>
+            <div className="tiny">
+              orientativo · parámetros (a verificar)
+            </div>
           </div>
-
-          <div className="chartbox">
-            <p className="label-upper mb-1">Tipo efectivo medio (ETR)</p>
-            <p className="text-[22px] font-bold tracking-[-0.01em] tabular-nums text-ink">
+          <div
+            style={{
+              border: "1px solid var(--line-2)",
+              borderRadius: 10,
+              background: "#fff",
+              padding: "13px 15px",
+            }}
+          >
+            <div className="lbl">Tipo efectivo medio (ETR) · {anio}</div>
+            <div style={{ fontSize: 22, fontWeight: 700 }} className="num">
               {formatETR(kpis.etr)}
-            </p>
-            <p className="mt-1 text-[11px] text-mute">
-              IRPF / ingresos proyectados · orientativo
-            </p>
+            </div>
+            <div className="tiny">
+              cuota ≈ {formatEUR(Math.round(cuota * factor))} sobre{" "}
+              {formatEUR(Math.round(baseG * factor))} · orientativo
+            </div>
           </div>
         </div>
       )}
 
-      <TramosViewer baseGeneral={baseG} baseAhorro={baseA} />
+      {!isGL && (
+        <div className="chartbox" style={{ marginBottom: 14 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--ink)" }}>
+            Liquidador mock cargado solo para García-Llorente · las bases sí
+            reflejan los ingresos del expediente.
+          </p>
+        </div>
+      )}
 
-      <SerieIRPF
-        serie={serie}
+      <TramosViewer
         anio={anio}
-        onAnio={setAnio}
-        eurMode={eurMode}
+        personaNombre={nombreCorto}
+        baseGeneral={baseG}
+        baseAhorro={baseA}
       />
-    </div>
+
+      {isGL && (
+        <SerieIRPF
+          serie={serie}
+          anio={anio}
+          onAnio={setAnio}
+          eurMode={eurMode}
+        />
+      )}
+    </SheetPad>
   );
 }
 
 function formatETR(value: number): string {
-  return new Intl.NumberFormat("es-ES", {
-    style: "percent",
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }).format(value);
+  return (
+    new Intl.NumberFormat("es-ES", {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 1,
+    }).format(value * 100) + " %"
+  );
 }

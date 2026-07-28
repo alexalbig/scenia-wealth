@@ -1,47 +1,50 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button, Card, Modal } from "@/components/ui";
+import { Button, SheetPad, Toast } from "@/components/ui";
 import { ProyeccionChart } from "@/components/proyeccion/ProyeccionChart";
+import { PlantillaEvento } from "@/components/eventos/PlantillaEvento";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
+import { cn } from "@/lib/cn";
 import { formatEUR } from "@/lib/format";
+import { personaLabel } from "@/lib/patrimonio";
 import {
-  getEventosDeEscenario,
-  getPlanBase,
-} from "@/lib/seed";
-import {
-  PROYECCION_BASE_YEAR,
   PROYECCION_SERIES,
   buildProyeccionSeries,
   displayValue,
-  isSerieOrientativa,
+  serieLabel,
   type EuroMode,
   type ProyeccionSerieId,
 } from "@/lib/proyeccion";
 import type { Cliente, Evento } from "@/lib/types";
 
+/**
+ * P5 · Proyección — marcado literal del mockup `renderProyeccion`.
+ * Fuente de verdad: bag del expediente (ExpedienteProvider).
+ */
 export function ProyeccionView({ cliente }: { cliente: Cliente }) {
-  const planBase = useMemo(() => getPlanBase(cliente.id), [cliente.id]);
-  const seedEvents = useMemo(
-    () => (planBase ? getEventosDeEscenario(planBase.id) : []),
-    [planBase],
+  const { bag, ahorro, planBase, menuElementos, eventosDeEscenario, addEvento, removeEvento } =
+    useExpediente();
+
+  const events = useMemo(
+    () => (planBase ? eventosDeEscenario(planBase.id) : []),
+    [planBase, eventosDeEscenario],
   );
 
-  const [events, setEvents] = useState<Evento[]>(() =>
-    seedEvents.map((e) => ({ ...e })),
-  );
   const [serie, setSerie] = useState<ProyeccionSerieId>("patrimonio");
-  const [mode, setMode] = useState<EuroMode>("futuro");
-  const [selectedYear, setSelectedYear] = useState<number | null>(
-    PROYECCION_BASE_YEAR,
-  );
-  const [editing, setEditing] = useState<Evento | null>(null);
-  const [editLabel, setEditLabel] = useState("");
-  const [editYear, setEditYear] = useState("");
+  const [mode, setMode] = useState<EuroMode>("hoy");
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [eventoOpen, setEventoOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const points = useMemo(
-    () => buildProyeccionSeries(cliente.id),
-    [cliente.id],
+    () =>
+      buildProyeccionSeries(cliente.id, {
+        patrimonioNeto: bag.cliente.patrimonioNeto,
+        capacidad: ahorro.capacidad,
+        completo: bag.cliente.completo,
+      }),
+    [cliente.id, bag.cliente.patrimonioNeto, bag.cliente.completo, ahorro.capacidad],
   );
   const inflation = planBase?.inflacion ?? 0.02;
 
@@ -50,15 +53,12 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
     [events],
   );
 
-  const yearEvents = useMemo(
-    () =>
-      selectedYear == null
-        ? []
-        : events
-            .filter((e) => e.anio === selectedYear)
-            .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, "es")),
-    [events, selectedYear],
-  );
+  const yearEvents = useMemo(() => {
+    if (selectedYear == null) return [];
+    return events
+      .filter((e) => e.anio === selectedYear)
+      .sort((a, b) => a.etiqueta.localeCompare(b.etiqueta, "es"));
+  }, [events, selectedYear]);
 
   const selectedPoint =
     selectedYear != null
@@ -67,93 +67,87 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
 
   function flash(msg: string) {
     setToast(msg);
-    setTimeout(() => setToast(null), 2200);
+    window.setTimeout(() => setToast(null), 2600);
   }
 
-  function openEdit(ev: Evento) {
-    setEditing(ev);
-    setEditLabel(ev.etiqueta);
-    setEditYear(String(ev.anio));
+  function toggleYear(year: number) {
+    setSelectedYear((prev) => (prev === year ? null : year));
   }
 
-  function saveEdit() {
-    if (!editing) return;
-    const year = Number(editYear);
-    if (!editLabel.trim() || !Number.isFinite(year)) return;
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.id === editing.id
-          ? { ...e, etiqueta: editLabel.trim(), anio: year }
-          : e,
-      ),
-    );
-    setSelectedYear(year);
-    setEditing(null);
-    flash("Evento actualizado");
+  function elementLabel(ev: Evento): string {
+    if (!ev.targetId) return "";
+    const persona = bag.personas.find((p) => p.id === ev.targetId);
+    if (persona) return personaLabel(persona);
+    return "";
   }
 
   function deleteEvent(id: string) {
-    setEvents((prev) => prev.filter((e) => e.id !== id));
+    removeEvento(id);
     flash("Evento eliminado");
   }
 
   if (!cliente.completo) {
     return (
-      <div className="space-y-3">
-        <div>
-          <p className="label-upper">P5 · Proyección</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            Plan base
-          </h2>
-        </div>
-        <Card>
-          <p className="label-upper mb-1">Cliente ligero</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            {cliente.nombre}
-          </h2>
-          <p className="mt-2 text-[13px] text-slate">
-            Este expediente solo puebla la Cartera. Patrimonio neto{" "}
-            <span className="font-semibold tabular-nums text-ink">
-              {formatEUR(cliente.patrimonioNeto)}
-            </span>
-            . La proyección completa está en Familia García-Llorente.
+      <SheetPad>
+        <div className="lbl">Proyección · plan base</div>
+        <div className="h2">Las series año a año</div>
+        <div className="chartbox" style={{ marginTop: 14 }}>
+          <p className="tiny" style={{ margin: 0 }}>
+            Este expediente solo puebla la Cartera. La proyección completa
+            está en Familia García-Llorente.
           </p>
-        </Card>
-      </div>
+        </div>
+      </SheetPad>
+    );
+  }
+
+  if (!planBase) {
+    return (
+      <SheetPad>
+        <div className="lbl">Proyección · plan base</div>
+        <div className="h2">Las series año a año</div>
+        <div className="empty" style={{ marginTop: 14 }}>
+          Sin plan base. Crea el primer escenario desde Escenarios para verlo
+          aquí.
+        </div>
+      </SheetPad>
     );
   }
 
   return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-end justify-between gap-2">
+    <SheetPad>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          gap: 12,
+          flexWrap: "wrap",
+          marginBottom: 12,
+        }}
+      >
         <div>
-          <p className="label-upper">P5 · Proyección</p>
-          <h2 className="text-[17px] font-bold tracking-[-0.01em] text-ink">
-            Situación actual
-          </h2>
-          <p className="mt-0.5 text-[11px] text-mute">
-            Plan base · series año a año · hogar de los eventos
-          </p>
+          <div className="lbl">Proyección · plan base</div>
+          <div className="h2">Las series año a año</div>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div role="tablist" aria-label="Serie" className="chips">
+        <div className="toolbar">
+          <div className="chips" role="tablist" aria-label="Serie">
             {PROYECCION_SERIES.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 role="tab"
                 aria-selected={serie === s.id}
-                data-on={serie === s.id}
+                className={cn(serie === s.id && "on")}
                 onClick={() => setSerie(s.id)}
               >
                 {s.label}
               </button>
             ))}
           </div>
-          <div role="group" aria-label="Unidad monetaria" className="seg">
+          <div className="seg" role="group" aria-label="Unidad monetaria">
             <button
               type="button"
-              data-on={mode === "hoy"}
+              className={cn(mode === "hoy" && "on")}
               aria-pressed={mode === "hoy"}
               onClick={() => setMode("hoy")}
             >
@@ -161,18 +155,13 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
             </button>
             <button
               type="button"
-              data-on={mode === "futuro"}
+              className={cn(mode === "futuro" && "on")}
               aria-pressed={mode === "futuro"}
               onClick={() => setMode("futuro")}
             >
               € futuro
             </button>
           </div>
-          {toast && (
-            <p className="rounded-[6px] bg-paper-2 px-2.5 py-1 text-[11px] text-ink-3">
-              {toast}
-            </p>
-          )}
         </div>
       </div>
 
@@ -185,165 +174,172 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
             inflation={inflation}
             selectedYear={selectedYear}
             milestoneYears={milestoneYears}
-            onSelectYear={setSelectedYear}
+            onSelectYear={toggleYear}
           />
+          <div className="tiny" style={{ marginTop: 4 }}>
+            Pincha en la línea para fijar un año · ● hitos del plan base ·{" "}
+            {mode === "hoy"
+              ? "valores deflactados al 2 % anual (€ de hoy)"
+              : "valores nominales (€ futuros)"}
+            .
+          </div>
         </div>
 
-        <div className="sidep flex flex-col">
-          <p className="label-upper">Eventos del año</p>
-          <p className="text-[17px] font-bold tracking-[-0.01em] tabular-nums text-ink">
-            {selectedYear ?? "—"}
-          </p>
-          {selectedPoint && (
-            <p className="mt-1 flex justify-between text-[11px] text-slate">
-              <span>
-                {PROYECCION_SERIES.find((s) => s.id === serie)?.label}
-              </span>
-              <b className="tabular-nums text-ink">
-                {formatEUR(
-                  displayValue(selectedPoint, serie, mode, inflation),
-                )}
-                {isSerieOrientativa(serie) && (
-                  <span className="ml-1 font-medium text-mute">
-                    · orientativo
-                  </span>
-                )}
-              </b>
-            </p>
-          )}
-
-          <div className="mt-3.5">
-            {selectedYear == null ? (
-              <p className="text-[12px] text-mute">
-                Fija un año en el gráfico para ver sus eventos.
-              </p>
-            ) : yearEvents.length === 0 ? (
-              <p className="py-3.5 text-[12px] text-mute">
-                Sin eventos en {selectedYear}.
-              </p>
-            ) : (
-              <ul>
-                {yearEvents.map((ev) => (
-                  <li
+        <div className="sidep">
+          {selectedYear != null ? (
+            <>
+              <div className="lbl">Año fijado</div>
+              <div className="h2 num">{selectedYear}</div>
+              {selectedPoint && (
+                <div
+                  className="sub"
+                  style={{
+                    margin: "8px 0 4px",
+                    display: "flex",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <span>{serieLabel(serie)}</span>
+                  <b className="num">
+                    {formatEUR(
+                      displayValue(
+                        selectedPoint,
+                        serie,
+                        mode,
+                        inflation,
+                      ),
+                    )}
+                  </b>
+                </div>
+              )}
+              <div
+                className="lbl"
+                style={{ marginTop: 14, marginBottom: 4 }}
+              >
+                Eventos de {selectedYear}
+              </div>
+              {yearEvents.length === 0 ? (
+                <div className="empty" style={{ padding: "14px 4px" }}>
+                  Sin eventos en {selectedYear}.
+                </div>
+              ) : (
+                yearEvents.map((ev) => (
+                  <EventoRow
                     key={ev.id}
-                    className="flex items-start gap-2 border-t border-line py-2 first:border-t-0"
-                  >
-                    <span
-                      className={`mt-1 h-2 w-2 shrink-0 rounded-[2px] ${
-                        ev.introducidoPorAsesor
-                          ? "bg-faintest"
-                          : "bg-blue"
-                      }`}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-[12px] font-semibold text-ink">
-                        {ev.etiqueta}
-                      </p>
-                      <p className="text-[10.5px] text-mute">
-                        {tipoEventoLabel(ev.tipo)}
-                      </p>
-                      {ev.impuestosPeriodo != null &&
-                        ev.impuestosPeriodo > 0 &&
-                        !ev.introducidoPorAsesor && (
-                          <div className="calc-chip mt-1">
-                            {formatEUR(ev.impuestosPeriodo)} · orientativo
-                          </div>
-                        )}
-                      {ev.introducidoPorAsesor && (
-                        <div className="intro-chip mt-1">
-                          Introducido por el asesor · no calculado
-                        </div>
-                      )}
-                      {ev.notas && (
-                        <p className="mt-1 text-[10.5px] text-mute">
-                          {ev.notas}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex shrink-0 gap-0.5">
-                      <button
-                        type="button"
-                        className="rounded px-1.5 py-0.5 text-[10.5px] text-mute hover:bg-paper-2 hover:text-ink"
-                        onClick={() => openEdit(ev)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="rounded px-1.5 py-0.5 text-[10.5px] text-mute hover:bg-paper-2 hover:text-ink"
-                        onClick={() => deleteEvent(ev.id)}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
+                    ev={ev}
+                    elementLabel={elementLabel(ev)}
+                    onDelete={() => deleteEvent(ev.id)}
+                  />
+                ))
+              )}
+              <Button
+                size="sm"
+                style={{ marginTop: 8 }}
+                onClick={() => setEventoOpen(true)}
+              >
+                + Añadir evento en {selectedYear}
+              </Button>
+            </>
+          ) : (
+            <>
+              <div className="lbl">Eventos del plan base</div>
+              <div style={{ marginTop: 6 }}>
+                {events.length === 0 ? (
+                  <div className="empty">Sin eventos anotados.</div>
+                ) : (
+                  events
+                    .slice()
+                    .sort((a, b) => a.anio - b.anio)
+                    .map((ev) => (
+                      <EventoRow
+                        key={ev.id}
+                        ev={ev}
+                        elementLabel={elementLabel(ev)}
+                        onDelete={() => deleteEvent(ev.id)}
+                      />
+                    ))
+                )}
+              </div>
+              <Button
+                size="sm"
+                style={{ marginTop: 8 }}
+                onClick={() => setEventoOpen(true)}
+              >
+                + Añadir evento
+              </Button>
+              <div className="tiny" style={{ marginTop: 10 }}>
+                Todo lo que anotas desde las fichas se refleja aquí.
+              </div>
+            </>
+          )}
         </div>
       </div>
 
-      <Modal
-        open={!!editing}
-        onClose={() => setEditing(null)}
-        title="Editar evento"
-        size="sm"
-        footer={
-          <>
-            <Button variant="secondary" onClick={() => setEditing(null)}>
-              Cancelar
-            </Button>
-            <Button onClick={saveEdit}>Guardar</Button>
-          </>
-        }
-      >
-        <div className="space-y-3">
-          <label className="block">
-            <span className="label-upper mb-1 block">Etiqueta</span>
-            <input
-              value={editLabel}
-              onChange={(e) => setEditLabel(e.target.value)}
-              className="h-9 w-full rounded-[8px] border border-line-2 bg-paper px-3 text-[13px] text-ink outline-none focus:border-ink"
-            />
-          </label>
-          <label className="block">
-            <span className="label-upper mb-1 block">Año</span>
-            <input
-              type="number"
-              value={editYear}
-              onChange={(e) => setEditYear(e.target.value)}
-              className="h-9 w-full rounded-[8px] border border-line-2 bg-paper px-3 text-[13px] tabular-nums text-ink outline-none focus:border-ink"
-            />
-          </label>
-          <p className="text-[11px] text-mute">
-            Mockup local · los cambios no se persisten.
-          </p>
-        </div>
-      </Modal>
-    </div>
+      <PlantillaEvento
+        open={eventoOpen}
+        onClose={() => setEventoOpen(false)}
+        contexto="completo"
+        clienteId={cliente.id}
+        elementoNombre="Plan base"
+        destinoNombre="Plan base (Situación actual)"
+        anioInicial={selectedYear ?? undefined}
+        escenarioInicialId={planBase.id}
+        elementosOverride={menuElementos}
+        onCreated={(payload) => {
+          addEvento(payload, { escenarioId: planBase.id });
+          if (selectedYear == null) setSelectedYear(payload.anio);
+          flash("Evento añadido al plan base — se refleja en Proyección");
+        }}
+      />
+      <Toast message={toast} />
+    </SheetPad>
   );
 }
 
-function tipoEventoLabel(tipo: Evento["tipo"]): string {
-  switch (tipo) {
-    case "jubilarse":
-      return "Jubilarse";
-    case "generico":
-      return "Genérico";
-    case "reembolsar_fondo":
-      return "Reembolso";
-    case "traspasar_fondo":
-      return "Traspaso";
-    case "rescatar_plan":
-      return "Rescate";
-    case "amortizar_hipoteca":
-      return "Amortizar";
-    case "vender_inmueble":
-      return "Vender inmueble";
-    case "comprar_inmueble":
-      return "Comprar inmueble";
-    default:
-      return "Evento";
-  }
+function EventoRow({
+  ev,
+  elementLabel,
+  onDelete,
+}: {
+  ev: Evento;
+  elementLabel: string;
+  onDelete: () => void;
+}) {
+  return (
+    <div className="evt">
+      <span
+        className={cn("evt-dot", ev.introducidoPorAsesor && "intro")}
+      />
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 12, fontWeight: 600 }}>{ev.etiqueta}</div>
+        <div className="tiny">
+          {ev.anio}
+          {elementLabel ? ` · ${elementLabel}` : ""}
+        </div>
+        {ev.impuestosPeriodo != null &&
+          !ev.introducidoPorAsesor && (
+            <div className="calc-chip" style={{ marginTop: 4 }}>
+              {formatEUR(ev.impuestosPeriodo)} · orientativo
+            </div>
+          )}
+        {ev.introducidoPorAsesor && (
+          <div className="intro-chip" style={{ marginTop: 4 }}>
+            ✎ Introducido por el asesor · no calculado
+          </div>
+        )}
+        {ev.notas &&
+          !ev.introducidoPorAsesor &&
+          ev.impuestosPeriodo == null && (
+            <div className="tiny" style={{ marginTop: 2 }}>
+              {ev.notas}
+            </div>
+          )}
+      </div>
+      <div className="evt-actions">
+        <button type="button" onClick={onDelete}>
+          Eliminar
+        </button>
+      </div>
+    </div>
+  );
 }

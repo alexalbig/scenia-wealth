@@ -1,11 +1,10 @@
-import { Table, TBody, TD, TH, THead, TR } from "@/components/ui";
-import { formatEUR } from "@/lib/format";
-import { cn } from "@/lib/cn";
+"use client";
+
 import { enEuros, type EurMode, type PuntoSerieIRPF } from "@/lib/fiscal";
 
 /**
- * Serie de IRPF año a año · clic-en-año (CT4).
- * Tinta neutra; "orientativo" en cabecera y pie.
+ * Serie de IRPF · gráfico SVG del mockup (lineChart) · clic-en-año.
+ * Tinta neutra · orientativo.
  */
 export function SerieIRPF({
   serie,
@@ -18,110 +17,133 @@ export function SerieIRPF({
   onAnio: (anio: number) => void;
   eurMode: EurMode;
 }) {
-  const max = Math.max(...serie.map((p) => p.irpf), 1);
-  const punto = serie.find((p) => p.anio === anio);
+  if (serie.length === 0) return null;
+
+  const w = 780;
+  const h = 170;
+  const pad = 34;
+  const n = serie.length;
+  const step = (w - pad - 10) / Math.max(n - 1, 1);
+
+  const values = serie.map((p, i) =>
+    eurMode === "hoy" ? enEuros(p.irpf, p.anio, "hoy") : p.irpf,
+  );
+  const max = Math.max(...values, 1) * 1.06;
+  const min = 0;
+
+  const X = (i: number) => pad + i * step;
+  const Y = (v: number) => h - 24 - ((v - min) / (max - min)) * (h - 42);
+
+  const pts = values.map((v, i) => `${X(i)},${Y(v)}`).join(" ");
+  const selIdx = serie.findIndex((p) => p.anio === anio);
 
   return (
-    <div className="space-y-2">
-      <div>
-        <p className="label-upper">Serie de IRPF</p>
-        <p className="text-[11px] text-mute">
-          Plan base · clic en un año para fijarlo ·{" "}
-          <span className="normal-case tracking-normal">orientativo</span>
-        </p>
+    <div className="chartbox" style={{ marginTop: 14 }}>
+      <div className="lbl" style={{ marginBottom: 8 }}>
+        Serie de IRPF proyectado · plan base · orientativo
       </div>
-
-      <div className="chartbox">
-        <div className="mb-3 flex h-28 items-end gap-1">
-          {serie.map((p) => {
-            const active = p.anio === anio;
-            const h = Math.max(6, Math.round((p.irpf / max) * 100));
-            return (
-              <button
-                key={p.anio}
-                type="button"
-                title={`${p.anio}: ${formatEUR(enEuros(p.irpf, p.anio, eurMode))}`}
-                onClick={() => onAnio(p.anio)}
-                className="group flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-1"
+      <svg
+        className="chart-svg"
+        viewBox={`0 0 ${w} ${h}`}
+        xmlns="http://www.w3.org/2000/svg"
+        role="img"
+        aria-label="Serie de IRPF proyectado"
+      >
+        {[0, 1, 2, 3].map((k) => {
+          const v = min + ((max - min) * k) / 3;
+          const y = Y(v);
+          return (
+            <g key={k}>
+              <line
+                x1={pad}
+                y1={y}
+                x2={w - 8}
+                y2={y}
+                stroke="var(--line)"
+                strokeWidth={1}
+              />
+              <text
+                x={pad - 5}
+                y={y + 3}
+                textAnchor="end"
+                fontSize={9}
+                fill="var(--faint)"
               >
-                <span
-                  className={cn(
-                    "w-full rounded-t-[3px] transition-colors",
-                    active
-                      ? "bg-ink"
-                      : "bg-ink-3/25 group-hover:bg-ink-3/40",
-                  )}
-                  style={{ height: `${h}%` }}
-                />
-                <span
-                  className={cn(
-                    "text-[9.5px] tabular-nums",
-                    active ? "font-bold text-ink" : "text-mute",
-                  )}
-                >
-                  {String(p.anio).slice(2)}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                {Math.round(v / 1000)}k
+              </text>
+            </g>
+          );
+        })}
 
-        <Table>
-          <THead>
-            <TR>
-              <TH>Año</TH>
-              <TH className="text-right">IRPF</TH>
-              <TH className="text-right">Base general</TH>
-              <TH className="text-right">Base ahorro</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {serie.map((p) => {
-              const active = p.anio === anio;
-              return (
-                <TR
-                  key={p.anio}
-                  className={cn(
-                    "cursor-pointer",
-                    active && "!bg-paper-2 hover:!bg-paper-2",
-                  )}
-                  onClick={() => onAnio(p.anio)}
-                >
-                  <TD
-                    className={cn(
-                      "font-semibold",
-                      active && "text-ink",
-                    )}
-                  >
-                    {p.anio}
-                  </TD>
-                  <TD numeric className={cn(active && "font-semibold text-ink")}>
-                    {formatEUR(enEuros(p.irpf, p.anio, eurMode))}
-                  </TD>
-                  <TD numeric>
-                    {formatEUR(enEuros(p.baseGeneral, p.anio, eurMode))}
-                  </TD>
-                  <TD numeric>
-                    {formatEUR(enEuros(p.baseAhorro, p.anio, eurMode))}
-                  </TD>
-                </TR>
-              );
-            })}
-          </TBody>
-        </Table>
-
-        {punto && (
-          <p className="mt-2 text-[11px] text-slate">
-            Año fijado{" "}
-            <span className="font-semibold text-ink">{punto.anio}</span>
-            {" · IRPF "}
-            <span className="font-semibold tabular-nums text-ink">
-              {formatEUR(enEuros(punto.irpf, punto.anio, eurMode))}
-            </span>
-            {" · "}
-            <span className="text-mute">orientativo</span>
-          </p>
+        {serie.map((p, i) =>
+          i % 5 === 0 ? (
+            <text
+              key={p.anio}
+              x={X(i)}
+              y={h - 8}
+              textAnchor="middle"
+              fontSize={9}
+              fill="var(--mute)"
+            >
+              {p.anio}
+            </text>
+          ) : null,
         )}
+
+        <polygon
+          points={`${pad},${h - 24} ${pts} ${X(n - 1)},${h - 24}`}
+          fill="var(--ink-3)"
+          opacity={0.08}
+        />
+        <polyline
+          points={pts}
+          fill="none"
+          stroke="var(--ink-3)"
+          strokeWidth={2}
+        />
+
+        {selIdx >= 0 && (
+          <>
+            <line
+              x1={X(selIdx)}
+              y1={10}
+              x2={X(selIdx)}
+              y2={h - 24}
+              stroke="var(--ink)"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+            />
+            <text
+              x={X(selIdx)}
+              y={9}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight={700}
+              fill="var(--ink)"
+            >
+              {anio}
+            </text>
+          </>
+        )}
+
+        {serie.map((p, i) => (
+          <rect
+            key={p.anio}
+            x={X(i) - step / 2}
+            y={0}
+            width={step}
+            height={h}
+            fill="transparent"
+            style={{ cursor: "pointer" }}
+            onClick={() => onAnio(p.anio)}
+          >
+            <title>{`${p.anio}`}</title>
+          </rect>
+        ))}
+      </svg>
+      <div className="tiny">
+        Pincha un año para fijarlo · cifras orientativas, parámetros (a
+        verificar) hasta validación del fiscalista.
       </div>
     </div>
   );

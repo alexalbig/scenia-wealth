@@ -2,24 +2,20 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Badge,
-  Button,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/components/ui";
+import { Button, LiqBadge, SheetPad, Toast } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR, formatPercent } from "@/lib/format";
-import { formatFechaES, personaLabel } from "@/lib/patrimonio";
+import {
+  titTxtCorto,
+  titularidadSegments,
+  yearFromIso,
+} from "@/lib/patrimonio";
 import type { Inmueble, Pasivo, Persona } from "@/lib/types";
 
-const backlinkClass =
-  "mb-1.5 -ml-2 inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[12px] font-semibold text-slate hover:bg-paper-2 hover:text-ink";
-
+/**
+ * F3 · Ficha Inmueble — marcado literal del mockup `fInmueble`.
+ */
 export function InmuebleFicha({
   clienteId,
   inmueble,
@@ -31,116 +27,150 @@ export function InmuebleFicha({
   pasivo?: Pasivo;
   personas: Persona[];
 }) {
+  const { bag, planBase, addEvento } = useExpediente();
+  const escenariosOpts = bag.escenarios.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+  }));
   const [eventoOpen, setEventoOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const adq = yearFromIso(inmueble.fechaAdquisicion);
+  const coste = inmueble.costeAdquisicion;
+  const plusv = inmueble.plusvaliaLatente;
 
   return (
-    <div>
+    <SheetPad>
       <Link
         href={`/clientes/${clienteId}/patrimonio?tab=activos`}
-        className={backlinkClass}
+        className="backlink"
       >
         ‹ Patrimonio · Activos
       </Link>
 
-      <div className="mb-3.5 flex flex-wrap items-start justify-between gap-3">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 14,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <p className="label-upper">Ficha · Inmueble</p>
-          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-ink">
+          <div className="lbl">Ficha · Inmueble</div>
+          <div className="h1" style={{ fontSize: 22 }}>
             {inmueble.nombre}
-          </h2>
+          </div>
         </div>
-        <Button size="sm" variant="secondary" onClick={() => setEventoOpen(true)}>
-          ⚡ Evento
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Valor actual</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums text-ink">
-            {formatEUR(inmueble.valor)}
-          </p>
-          <span className="intro-chip mt-1.5">✎ introducido por el asesor</span>
-        </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Adquisición</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums text-ink">
-            {formatFechaES(inmueble.fechaAdquisicion)}
-          </p>
+        <div style={{ marginLeft: "auto" }}>
+          <Button size="sm" onClick={() => setEventoOpen(true)}>
+            ⚡ Evento
+          </Button>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
-        <div className="rounded-[10px] border border-line-2 bg-white px-[15px] py-[13px]">
-          <p className="label-upper mb-2">Hipoteca asociada</p>
+      <div className="kv">
+        <div>
+          <div className="lbl">Valor actual</div>
+          <div className="v">{formatEUR(inmueble.valor)}</div>
+        </div>
+        <div>
+          <div className="lbl">Adquisición</div>
+          <div className="v">
+            {adq}
+            {coste != null ? ` · ${formatEUR(coste)}` : ""}
+          </div>
+        </div>
+        {plusv != null && (
+          <div>
+            <div className="lbl">Plusvalía latente</div>
+            <div className="v gain">+{formatEUR(plusv)}</div>
+          </div>
+        )}
+        <div>
+          <div className="lbl">Liquidez</div>
+          <div className="v" style={{ fontSize: 12 }}>
+            <LiqBadge level="b" />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid2" style={{ marginTop: 16 }}>
+        <div
+          style={{
+            border: "1px solid var(--line-2)",
+            borderRadius: 10,
+            background: "#fff",
+            padding: "13px 15px",
+          }}
+        >
+          <div className="lbl" style={{ marginBottom: 8 }}>
+            Hipoteca asociada
+          </div>
           {pasivo ? (
-            <div className="space-y-1">
-              <div className="flex justify-between py-1 text-[12px] text-ink-3">
-                <span>Prestamista</span>
-                <b className="font-semibold text-ink">{pasivo.prestamista}</b>
-              </div>
-              <div className="flex justify-between py-1 text-[12px] text-ink-3">
+            <>
+              <div
+                className="sub"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "4px 0",
+                }}
+              >
                 <span>Capital pendiente</span>
-                <b className="font-semibold tabular-nums text-ink">
-                  {formatEUR(pasivo.capitalPendiente)}
-                </b>
+                <b className="num">{formatEUR(pasivo.capitalPendiente)}</b>
               </div>
-              <div className="flex justify-between py-1 text-[12px] text-ink-3">
+              <div
+                className="sub"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "4px 0",
+                }}
+              >
                 <span>Tipo</span>
-                <b className="font-semibold tabular-nums text-ink">
-                  {formatPercent(pasivo.tipoInteres)}
-                </b>
+                <b className="num">{formatPercent(pasivo.tipoInteres)}</b>
               </div>
-              <div className="flex justify-between py-1 text-[12px] text-ink-3">
+              <div
+                className="sub"
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  padding: "4px 0",
+                }}
+              >
                 <span>Cuota</span>
-                <b className="font-semibold tabular-nums text-ink">
-                  {formatEUR(pasivo.cuotaMensual)}/mes
-                </b>
+                <b className="num">{formatEUR(pasivo.cuotaMensual)}/mes</b>
               </div>
-            </div>
+            </>
           ) : (
-            <p className="py-2 text-[12px] text-mute">Sin hipoteca asociada.</p>
+            <div className="tiny">Sin hipoteca asociada.</div>
           )}
         </div>
 
-        <div className="rounded-[10px] border border-line-2 bg-white px-[15px] py-[13px]">
-          <p className="label-upper mb-1.5">Reparto de titularidad</p>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Titular</TH>
-                <TH className="text-right">Participación</TH>
-              </TR>
-            </THead>
-            <TBody>
-              {inmueble.titularidades.map((t, idx) => {
-                const owner = t.owner;
-                const persona =
-                  owner.kind === "persona"
-                    ? personas.find((p) => p.id === owner.personaId)
-                    : undefined;
-                const label =
-                  owner.kind === "persona"
-                    ? persona
-                      ? personaLabel(persona)
-                      : owner.personaId
-                    : "Sociedad";
-                return (
-                  <TR key={`${label}-${idx}`}>
-                    <TD className="font-semibold">{label}</TD>
-                    <TD numeric>
-                      <Badge variant="neutral">
-                        {Math.round(t.porcentaje * 100)} %
-                      </Badge>
-                    </TD>
-                  </TR>
-                );
-              })}
-            </TBody>
-          </Table>
-          <p className="mt-2.5 text-[10.5px] text-mute">
-            Acciones: Vender (regla &gt;65) · Amortizar hipoteca — desde «⚡ Evento».
-          </p>
+        <div
+          style={{
+            border: "1px solid var(--line-2)",
+            borderRadius: 10,
+            background: "#fff",
+            padding: "13px 15px",
+          }}
+        >
+          <div className="lbl" style={{ marginBottom: 6 }}>
+            Reparto de titularidad
+          </div>
+          <span className="tiny">
+            {titTxtCorto(inmueble.titularidades, personas)}
+          </span>
+          <div className="tit-bar">
+            {titularidadSegments(inmueble.titularidades).map((s, i) => (
+              <i key={i} style={{ width: `${s.pct}%`, background: s.color }} />
+            ))}
+          </div>
+          <div className="tiny" style={{ marginTop: 10 }}>
+            Acciones: Vender (regla &gt;65) · Amortizar hipoteca — desde «⚡
+            Evento».
+          </div>
         </div>
       </div>
 
@@ -149,7 +179,20 @@ export function InmuebleFicha({
         onClose={() => setEventoOpen(false)}
         contexto="inmueble"
         elementoNombre={inmueble.nombre}
+        elementoId={inmueble.id}
+        clienteId={clienteId}
+        escenarios={escenariosOpts}
+        escenarioInicialId={planBase?.id}
+        onCreated={(payload) => {
+          addEvento(payload, {
+            escenarioId: planBase?.id,
+            targetId: inmueble.id,
+          });
+          setToast("Evento añadido al plan base — se refleja en Proyección");
+          window.setTimeout(() => setToast(null), 2600);
+        }}
       />
-    </div>
+      <Toast message={toast} />
+    </SheetPad>
   );
 }

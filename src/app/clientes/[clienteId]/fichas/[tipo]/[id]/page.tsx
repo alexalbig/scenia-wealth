@@ -1,19 +1,14 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { useParams } from "next/navigation";
 import { InmuebleFicha } from "@/components/fichas/InmuebleFicha";
 import { OtroActivoFicha } from "@/components/fichas/OtroActivoFicha";
 import { PersonaFicha } from "@/components/fichas/PersonaFicha";
 import { PortfolioFicha } from "@/components/fichas/PortfolioFicha";
 import { SociedadFicha } from "@/components/fichas/SociedadFicha";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { Card } from "@/components/ui";
-import {
-  getInmuebles,
-  getInstrumentos,
-  getOtrosActivos,
-  getPasivos,
-  getSociedades,
-} from "@/lib/patrimonio";
-import { getCliente, getPersonasDeCliente } from "@/lib/seed";
 
 const LABELS: Record<string, string> = {
   persona: "F1 · Persona",
@@ -23,41 +18,47 @@ const LABELS: Record<string, string> = {
   otro: "F5 · Otros activos",
 };
 
-export default async function FichaPage({
-  params,
-}: {
-  params: Promise<{ clienteId: string; tipo: string; id: string }>;
-}) {
-  const { clienteId, tipo, id } = await params;
-  const cliente = getCliente(clienteId);
-  if (!cliente) notFound();
-
-  const personas = getPersonasDeCliente(clienteId);
+export default function FichaPage() {
+  const params = useParams<{
+    clienteId: string;
+    tipo: string;
+    id: string;
+  }>();
+  const { bag } = useExpediente();
+  const clienteId = params.clienteId;
+  const tipo = params.tipo;
+  const id = params.id;
+  const personas = bag.personas;
 
   if (tipo === "persona") {
     const persona = personas.find((p) => p.id === id);
-    if (!persona) notFound();
+    if (!persona) {
+      return <MissingFicha clienteId={clienteId} tipo={tipo} />;
+    }
     return <PersonaFicha clienteId={clienteId} persona={persona} />;
   }
 
   if (tipo === "portfolio") {
-    const instrumentos = getInstrumentos(clienteId);
-    const instrumento = instrumentos.find((i) => i.id === id);
-    if (!instrumento) notFound();
+    const instrumento = bag.instrumentos.find((i) => i.id === id);
+    if (!instrumento) {
+      return <MissingFicha clienteId={clienteId} tipo={tipo} />;
+    }
     return (
       <PortfolioFicha
         clienteId={clienteId}
         instrumento={instrumento}
-        instrumentos={instrumentos}
+        instrumentos={bag.instrumentos}
       />
     );
   }
 
   if (tipo === "inmueble") {
-    const inmueble = getInmuebles(clienteId).find((i) => i.id === id);
-    if (!inmueble) notFound();
+    const inmueble = bag.inmuebles.find((i) => i.id === id);
+    if (!inmueble) {
+      return <MissingFicha clienteId={clienteId} tipo={tipo} />;
+    }
     const pasivo = inmueble.pasivoId
-      ? getPasivos(clienteId).find((p) => p.id === inmueble.pasivoId)
+      ? bag.pasivos.find((p) => p.id === inmueble.pasivoId)
       : undefined;
     return (
       <InmuebleFicha
@@ -70,22 +71,26 @@ export default async function FichaPage({
   }
 
   if (tipo === "sociedad") {
-    const sociedad = getSociedades(clienteId).find((s) => s.id === id);
-    if (!sociedad) notFound();
+    const sociedad = bag.sociedades.find((s) => s.id === id);
+    if (!sociedad) {
+      return <MissingFicha clienteId={clienteId} tipo={tipo} />;
+    }
     return (
       <SociedadFicha
         clienteId={clienteId}
         sociedad={sociedad}
         personas={personas}
-        instrumentos={getInstrumentos(clienteId)}
-        inmuebles={getInmuebles(clienteId)}
+        instrumentos={bag.instrumentos}
+        inmuebles={bag.inmuebles}
       />
     );
   }
 
   if (tipo === "otro") {
-    const activo = getOtrosActivos(clienteId).find((a) => a.id === id);
-    if (!activo) notFound();
+    const activo = bag.otrosActivos.find((a) => a.id === id);
+    if (!activo) {
+      return <MissingFicha clienteId={clienteId} tipo={tipo} />;
+    }
     return (
       <OtroActivoFicha
         clienteId={clienteId}
@@ -95,17 +100,25 @@ export default async function FichaPage({
     );
   }
 
-  const label = LABELS[tipo] ?? "Ficha";
+  return <MissingFicha clienteId={clienteId} tipo={tipo} />;
+}
 
+function MissingFicha({
+  clienteId,
+  tipo,
+}: {
+  clienteId: string;
+  tipo: string;
+}) {
+  const label = LABELS[tipo] ?? "Ficha";
   return (
     <Card>
       <p className="label-upper mb-1">{label}</p>
       <h2 className="text-[17px] font-bold tracking-[-0.02em] text-ink">
-        Ficha · {id}
+        Elemento no encontrado
       </h2>
       <p className="mt-2 text-[13px] text-slate">
-        Drill-down desde Patrimonio. El detalle de la ficha se construye en una
-        fase posterior; la navegación ya queda preparada.
+        Este elemento no está en el expediente actual.
       </p>
       <p className="mt-4">
         <Link

@@ -3,23 +3,26 @@
 import { useState } from "react";
 import Link from "next/link";
 import {
-  Badge,
   Button,
+  SheetPad,
   Table,
   TBody,
   TD,
   TH,
   THead,
+  Toast,
   TR,
 } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR } from "@/lib/format";
-import { formatFechaES, personaLabel } from "@/lib/patrimonio";
+import { yearFromIso } from "@/lib/patrimonio";
+import { personaLabel } from "@/lib/patrimonio";
 import type { Inmueble, Instrumento, Persona, Sociedad } from "@/lib/types";
 
-const backlinkClass =
-  "mb-1.5 -ml-2 inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[12px] font-semibold text-slate hover:bg-paper-2 hover:text-ink";
-
+/**
+ * F4 · Ficha Sociedad — marcado literal del mockup `fSociedad`.
+ */
 export function SociedadFicha({
   clienteId,
   sociedad,
@@ -33,7 +36,13 @@ export function SociedadFicha({
   instrumentos: Instrumento[];
   inmuebles: Inmueble[];
 }) {
+  const { bag, planBase, addEvento } = useExpediente();
+  const escenariosOpts = bag.escenarios.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+  }));
   const [eventoOpen, setEventoOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const participaciones = Object.entries(sociedad.participaciones).map(
     ([personaId, porcentaje]) => {
@@ -49,137 +58,173 @@ export function SociedadFicha({
   const activosSociedad = [
     ...instrumentos
       .filter((i) => i.sociedadId === sociedad.id)
-      .map((i) => ({ id: i.id, nombre: i.nombre, tipo: "Instrumento", valor: i.valor })),
+      .map((i) => ({
+        id: i.id,
+        nombre: i.nombre,
+        tipo: "Instrumento",
+        valor: i.valor,
+      })),
     ...inmuebles
       .filter((i) => i.sociedadId === sociedad.id)
-      .map((i) => ({ id: i.id, nombre: i.nombre, tipo: "Inmueble", valor: i.valor })),
+      .map((i) => ({
+        id: i.id,
+        nombre: i.nombre,
+        tipo: "Inmueble",
+        valor: i.valor,
+      })),
   ];
 
   return (
-    <div>
+    <SheetPad>
       <Link
         href={`/clientes/${clienteId}/patrimonio?tab=activos`}
-        className={backlinkClass}
+        className="backlink"
       >
         ‹ Patrimonio · Activos
       </Link>
 
-      <div className="mb-3.5 flex flex-wrap items-start justify-between gap-3">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 14,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <p className="label-upper">Ficha · Sociedad</p>
-          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-ink">
+          <div className="lbl">Ficha · Sociedad</div>
+          <div className="h1" style={{ fontSize: 22 }}>
             {sociedad.nombre}
-          </h2>
+          </div>
         </div>
-        <Button size="sm" variant="secondary" onClick={() => setEventoOpen(true)}>
-          ⚡ Evento
-        </Button>
+        <div style={{ marginLeft: "auto" }}>
+          <Button size="sm" onClick={() => setEventoOpen(true)}>
+            ⚡ Evento
+          </Button>
+        </div>
       </div>
 
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">NIF</p>
-          <p className="mt-[3px] text-[13px] font-bold tabular-nums text-ink">
+      <div className="kv">
+        <div>
+          <div className="lbl">NIF</div>
+          <div className="v" style={{ fontSize: 13 }}>
             {sociedad.nif}
-          </p>
+          </div>
         </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Constitución</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums text-ink">
-            {formatFechaES(sociedad.fechaConstitucion)}
-          </p>
+        <div>
+          <div className="lbl">Constitución</div>
+          <div className="v">{yearFromIso(sociedad.fechaConstitucion)}</div>
         </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Capital social</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums text-ink">
-            {formatEUR(sociedad.capitalSocial)}
-          </p>
-          <span className="intro-chip mt-1.5">✎ introducido por el asesor</span>
+        <div>
+          <div className="lbl">Capital social</div>
+          <div className="v">{formatEUR(sociedad.capitalSocial)}</div>
         </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Situación mercantil</p>
-          <p className="mt-[3px]">
-            <Badge variant="neutral">{sociedad.situacion}</Badge>
-          </p>
+        <div>
+          <div className="lbl">Situación mercantil</div>
+          <div className="v" style={{ fontSize: 12.5 }}>
+            {sociedad.situacion}
+          </div>
         </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px] sm:col-span-2">
-          <p className="label-upper">Objeto social</p>
-          <p className="mt-[3px] text-[12px] font-medium text-ink">
+        <div>
+          <div className="lbl">Objeto social</div>
+          <div className="v" style={{ fontSize: 12, fontWeight: 500 }}>
             {sociedad.objetoSocial}
-          </p>
+          </div>
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3.5 sm:grid-cols-2">
-        <div className="rounded-[10px] border border-line-2 bg-white px-[15px] py-[13px]">
-          <p className="label-upper mb-2">Participación</p>
+      <div className="grid2" style={{ marginTop: 16 }}>
+        <div
+          style={{
+            border: "1px solid var(--line-2)",
+            borderRadius: 10,
+            background: "#fff",
+            padding: "13px 15px",
+          }}
+        >
+          <div className="lbl" style={{ marginBottom: 8 }}>
+            Participación
+          </div>
           <Table>
             <THead>
               <TR>
                 <TH>Persona</TH>
-                <TH className="text-right">%</TH>
+                <TH className="right">%</TH>
               </TR>
             </THead>
             <TBody>
               {participaciones.map((row) => (
                 <TR key={row.personaId}>
-                  <TD className="font-semibold">{row.label}</TD>
-                  <TD numeric>
+                  <TD>
+                    <b>{row.label}</b>
+                  </TD>
+                  <TD className="right num">
                     {Math.round(row.porcentaje * 100)} %
                   </TD>
                 </TR>
               ))}
-              {participaciones.length === 0 && (
-                <TR>
-                  <TD colSpan={2} className="py-4 text-center text-mute">
-                    Sin participaciones registradas.
-                  </TD>
-                </TR>
-              )}
             </TBody>
           </Table>
         </div>
-
-        <div className="rounded-[10px] border border-line-2 bg-white px-[15px] py-[13px]">
-          <p className="label-upper mb-2">Activos de la sociedad</p>
+        <div
+          style={{
+            border: "1px solid var(--line-2)",
+            borderRadius: 10,
+            background: "#fff",
+            padding: "13px 15px",
+          }}
+        >
+          <div className="lbl" style={{ marginBottom: 8 }}>
+            Activos de la sociedad
+          </div>
           {activosSociedad.length > 0 ? (
             <Table>
               <THead>
                 <TR>
                   <TH>Activo</TH>
                   <TH>Tipo</TH>
-                  <TH className="text-right">Valor</TH>
+                  <TH className="right">Valor</TH>
                 </TR>
               </THead>
               <TBody>
                 {activosSociedad.map((a) => (
                   <TR key={a.id}>
-                    <TD className="font-semibold">{a.nombre}</TD>
+                    <TD>
+                      <b>{a.nombre}</b>
+                    </TD>
                     <TD>{a.tipo}</TD>
-                    <TD numeric>{formatEUR(a.valor)}</TD>
+                    <TD className="right num">{formatEUR(a.valor)}</TD>
                   </TR>
                 ))}
               </TBody>
             </Table>
           ) : (
-            <p className="px-1 py-3 text-center text-[12px] text-mute">
+            <div className="empty" style={{ padding: "12px 4px" }}>
               Sin activos registrados a nombre de la sociedad.
-            </p>
+            </div>
           )}
         </div>
       </div>
 
-      {/* Firewall regla 8: hueco visible — sin cifras de Impuesto de Sociedades */}
-      <div className="mt-3.5 rounded-[10px] border border-dashed border-line-2 bg-paper-2 px-4 py-3.5">
-        <span className="inline-flex items-center rounded-[6px] border border-line-2 bg-paper-2 px-2 py-0.5 text-[10.5px] font-semibold text-slate">
+      <div
+        style={{
+          marginTop: 14,
+          border: "1px solid var(--line-2)",
+          borderRadius: 10,
+          background: "var(--paper-2)",
+          padding: "14px 16px",
+        }}
+      >
+        <span className="tag-pend">
           Fiscalidad societaria · pendiente de definir
         </span>
-        <p className="mt-2 text-[12px] text-ink-3">
+        <div className="sub" style={{ marginTop: 8 }}>
           El liquidador de Impuesto de Sociedades aún no existe en Scenia. Los
           eventos de esta ficha (repartir dividendo, vender participación){" "}
-          <b className="font-semibold text-ink">se registran sin cálculo fiscal</b>{" "}
-          — no se muestran cifras que el motor no puede calcular.
-        </p>
+          <b>se registran sin cálculo fiscal</b> — no se muestran cifras que el
+          motor no puede calcular.
+        </div>
       </div>
 
       <EventoModal
@@ -187,7 +232,22 @@ export function SociedadFicha({
         onClose={() => setEventoOpen(false)}
         contexto="sociedad"
         elementoNombre={sociedad.nombre}
+        elementoId={sociedad.id}
+        clienteId={clienteId}
+        escenarios={escenariosOpts}
+        escenarioInicialId={planBase?.id}
+        onCreated={(payload) => {
+          addEvento(payload, {
+            escenarioId: planBase?.id,
+            targetId: sociedad.id,
+          });
+          setToast(
+            "Evento registrado sin cálculo fiscal — IS pendiente de definir",
+          );
+          window.setTimeout(() => setToast(null), 2600);
+        }}
       />
-    </div>
+      <Toast message={toast} />
+    </SheetPad>
   );
 }

@@ -1,22 +1,14 @@
+"use client";
+
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
 import { EscenariosView } from "@/components/escenarios/EscenariosView";
-import { getCliente } from "@/lib/seed";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 
-export default async function EscenariosPage({
-  params,
-}: {
-  params: Promise<{ clienteId: string }>;
-}) {
-  const { clienteId } = await params;
-  const cliente = getCliente(clienteId);
-  if (!cliente) notFound();
-
+export default function EscenariosPage() {
+  const { bag } = useExpediente();
   return (
-    <Suspense
-      fallback={<p className="text-[12px] text-mute">Cargando escenarios…</p>}
-    >
-      <EscenariosView cliente={cliente} />
+    <Suspense fallback={<p className="tiny">Cargando escenarios…</p>}>
+      <EscenariosView cliente={bag.cliente} />
     </Suspense>
   );
 }

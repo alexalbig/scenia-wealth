@@ -1,11 +1,12 @@
 "use client";
 
+import { cn } from "@/lib/cn";
 import type { EurMode } from "@/lib/fiscal";
 import type { Persona } from "@/lib/types";
 
-const selectClass =
-  "h-[30px] rounded-[8px] border border-line-2 bg-white px-2.5 text-[12px] text-ink outline-none focus:border-ink";
-
+/**
+ * Controles P4 — marcado mockup: `.toolbar` · `.seg` · `.on`
+ */
 export function FiscalControls({
   personas,
   personaId,
@@ -25,14 +26,18 @@ export function FiscalControls({
   eurMode: EurMode;
   onEurMode: (mode: EurMode) => void;
 }) {
+  const options = anios.includes(anio)
+    ? anios
+    : [...anios, anio].sort((a, b) => a - b);
+
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div role="group" aria-label="Persona" className="seg">
+    <div className="toolbar">
+      <div className="seg" role="group" aria-label="Persona">
         {personas.map((p) => (
           <button
             key={p.id}
             type="button"
-            data-on={p.id === personaId}
+            className={cn(p.id === personaId && "on")}
             aria-pressed={p.id === personaId}
             onClick={() => onPersona(p.id)}
           >
@@ -42,22 +47,29 @@ export function FiscalControls({
       </div>
 
       <select
-        className={selectClass}
         value={anio}
         aria-label="Año"
         onChange={(e) => onAnio(Number(e.target.value))}
+        style={{
+          border: "1px solid var(--line-2)",
+          borderRadius: 8,
+          padding: "6px 9px",
+          fontSize: 12,
+          background: "#fff",
+          color: "var(--ink)",
+        }}
       >
-        {anios.map((y) => (
+        {options.map((y) => (
           <option key={y} value={y}>
             {y}
           </option>
         ))}
       </select>
 
-      <div role="group" aria-label="Unidad monetaria" className="seg">
+      <div className="seg" role="group" aria-label="Unidad monetaria">
         <button
           type="button"
-          data-on={eurMode === "hoy"}
+          className={cn(eurMode === "hoy" && "on")}
           aria-pressed={eurMode === "hoy"}
           onClick={() => onEurMode("hoy")}
         >
@@ -65,7 +77,7 @@ export function FiscalControls({
         </button>
         <button
           type="button"
-          data-on={eurMode === "futuro"}
+          className={cn(eurMode === "futuro" && "on")}
           aria-pressed={eurMode === "futuro"}
           onClick={() => onEurMode("futuro")}
         >

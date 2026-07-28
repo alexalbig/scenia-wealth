@@ -1,24 +1,14 @@
+"use client";
+
 import { Suspense } from "react";
-import { notFound } from "next/navigation";
 import { ProyeccionView } from "@/components/proyeccion/ProyeccionView";
-import { getCliente } from "@/lib/seed";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 
-export default async function ProyeccionPage({
-  params,
-}: {
-  params: Promise<{ clienteId: string }>;
-}) {
-  const { clienteId } = await params;
-  const cliente = getCliente(clienteId);
-  if (!cliente) notFound();
-
+export default function ProyeccionPage() {
+  const { bag } = useExpediente();
   return (
-    <Suspense
-      fallback={
-        <p className="text-[12px] text-mute">Cargando proyección…</p>
-      }
-    >
-      <ProyeccionView cliente={cliente} />
+    <Suspense fallback={<p className="tiny">Cargando proyección…</p>}>
+      <ProyeccionView cliente={bag.cliente} />
     </Suspense>
   );
 }

@@ -1,17 +1,9 @@
-import { notFound } from "next/navigation";
+"use client";
+
 import { HistorialView } from "@/components/historial/HistorialView";
-import { getCliente, getHistorialDeCliente } from "@/lib/seed";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 
-export default async function HistorialPage({
-  params,
-}: {
-  params: Promise<{ clienteId: string }>;
-}) {
-  const { clienteId } = await params;
-  const cliente = getCliente(clienteId);
-  if (!cliente) notFound();
-
-  const entries = getHistorialDeCliente(clienteId);
-
-  return <HistorialView entries={entries} />;
+export default function HistorialPage() {
+  const { bag } = useExpediente();
+  return <HistorialView entries={bag.historial ?? []} />;
 }

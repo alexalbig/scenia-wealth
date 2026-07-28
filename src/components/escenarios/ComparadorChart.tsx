@@ -1,24 +1,20 @@
 "use client";
 
-import { cn } from "@/lib/cn";
-import { formatEUR } from "@/lib/format";
 import {
-  metricaValue,
+  colorComparador,
   type ComparadorMetrica,
 } from "@/lib/escenarios";
-import type { YearPoint } from "@/lib/proyeccion";
-import { displayValue, type EuroMode } from "@/lib/proyeccion";
+import { toEuroHoy, type EuroMode } from "@/lib/proyeccion";
 
-const COLORS = ["#3A5BC8", "#0C1424", "#6E7A92", "#D14A38"] as const;
-
-interface SeriesLine {
+export interface ComparadorSerieLine {
   id: string;
   nombre: string;
-  points: YearPoint[];
+  values: number[];
+  years: number[];
 }
 
 interface ComparadorChartProps {
-  series: SeriesLine[];
+  series: ComparadorSerieLine[];
   metrica: ComparadorMetrica;
   mode: EuroMode;
   inflation: number;
@@ -26,10 +22,9 @@ interface ComparadorChartProps {
   onSelectYear: (year: number) => void;
 }
 
-const W = 640;
-const H = 260;
-const PAD = { top: 16, right: 12, bottom: 36, left: 56 };
-
+/**
+ * Gráfico multi-serie del mockup `lineChart` en el comparador.
+ */
 export function ComparadorChart({
   series,
   metrica,
@@ -38,178 +33,157 @@ export function ComparadorChart({
   selectedYear,
   onSelectYear,
 }: ComparadorChartProps) {
-  const years =
-    series[0]?.points.map((p) => p.year) ?? [];
+  const years = series[0]?.years ?? [];
   if (years.length === 0 || series.length === 0) {
     return (
-      <p className="px-3 py-8 text-center text-[12px] text-mute">
+      <div className="empty" style={{ padding: 24 }}>
         Selecciona al menos un escenario para comparar.
-      </p>
+      </div>
     );
   }
 
-  const valueAt = (line: SeriesLine, year: number) => {
-    const pt = line.points.find((p) => p.year === year);
-    if (!pt) return 0;
-    if (metrica === "irpf_acumulado") {
-      return metricaValue(pt, metrica, line.points);
-    }
-    // patrimonio / liquidos respetan €hoy/€futuro
-    if (metrica === "patrimonio") {
-      return displayValue(pt, "patrimonio", mode, inflation);
-    }
-    return displayValue(pt, "liquidos", mode, inflation);
-  };
+  const w = 780;
+  const h = 230;
+  const pad = 34;
+  const n = years.length;
+  const step = (w - pad - 10) / Math.max(n - 1, 1);
 
-  const allValues = series.flatMap((line) =>
-    years.map((y) => valueAt(line, y)),
+  const display = (v: number, year: number) =>
+    mode === "hoy" ? toEuroHoy(v, year, inflation) : v;
+
+  const allVals = series.flatMap((s) =>
+    s.values.map((v, i) => display(v, years[i]!)),
   );
-  const minV = Math.min(...allValues);
-  const maxV = Math.max(...allValues);
-  const span = Math.max(maxV - minV, 1);
-  const yMin = minV - span * 0.08;
-  const yMax = maxV + span * 0.12;
+  const max = Math.max(...allVals, 1) * 1.06;
+  const min = 0;
 
-  const innerW = W - PAD.left - PAD.right;
-  const innerH = H - PAD.top - PAD.bottom;
-  const xAt = (i: number) =>
-    PAD.left + (years.length === 1 ? innerW / 2 : (i / (years.length - 1)) * innerW);
-  const yAt = (v: number) =>
-    PAD.top + innerH - ((v - yMin) / (yMax - yMin)) * innerH;
+  const X = (i: number) => pad + i * step;
+  const Y = (v: number) => h - 24 - ((v - min) / (max - min)) * (h - 42);
 
-  const ticks = [0, 0.33, 0.66, 1].map((t) => yMin + (yMax - yMin) * t);
-  const yearLabels = years.filter((_, i) => {
-    if (i === 0 || i === years.length - 1) return true;
-    return years[i]! % 3 === 0;
-  });
+  const selIdx =
+    selectedYear == null ? -1 : years.findIndex((y) => y === selectedYear);
 
   return (
-    <div>
+    <>
       <svg
-        viewBox={`0 0 ${W} ${H}`}
-        className="h-auto w-full"
+        className="chart-svg"
+        viewBox={`0 0 ${w} ${h}`}
+        xmlns="http://www.w3.org/2000/svg"
         role="img"
         aria-label="Comparador de escenarios"
       >
-        {ticks.map((v) => (
-          <g key={v}>
-            <line
-              x1={PAD.left}
-              x2={W - PAD.right}
-              y1={yAt(v)}
-              y2={yAt(v)}
-              stroke="var(--line)"
-              strokeWidth={1}
-            />
-            <text
-              x={PAD.left - 6}
-              y={yAt(v) + 3}
-              textAnchor="end"
-              className="fill-mute"
-              style={{ fontSize: 9 }}
-            >
-              {formatEUR(v)}
-            </text>
-          </g>
-        ))}
-
-        {series.map((line, si) => {
-          const color = COLORS[si % COLORS.length]!;
-          const d = years
-            .map((year, i) => {
-              const x = xAt(i);
-              const y = yAt(valueAt(line, year));
-              return `${i === 0 ? "M" : "L"}${x.toFixed(1)},${y.toFixed(1)}`;
-            })
-            .join(" ");
+        {[0, 1, 2, 3].map((k) => {
+          const v = min + ((max - min) * k) / 3;
+          const y = Y(v);
           return (
-            <path
-              key={line.id}
-              d={d}
-              fill="none"
-              stroke={color}
-              strokeWidth={2}
-            />
-          );
-        })}
-
-        {years.map((year, i) => {
-          const active = year === selectedYear;
-          return (
-            <g key={year}>
-              <rect
-                x={xAt(i) - 8}
-                y={PAD.top}
-                width={16}
-                height={innerH}
-                fill="transparent"
-                className="cursor-pointer"
-                onClick={() => onSelectYear(year)}
+            <g key={k}>
+              <line
+                x1={pad}
+                y1={y}
+                x2={w - 8}
+                y2={y}
+                stroke="var(--line)"
+                strokeWidth={1}
               />
-              {active && (
-                <line
-                  x1={xAt(i)}
-                  x2={xAt(i)}
-                  y1={PAD.top}
-                  y2={PAD.top + innerH}
-                  stroke="var(--ink)"
-                  strokeWidth={1}
-                  strokeDasharray="3 3"
-                />
-              )}
-              {series.map((line, si) => (
-                <circle
-                  key={`${line.id}-${year}`}
-                  cx={xAt(i)}
-                  cy={yAt(valueAt(line, year))}
-                  r={active ? 4 : 2.5}
-                  fill={COLORS[si % COLORS.length]}
-                  className="cursor-pointer"
-                  onClick={() => onSelectYear(year)}
-                />
-              ))}
+              <text
+                x={pad - 5}
+                y={y + 3}
+                textAnchor="end"
+                fontSize={9}
+                fill="var(--faint)"
+              >
+                {Math.round(v / 1000)}k
+              </text>
             </g>
           );
         })}
 
-        {yearLabels.map((year) => {
-          const i = years.indexOf(year);
-          return (
+        {years.map((y, i) =>
+          i % 5 === 0 ? (
             <text
-              key={year}
-              x={xAt(i)}
-              y={H - 12}
+              key={y}
+              x={X(i)}
+              y={h - 8}
               textAnchor="middle"
-              className={cn(
-                year === selectedYear ? "fill-ink font-semibold" : "fill-mute",
-              )}
-              style={{ fontSize: 9 }}
+              fontSize={9}
+              fill="var(--mute)"
             >
-              {year}
+              {y}
             </text>
+          ) : null,
+        )}
+
+        {series.map((s, si) => {
+          const pts = s.values
+            .map((v, i) => `${X(i)},${Y(display(v, years[i]!))}`)
+            .join(" ");
+          const dash = si === 2 ? "5 4" : undefined;
+          return (
+            <polyline
+              key={s.id}
+              points={pts}
+              fill="none"
+              stroke={colorComparador(si)}
+              strokeWidth={2}
+              strokeDasharray={dash}
+            />
           );
         })}
+
+        {selIdx >= 0 && (
+          <>
+            <line
+              x1={X(selIdx)}
+              y1={10}
+              x2={X(selIdx)}
+              y2={h - 24}
+              stroke="var(--ink)"
+              strokeWidth={1.5}
+              strokeDasharray="3 3"
+            />
+            <text
+              x={X(selIdx)}
+              y={9}
+              textAnchor="middle"
+              fontSize={10}
+              fontWeight={700}
+              fill="var(--ink)"
+            >
+              {selectedYear}
+            </text>
+          </>
+        )}
+
+        {years.map((y, i) => (
+          <rect
+            key={y}
+            x={X(i) - step / 2}
+            y={0}
+            width={step}
+            height={h}
+            fill="transparent"
+            style={{ cursor: "pointer" }}
+            onClick={() => onSelectYear(y)}
+          >
+            <title>{String(y)}</title>
+          </rect>
+        ))}
       </svg>
 
-      <div className="mt-2 flex flex-wrap gap-3 px-1">
-        {series.map((line, si) => (
-          <span
-            key={line.id}
-            className="inline-flex items-center gap-1.5 text-[11px] text-ink-3"
-          >
-            <span
-              className="inline-block h-2 w-2 rounded-full"
-              style={{ background: COLORS[si % COLORS.length] }}
-            />
-            {line.nombre}
+      <div className="legend">
+        {series.map((s, si) => (
+          <span key={s.id}>
+            <i style={{ background: colorComparador(si) }} />
+            {s.nombre}
           </span>
         ))}
         {metrica === "irpf_acumulado" && (
-          <span className="text-[10.5px] uppercase tracking-[0.06em] text-mute">
-            orientativo
-          </span>
+          <span className="tiny">orientativo</span>
         )}
+        <span style={{ marginLeft: "auto" }} className="tiny">
+          Pincha para fijar un año
+        </span>
       </div>
-    </div>
+    </>
   );
 }

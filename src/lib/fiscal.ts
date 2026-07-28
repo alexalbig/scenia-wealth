@@ -9,7 +9,7 @@ import { getCliente, getPersonasDeCliente, ids } from "./seed";
 import { ingresosPorPersona } from "./patrimonio";
 import type { CCAA } from "./types";
 
-export type EscalaTramos = "estatal" | "autonomica" | "ahorro";
+export type EscalaTramos = "estatal" | "autonomica" | "ahorro" | "general";
 export type EurMode = "hoy" | "futuro";
 
 export interface Tramo {
@@ -77,6 +77,19 @@ const TRAMOS_CV: Tramo[] = [
   { desde: 200_000, hasta: Infinity, tipo: 0.32 },
 ];
 
+/**
+ * Escala agregada estatal + CV (mockup P4) · (a verificar).
+ * Tipos sumados para la conversación de tramo; no sustituyen al liquidador.
+ */
+const TRAMOS_GENERAL: Tramo[] = [
+  { desde: 0, hasta: 12_450, tipo: 0.19 },
+  { desde: 12_450, hasta: 20_200, tipo: 0.24 },
+  { desde: 20_200, hasta: 35_200, tipo: 0.3 },
+  { desde: 35_200, hasta: 60_000, tipo: 0.37 },
+  { desde: 60_000, hasta: 300_000, tipo: 0.45 },
+  { desde: 300_000, hasta: Infinity, tipo: 0.47 },
+];
+
 /** Escala base del ahorro (estatal) · (a verificar) — distinta de la base general */
 const TRAMOS_AHORRO: Tramo[] = [
   { desde: 0, hasta: 6_000, tipo: 0.19 },
@@ -85,6 +98,22 @@ const TRAMOS_AHORRO: Tramo[] = [
   { desde: 200_000, hasta: 300_000, tipo: 0.27 },
   { desde: 300_000, hasta: Infinity, tipo: 0.28 },
 ];
+
+/** Horizonte del gráfico P4 (mockup seriesBase). */
+const CHART_ANIO_INICIO = 2026;
+const CHART_ANIO_FIN = 2060;
+
+/** IRPF acumulado 2026–2040 · cifras fijas del mockup · orientativo */
+const IRPF_VIDA: Record<string, number> = {
+  [ids.personaCarlos]: 412_000,
+  [ids.personaMarta]: 88_000,
+};
+
+/** Cuota IRPF del ejercicio de referencia · orientativo */
+const CUOTA_ANYO: Record<string, number> = {
+  [ids.personaCarlos]: 27_500,
+  [ids.personaMarta]: 5_900,
+};
 
 /**
  * Serie IRPF año a año — plan base García-Llorente (cifras fijas orientativas).
@@ -130,6 +159,8 @@ export function getTramos(escala: EscalaTramos): Tramo[] {
       return TRAMOS_ESTATAL;
     case "autonomica":
       return TRAMOS_CV;
+    case "general":
+      return TRAMOS_GENERAL;
     case "ahorro":
       return TRAMOS_AHORRO;
   }
@@ -205,25 +236,63 @@ export function serieIRPF(
 }
 
 /**
- * KPIs de por vida (horizonte 2024–2035) · orientativo · cifras fijas.
- * ETR = IRPF acumulado / ingresos proyectados del mismo horizonte.
+ * KPIs de por vida · orientativo · cifras fijas del mockup (2026–2040).
+ * ETR del ejercicio = cuota del año / base general (ingresos).
  */
 export function kpisVida(clienteId: string, personaId: string): KpisVida | null {
-  const serie = serieIRPF(clienteId, personaId);
-  if (serie.length === 0) return null;
+  const cliente = getCliente(clienteId);
+  if (!cliente?.completo) return null;
+  const irpfTotal = IRPF_VIDA[personaId];
+  const cuota = CUOTA_ANYO[personaId];
+  if (irpfTotal == null || cuota == null) return null;
 
-  const irpfTotal = serie.reduce((s, p) => s + p.irpf, 0);
   const ingresosAnuales = baseGeneralPersona(clienteId, personaId);
-  const ingresosProyectados = ingresosAnuales * serie.length;
-  const etr = ingresosProyectados > 0 ? irpfTotal / ingresosProyectados : 0;
+  const etr = ingresosAnuales > 0 ? cuota / ingresosAnuales : 0;
 
   return {
     irpfTotal,
     etr,
-    ingresosProyectados,
-    anioInicio: ANIO_INICIO,
-    anioFin: ANIO_FIN,
+    ingresosProyectados: ingresosAnuales,
+    anioInicio: 2026,
+    anioFin: 2040,
   };
+}
+
+/** Cuota IRPF del ejercicio (seed) · orientativo */
+export function cuotaIRPFPersona(personaId: string): number {
+  return CUOTA_ANYO[personaId] ?? 0;
+}
+
+/**
+ * Serie IRPF del plan base para el gráfico P4 (familia, mockup seriesBase).
+ * Caída en jubilación 2033 · orientativo.
+ */
+export function serieIRPFPlanBase(): PuntoSerieIRPF[] {
+  const out: PuntoSerieIRPF[] = [];
+  for (let y = CHART_ANIO_INICIO; y <= CHART_ANIO_FIN; y++) {
+    const irpf = (y < 2033 ? 27_500 : 6_500) + (y < 2036 ? 5_900 : 1_800);
+    out.push({ anio: y, irpf, baseGeneral: 0, baseAhorro: 0 });
+  }
+  return out;
+}
+
+/** Años del selector corto del toolbar (mockup). */
+export function aniosToolbarFiscal(): number[] {
+  return [2026, 2027, 2028, 2029, 2030, 2031];
+}
+
+/** Factor nominal → presentación según € hoy / € futuro (mockup). */
+export function factorFiscalAnyo(anio: number, mode: EurMode): number {
+  if (mode === "hoy") return 1;
+  return Math.pow(1 + INFLACION, anio - ANIO_BASE);
+}
+
+/** IRPF de por vida según modo € (mockup: ×0,86 en € hoy). */
+export function irpfVidaPresentado(
+  irpfTotal: number,
+  mode: EurMode,
+): number {
+  return mode === "hoy" ? Math.round(irpfTotal * 0.86) : irpfTotal;
 }
 
 /** Ajusta una cifra nominal a € de hoy (descuento por inflación del plan base). */
@@ -252,6 +321,8 @@ export function etiquetaEscala(escala: EscalaTramos): string {
       return "Escala estatal";
     case "autonomica":
       return "Escala autonómica · CV";
+    case "general":
+      return "Base general · estatal + Comunitat Valenciana";
     case "ahorro":
       return "Base del ahorro";
   }

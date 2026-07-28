@@ -2,217 +2,163 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import {
-  Badge,
-  Button,
-  Table,
-  TBody,
-  TD,
-  TH,
-  THead,
-  TR,
-} from "@/components/ui";
+import { Button, LiqBadge, SheetPad, Toast } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
-import { formatEUR, formatPercent } from "@/lib/format";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
+import { formatEUR } from "@/lib/format";
 import {
-  formatFechaES,
-  personaLabel,
-  tipoFiscalLabel,
+  liquidezInstrumento,
+  titTxtCorto,
+  titularidadSegments,
+  tipoFiscalMockup,
+  yearFromIso,
 } from "@/lib/patrimonio";
-import { getPersonasDeCliente } from "@/lib/seed";
-import type { Instrumento, Persona } from "@/lib/types";
+import type { Instrumento } from "@/lib/types";
 
-const backlinkClass =
-  "mb-1.5 -ml-2 inline-flex items-center gap-1.5 rounded-[6px] px-2 py-1 text-[12px] font-semibold text-slate hover:bg-paper-2 hover:text-ink";
-
+/**
+ * F2 · Ficha Portfolio — marcado literal del mockup `fPortfolio`.
+ */
 export function PortfolioFicha({
   clienteId,
   instrumento,
-  instrumentos,
 }: {
   clienteId: string;
   instrumento: Instrumento;
-  instrumentos: Instrumento[];
+  /** Compat: otros instrumentos del expediente (ya no se listan en ficha). */
+  instrumentos?: Instrumento[];
 }) {
-  const personas = getPersonasDeCliente(clienteId);
-  const siblings = instrumentos.filter((i) => i.id !== instrumento.id);
+  const { bag, planBase, addEvento } = useExpediente();
+  const escenariosOpts = bag.escenarios.map((e) => ({
+    id: e.id,
+    nombre: e.nombre,
+  }));
+  const personas = bag.personas;
   const [eventoOpen, setEventoOpen] = useState(false);
-  const [eventoTarget, setEventoTarget] = useState(instrumento.nombre);
-
-  function openEvento(nombre: string) {
-    setEventoTarget(nombre);
-    setEventoOpen(true);
-  }
+  const [toast, setToast] = useState<string | null>(null);
+  const esPlan = instrumento.tipoFiscal === "plan_pensiones";
+  const titulo = esPlan ? "Plan de pensiones" : instrumento.nombre;
+  const acciones = esPlan
+    ? "Rescatar plan — desde «⚡ Evento». El motor calcula; tú nunca tecleas un tipo impositivo."
+    : "Reembolsar · Traspasar · Pignorar · Aportar — desde «⚡ Evento». El motor calcula; tú nunca tecleas un tipo impositivo.";
 
   return (
-    <div>
+    <SheetPad>
       <Link
         href={`/clientes/${clienteId}/patrimonio?tab=activos`}
-        className={backlinkClass}
+        className="backlink"
       >
         ‹ Patrimonio · Activos
       </Link>
 
-      <div className="mb-3.5 flex flex-wrap items-start justify-between gap-3">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: 12,
+          marginBottom: 14,
+          flexWrap: "wrap",
+        }}
+      >
         <div>
-          <p className="label-upper">Ficha · Portfolio financiero</p>
-          <h2 className="text-[22px] font-bold tracking-[-0.02em] text-ink">
-            {instrumento.nombre}
-          </h2>
-          <p className="mt-0.5 text-[11px] text-mute">
-            {tipoFiscalLabel(instrumento.tipoFiscal)}
-          </p>
+          <div className="lbl">Ficha · Portfolio financiero</div>
+          <div className="h1" style={{ fontSize: 22 }}>
+            {titulo}
+          </div>
+          <div className="tiny" style={{ marginTop: 2 }}>
+            {tipoFiscalMockup(instrumento.tipoFiscal)}
+          </div>
         </div>
-        <Button size="sm" variant="secondary" onClick={() => openEvento(instrumento.nombre)}>
-          ⚡ Evento
-        </Button>
-      </div>
-
-      <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Tipo fiscal</p>
-          <p className="mt-[3px]">
-            <Badge variant="neutral">
-              {tipoFiscalLabel(instrumento.tipoFiscal)}
-            </Badge>
-          </p>
-        </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Valor actual</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums text-ink">
-            {formatEUR(instrumento.valor)}
-          </p>
-          <span className="intro-chip mt-1.5">✎ introducido por el asesor</span>
-        </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Fecha de adquisición</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums text-ink">
-            {formatFechaES(instrumento.fechaAdquisicion)}
-          </p>
-          <p className="mt-0.5 text-[10.5px] text-mute">clave para traspaso y FIFO</p>
-        </div>
-        <div className="rounded-[10px] border border-line-2 bg-white px-[13px] py-[11px]">
-          <p className="label-upper">Plusvalía latente</p>
-          <p className="mt-[3px] text-[14.5px] font-bold tabular-nums">
-            {instrumento.plusvaliaLatente != null ? (
-              <span className="font-semibold text-green">
-                +{formatEUR(instrumento.plusvaliaLatente)}
-              </span>
-            ) : (
-              <span className="text-mute">—</span>
-            )}
-          </p>
-          {instrumento.plusvaliaLatente != null && (
-            <span className="calc-chip mt-1.5">calculado</span>
-          )}
+        <div style={{ marginLeft: "auto" }}>
+          <Button size="sm" onClick={() => setEventoOpen(true)}>
+            ⚡ Evento
+          </Button>
         </div>
       </div>
 
-      <p className="label-upper mb-1.5 mt-[18px]">Reparto de titularidad</p>
-      <div className="max-w-[420px] rounded-[10px] border border-line-2 bg-white px-3.5 py-3">
-        <Table>
-          <THead>
-            <TR>
-              <TH>Titular</TH>
-              <TH className="text-right">Participación</TH>
-              <TH className="text-right">Valor atribuible</TH>
-            </TR>
-          </THead>
-          <TBody>
-            {instrumento.titularidades.map((t, idx) => {
-              const nombre = ownerLabel(t, personas);
-              return (
-                <TR key={`${nombre}-${idx}`}>
-                  <TD className="font-semibold">{nombre}</TD>
-                  <TD numeric>{formatPercent(t.porcentaje)}</TD>
-                  <TD numeric>
-                    {formatEUR(instrumento.valor * t.porcentaje)}
-                  </TD>
-                </TR>
-              );
-            })}
-          </TBody>
-        </Table>
-        <p className="mt-2 text-[10.5px] text-mute">
-          Cada titular tributa su parte en su propia escala — por eso el reparto vive en el instrumento.
-        </p>
+      <div className="kv">
+        <div>
+          <div className="lbl">Valor actual</div>
+          <div className="v">{formatEUR(instrumento.valor)}</div>
+        </div>
+        <div>
+          <div className="lbl">Fecha de adquisición</div>
+          <div className="v">{yearFromIso(instrumento.fechaAdquisicion)}</div>
+          <div className="tiny">clave para traspaso y FIFO</div>
+        </div>
+        {instrumento.costeAdquisicion != null && (
+          <div>
+            <div className="lbl">Coste de adquisición</div>
+            <div className="v">{formatEUR(instrumento.costeAdquisicion)}</div>
+          </div>
+        )}
+        {instrumento.plusvaliaLatente != null && (
+          <div>
+            <div className="lbl">Plusvalía latente</div>
+            <div className="v gain">
+              +{formatEUR(instrumento.plusvaliaLatente)}
+            </div>
+            <div className="tiny">hecho objetivo del activo</div>
+          </div>
+        )}
+        <div>
+          <div className="lbl">Liquidez</div>
+          <div className="v" style={{ fontSize: 12 }}>
+            <LiqBadge level={liquidezInstrumento(instrumento.tipoFiscal)} />
+          </div>
+        </div>
       </div>
 
-      {siblings.length > 0 && (
-        <>
-          <p className="label-upper mb-1.5 mt-[18px]">
-            Otros instrumentos del expediente
-          </p>
-          <Table>
-            <THead>
-              <TR>
-                <TH>Instrumento</TH>
-                <TH>Tipo fiscal</TH>
-                <TH className="text-right">Valor</TH>
-                <TH className="text-right">Plusvalía latente</TH>
-                <TH />
-              </TR>
-            </THead>
-            <TBody>
-              {siblings.map((i) => (
-                <TR key={i.id}>
-                  <TD>
-                    <Link
-                      href={`/clientes/${clienteId}/fichas/portfolio/${i.id}`}
-                      className="font-semibold text-ink hover:underline"
-                    >
-                      {i.nombre}
-                    </Link>
-                  </TD>
-                  <TD>
-                    <Badge variant="neutral">
-                      {tipoFiscalLabel(i.tipoFiscal)}
-                    </Badge>
-                  </TD>
-                  <TD numeric>{formatEUR(i.valor)}</TD>
-                  <TD numeric>
-                    {i.plusvaliaLatente != null ? (
-                      <span className="font-semibold text-green">
-                        +{formatEUR(i.plusvaliaLatente)}
-                      </span>
-                    ) : (
-                      "—"
-                    )}
-                  </TD>
-                  <TD>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEvento(i.nombre)}
-                    >
-                      Evento
-                    </Button>
-                  </TD>
-                </TR>
-              ))}
-            </TBody>
-          </Table>
-        </>
-      )}
+      <div className="lbl" style={{ margin: "18px 0 6px" }}>
+        Reparto de titularidad
+      </div>
+      <div
+        style={{
+          border: "1px solid var(--line-2)",
+          borderRadius: 10,
+          background: "#fff",
+          padding: "12px 14px",
+          maxWidth: 420,
+        }}
+      >
+        <span className="tiny">
+          {titTxtCorto(instrumento.titularidades, personas)}
+        </span>
+        <div className="tit-bar">
+          {titularidadSegments(instrumento.titularidades).map((s, i) => (
+            <i key={i} style={{ width: `${s.pct}%`, background: s.color }} />
+          ))}
+        </div>
+        <div className="tiny" style={{ marginTop: 8 }}>
+          Cada titular tributa su parte en su propia escala — por eso el
+          reparto vive en el instrumento.
+        </div>
+      </div>
+
+      <div className="lbl" style={{ margin: "18px 0 6px" }}>
+        Acciones sobre este instrumento
+      </div>
+      <div className="tiny">{acciones}</div>
 
       <EventoModal
         open={eventoOpen}
         onClose={() => setEventoOpen(false)}
         contexto="instrumento"
-        elementoNombre={eventoTarget}
+        elementoNombre={titulo}
+        tipoFiscal={instrumento.tipoFiscal}
+        elementoId={instrumento.id}
+        clienteId={clienteId}
+        escenarios={escenariosOpts}
+        escenarioInicialId={planBase?.id}
+        onCreated={(payload) => {
+          addEvento(payload, {
+            escenarioId: planBase?.id,
+            targetId: instrumento.id,
+          });
+          setToast("Evento añadido al plan base — se refleja en Proyección");
+          window.setTimeout(() => setToast(null), 2600);
+        }}
       />
-    </div>
+      <Toast message={toast} />
+    </SheetPad>
   );
-}
-
-function ownerLabel(
-  t: Instrumento["titularidades"][number],
-  personas: Persona[],
-): string {
-  const owner = t.owner;
-  if (owner.kind === "persona") {
-    const p = personas.find((x) => x.id === owner.personaId);
-    return p ? personaLabel(p) : owner.personaId;
-  }
-  return "Sociedad";
 }

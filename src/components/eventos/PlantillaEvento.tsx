@@ -1,15 +1,30 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import { formatEUR } from "@/lib/format";
-import { cn } from "@/lib/cn";
 import {
-  eventosParaContexto,
   simularMotorEvento,
-  type ResultadoFiscalMotor,
 } from "@/lib/escenarios";
+import {
+  accionesParaElemento,
+  chipPreviewEvento,
+  defaultsParaEvento,
+  elementosMenuCliente,
+  tituloFormEvento,
+  type ElementoMenuItem,
+} from "@/lib/eventos-menu";
+import {
+  formatTitularidades,
+  getInmuebles,
+  getInstrumentos,
+  getOtrosActivos,
+} from "@/lib/patrimonio";
+import { getPersonasDeCliente } from "@/lib/seed";
 import type { TipoEvento } from "@/lib/types";
+import type { EventoCreadoPayload } from "@/lib/eventos-types";
+
+export type { EventoCreadoPayload } from "@/lib/eventos-types";
 
 export type EventoContexto =
   | "instrumento"
@@ -17,74 +32,177 @@ export type EventoContexto =
   | "pasivo"
   | "sociedad"
   | "otro"
+  | "persona"
   | "ingreso"
   | "gasto"
   | "completo";
 
-export interface EventoCreadoPayload {
-  tipo: TipoEvento;
-  etiqueta: string;
-  anio: number;
-  impuestosPeriodo?: number;
-  introducidoPorAsesor?: boolean;
-  notas?: string;
-  escenarioId?: string;
-}
+type Step = "elemento" | "menu" | "form";
 
 interface PlantillaEventoProps {
   open: boolean;
   onClose: () => void;
   contexto: EventoContexto;
   elementoNombre: string;
-  /** Escenarios a los que puede ir el evento (atajo desde ficha) */
+  clienteId?: string;
+  destinoNombre?: string;
+  tipoFiscal?: string;
+  /** Id del elemento (ficha) para titularidad multi-titular. */
+  elementoId?: string;
+  /** Año preseleccionado (p. ej. clic en año en Proyección). */
+  anioInicial?: number;
   escenarios?: Array<{ id: string; nombre: string }>;
   escenarioInicialId?: string;
+  /** Menú CT1 desde el expediente (bag). Si falta, cae a seed. */
+  elementosOverride?: ElementoMenuItem[];
   onCreated?: (payload: EventoCreadoPayload) => void;
 }
 
-const fieldClass =
-  "mt-1 w-full rounded-[8px] border border-line-2 bg-white px-2.5 py-2 text-[12.5px] text-ink outline-none focus:border-ink";
-
 /**
- * CT1 · Plantilla de evento
- * El asesor describe 2–3 campos; el motor calcula. Nunca teclea un tipo impositivo.
+ * CT1 · Plantilla de evento — flujo y marcado del mockup `abrirEvento` / `renderEventoForm`.
  */
 export function PlantillaEvento({
   open,
   onClose,
   contexto,
   elementoNombre,
+  clienteId,
+  destinoNombre,
+  tipoFiscal,
+  elementoId: elementoIdProp,
+  anioInicial,
   escenarios,
   escenarioInicialId,
+  elementosOverride,
   onCreated,
 }: PlantillaEventoProps) {
-  const opciones = useMemo(() => eventosParaContexto(contexto), [contexto]);
-  const [step, setStep] = useState<"menu" | "form">("menu");
+  const menuCompleto = contexto === "completo";
+
+  const elementos = useMemo(() => {
+    if (!menuCompleto) return [];
+    if (elementosOverride && elementosOverride.length > 0) {
+      return elementosOverride;
+    }
+    return clienteId ? elementosMenuCliente(clienteId) : [];
+  }, [clienteId, menuCompleto, elementosOverride]);
+
+  const [step, setStep] = useState<Step>(menuCompleto ? "elemento" : "menu");
+  const [elemento, setElemento] = useState<ElementoMenuItem | null>(null);
   const [tipo, setTipo] = useState<TipoEvento | null>(null);
   const [anio, setAnio] = useState("2026");
+  const [hastaAnio, setHastaAnio] = useState("2031");
   const [importe, setImporte] = useState("");
   const [destino, setDestino] = useState("");
   const [modalidad, setModalidad] = useState<"capital" | "renta" | "mixto">(
-    "mixto",
+    "capital",
   );
-  const [reinvierte, setReinvierte] = useState(false);
+  const [reinvierte, setReinvierte] = useState(true);
+  const [conHipoteca, setConHipoteca] = useState(false);
   const [pension, setPension] = useState("");
   const [impactoManual, setImpactoManual] = useState("");
+  const [tituloGenerico, setTituloGenerico] = useState("");
+  const [tipoGenerico, setTipoGenerico] = useState<
+    "ingreso" | "gasto" | "movimiento"
+  >("ingreso");
   const [escenarioId, setEscenarioId] = useState(escenarioInicialId ?? "");
-  const [resultado, setResultado] = useState<ResultadoFiscalMotor | null>(null);
+
+  const opciones = useMemo(() => {
+    if (menuCompleto && elemento) {
+      return accionesParaElemento(elemento.contexto, elemento.tipoFiscal);
+    }
+    if (!menuCompleto) {
+      const ctx =
+        contexto === "instrumento"
+          ? "instrumento"
+          : contexto === "ingreso" || contexto === "gasto"
+            ? "generico"
+            : contexto;
+      return accionesParaElemento(ctx, tipoFiscal);
+    }
+    return [];
+  }, [menuCompleto, elemento, contexto, tipoFiscal]);
+
+  const nombreEl = menuCompleto ? (elemento?.nombre ?? "") : elementoNombre;
+  const elementoId = menuCompleto ? elemento?.id : elementoIdProp;
+
+  const titLinea = useMemo(() => {
+    if (!clienteId || !elementoId) return null;
+    const personas = getPersonasDeCliente(clienteId);
+    const inst = getInstrumentos(clienteId).find((i) => i.id === elementoId);
+    const inm = getInmuebles(clienteId).find((i) => i.id === elementoId);
+    const otro = getOtrosActivos(clienteId).find((a) => a.id === elementoId);
+    const tits =
+      inst?.titularidades ?? inm?.titularidades ?? otro?.titularidades;
+    if (!tits || tits.length < 2) return null;
+    return formatTitularidades(tits, personas).replace(/%/g, " %");
+  }, [clienteId, elementoId]);
+
+  function applyDefaults(t: TipoEvento) {
+    const d = defaultsParaEvento(t);
+    const yearPref =
+      anioInicial != null && Number.isFinite(anioInicial)
+        ? String(anioInicial)
+        : (d.anio ?? "2026");
+    setAnio(yearPref);
+    setHastaAnio(d.hastaAnio ?? "2031");
+    setImporte(d.importe ?? "");
+    setDestino(d.destino ?? "");
+    setPension(d.pension ?? "");
+    if (d.reinvierte != null) setReinvierte(d.reinvierte);
+    setConHipoteca(false);
+    setImpactoManual("");
+    setTituloGenerico("");
+    setTipoGenerico("ingreso");
+    setModalidad("capital");
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    setEscenarioId(escenarioInicialId ?? "");
+    setElemento(null);
+    setTipo(null);
+    setImpactoManual("");
+    setTituloGenerico("");
+    setTipoGenerico("ingreso");
+
+    if (menuCompleto) {
+      setStep("elemento");
+      return;
+    }
+
+    const ctx =
+      contexto === "instrumento"
+        ? "instrumento"
+        : contexto === "ingreso" || contexto === "gasto"
+          ? "generico"
+          : contexto;
+    const ops = accionesParaElemento(ctx, tipoFiscal);
+    if (ops.length === 1) {
+      setTipo(ops[0].tipo);
+      applyDefaults(ops[0].tipo);
+      setStep("form");
+    } else {
+      setStep("menu");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir
+  }, [open, contexto, menuCompleto, escenarioInicialId, tipoFiscal, anioInicial]);
 
   function reset() {
-    setStep("menu");
+    setStep(menuCompleto ? "elemento" : "menu");
+    setElemento(null);
     setTipo(null);
     setAnio("2026");
+    setHastaAnio("2031");
     setImporte("");
     setDestino("");
-    setModalidad("mixto");
-    setReinvierte(false);
+    setModalidad("capital");
+    setReinvierte(true);
+    setConHipoteca(false);
     setPension("");
     setImpactoManual("");
+    setTituloGenerico("");
+    setTipoGenerico("ingreso");
     setEscenarioId(escenarioInicialId ?? "");
-    setResultado(null);
   }
 
   function handleClose() {
@@ -92,17 +210,68 @@ export function PlantillaEvento({
     onClose();
   }
 
-  function pickTipo(t: TipoEvento) {
-    setTipo(t);
-    setStep("form");
-    setResultado(null);
+  function pickElemento(el: ElementoMenuItem) {
+    setElemento(el);
+    const acs = accionesParaElemento(el.contexto, el.tipoFiscal);
+    if (acs.length === 1) {
+      setTipo(acs[0].tipo);
+      applyDefaults(acs[0].tipo);
+      setStep("form");
+    } else {
+      setTipo(null);
+      setStep("menu");
+    }
   }
 
-  function calcular() {
+  function pickTipo(t: TipoEvento) {
+    setTipo(t);
+    applyDefaults(t);
+    setStep("form");
+  }
+
+  function goBack() {
+    if (step === "form") {
+      if (menuCompleto && opciones.length === 1) {
+        setTipo(null);
+        setStep("elemento");
+        setElemento(null);
+        return;
+      }
+      if (!menuCompleto && opciones.length === 1) {
+        handleClose();
+        return;
+      }
+      setTipo(null);
+      setStep("menu");
+      return;
+    }
+    if (step === "menu" && menuCompleto) {
+      setElemento(null);
+      setTipo(null);
+      setStep("elemento");
+    }
+  }
+
+  function guardar() {
     if (!tipo) return;
     const year = Number(anio);
     if (!Number.isFinite(year)) return;
-    const res = simularMotorEvento(tipo, {
+
+    if (tipo === "jubilarse") {
+      onCreated?.({
+        tipo,
+        etiqueta: `Jubilación (${year}) · pensión ${formatEUR(Number(pension) || 0)}/año`,
+        anio: year,
+        introducidoPorAsesor: true,
+        notas:
+          "Pensión introducida por el asesor · no calculada (motor de pensión: V2)",
+        escenarioId: escenarioId || undefined,
+      });
+      handleClose();
+      return;
+    }
+
+    const motor = simularMotorEvento(tipo, {
       importe: Number(importe) || 0,
       anio: year,
       destino,
@@ -111,45 +280,89 @@ export function PlantillaEvento({
       pension: Number(pension) || 0,
       impactoManual: Number(impactoManual) || 0,
     });
-    setResultado(res);
-  }
 
-  function confirmar() {
-    if (!tipo || !resultado) return;
-    const year = Number(anio);
     const label = opciones.find((o) => o.tipo === tipo)?.label ?? tipo;
     const introducido =
-      tipo === "jubilarse" ||
       tipo === "generico" ||
-      (impactoManual.trim() !== "" && resultado.kind === "sin_calculo");
+      (impactoManual.trim() !== "" && motor.kind === "sin_calculo");
 
     let impuestos: number | undefined;
-    if (resultado.kind === "calculado" || resultado.kind === "neutro") {
-      impuestos = resultado.importe;
+    if (motor.kind === "calculado" || motor.kind === "neutro") {
+      impuestos = motor.importe;
     } else if (introducido && impactoManual.trim()) {
       impuestos = Number(impactoManual);
     }
 
+    // Etiquetas al estilo guardarEvento del mockup
+    let etiqueta = `${label} · ${nombreEl}`;
+    if (tipo === "reembolsar_fondo") {
+      etiqueta = `Reembolsar ${nombreEl} · ${formatEUR(Number(importe) || 0)}/año`;
+    } else if (tipo === "traspasar_fondo") {
+      etiqueta = `Traspasar ${nombreEl} → ${destino || "Fondo B"} (Art. 94)`;
+    } else if (tipo === "pignorar") {
+      etiqueta = `Pignorar ${nombreEl} · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "aportar_fondo") {
+      etiqueta = `Aportar a ${nombreEl} · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "vender_inmueble") {
+      etiqueta = `Vender ${nombreEl} · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "amortizar_hipoteca") {
+      etiqueta = `Amortizar hipoteca · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "comprar_inmueble") {
+      etiqueta = `Comprar inmueble · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "repartir_dividendo") {
+      etiqueta = `Repartir dividendo · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "vender_participacion") {
+      etiqueta = `Vender participación · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "generico") {
+      etiqueta = tituloGenerico.trim() || "Evento genérico";
+    }
+
+    const notasExtra =
+      tipo === "reembolsar_fondo" && hastaAnio
+        ? `${year}–${hastaAnio}`
+        : motor.kind === "pendiente_is"
+          ? motor.nota
+          : motor.nota;
+
     onCreated?.({
       tipo,
-      etiqueta: `${label} · ${elementoNombre}`,
+      etiqueta,
       anio: year,
       impuestosPeriodo: impuestos,
       introducidoPorAsesor: introducido || undefined,
-      notas: resultado.nota,
+      notas: notasExtra,
       escenarioId: escenarioId || undefined,
     });
     handleClose();
   }
 
-  const eyebrow =
-    step === "menu"
-      ? `Nuevo evento · ${elementoNombre}`
-      : "Describir el evento";
+  const tipoLabel = tipo ? tituloFormEvento(tipo) : "Evento";
+  const destinoEyebrow =
+    destinoNombre ??
+    escenarios?.find((e) => e.id === escenarioId)?.nombre ??
+    "plan base (situación actual)";
+
+  const eyebrow = `Nuevo evento · destino: ${destinoEyebrow}`;
   const titulo =
-    step === "menu"
-      ? "¿Qué decisión?"
-      : (opciones.find((o) => o.tipo === tipo)?.label ?? "Evento");
+    step === "elemento"
+      ? "¿Sobre qué elemento?"
+      : step === "menu"
+        ? "¿Qué decisión?"
+        : `${tipoLabel} · ${nombreEl}`;
+
+  const showEscenarioSelect =
+    !menuCompleto && escenarios && escenarios.length > 0;
+
+  const chip =
+    tipo && tipo !== "jubilarse" && tipo !== "generico"
+      ? chipPreviewEvento(tipo, reinvierte)
+      : "";
+
+  const showTitLinea =
+    titLinea &&
+    (tipo === "reembolsar_fondo" ||
+      tipo === "traspasar_fondo" ||
+      tipo === "vender_inmueble");
 
   return (
     <Modal
@@ -159,233 +372,553 @@ export function PlantillaEvento({
       title={titulo}
       size="lg"
       footer={
-        step === "menu" ? (
+        step === "elemento" ? (
           <Button variant="secondary" onClick={handleClose}>
             Cancelar
           </Button>
+        ) : step === "menu" ? (
+          <Button
+            variant="secondary"
+            onClick={() => {
+              if (menuCompleto) goBack();
+              else handleClose();
+            }}
+          >
+            {menuCompleto ? "‹ Atrás" : "Cancelar"}
+          </Button>
         ) : (
           <>
-            <Button
-              variant="ghost"
-              onClick={() => {
-                setStep("menu");
-                setResultado(null);
-              }}
-            >
-              ‹ Atrás
+            <Button onClick={goBack}>‹ Atrás</Button>
+            <Button variant="primary" onClick={guardar}>
+              Guardar evento
             </Button>
-            <Button variant="secondary" onClick={handleClose}>
-              Cancelar
-            </Button>
-            {!resultado ? (
-              <Button onClick={calcular}>Calcular</Button>
-            ) : (
-              <Button onClick={confirmar}>Añadir al escenario</Button>
-            )}
           </>
         )
       }
     >
-      {escenarios && escenarios.length > 0 && (
-        <label className="block">
-          <span className="label-upper">Escenario destino</span>
+      {showEscenarioSelect && (
+        <div className="field">
+          <label className="lbl">Escenario destino</label>
           <select
-            className={fieldClass}
             value={escenarioId}
             onChange={(e) => setEscenarioId(e.target.value)}
           >
             <option value="">Elegir escenario…</option>
-            {escenarios.map((e) => (
+            {escenarios!.map((e) => (
               <option key={e.id} value={e.id}>
                 {e.nombre}
               </option>
             ))}
           </select>
-        </label>
+        </div>
+      )}
+
+      {step === "elemento" && (
+        <>
+          <div className="opt-grid">
+            {elementos.map((el) => (
+              <button
+                key={el.id}
+                type="button"
+                onClick={() => pickElemento(el)}
+              >
+                {el.nombre}
+                <span className="tiny">{el.hint}</span>
+              </button>
+            ))}
+          </div>
+          <div className="tiny">
+            Menú completo: el escenario es del cliente, no de un activo.
+          </div>
+        </>
       )}
 
       {step === "menu" && (
         <>
-          <p className="text-[11px] text-mute">
-            Elemento: <b className="font-semibold text-ink">{elementoNombre}</b>
-          </p>
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div className="tiny" style={{ marginBottom: 2 }}>
+            Elemento: <b>{nombreEl}</b>
+          </div>
+          <div className="opt-grid">
             {opciones.map((ev) => (
               <button
                 key={ev.tipo}
                 type="button"
-                className={cn(
-                  "rounded-[8px] border border-line-2 bg-white px-3 py-2.5 text-left",
-                  "text-[12px] font-semibold text-ink",
-                  "hover:border-ink-3 hover:bg-paper-2",
-                )}
                 onClick={() => pickTipo(ev.tipo)}
               >
                 {ev.label}
-                <span className="mt-0.5 block text-[10.5px] font-medium text-mute">
-                  El asesor describe; el motor calcula
-                </span>
+                <span className="tiny">{ev.hint}</span>
               </button>
             ))}
           </div>
-          <p className="text-[11px] text-mute">
-            Menú completo: el escenario es del cliente, no de un activo.
-          </p>
         </>
       )}
 
-      {step === "form" && tipo && (
-        <div className="space-y-3">
-          <div className="grid gap-2.5 sm:grid-cols-2">
-            <label className="block">
-              <span className="label-upper">Año</span>
+      {step === "form" && tipo === "reembolsar_fondo" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe anual</label>
               <input
                 type="number"
-                className={fieldClass}
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
                 value={anio}
                 onChange={(e) => setAnio(e.target.value)}
               />
-            </label>
-
-            {(tipo === "reembolsar_fondo" ||
-              tipo === "pignorar" ||
-              tipo === "aportar_fondo" ||
-              tipo === "rescatar_plan" ||
-              tipo === "amortizar_hipoteca" ||
-              tipo === "vender_inmueble" ||
-              tipo === "comprar_inmueble" ||
-              tipo === "repartir_dividendo" ||
-              tipo === "vender_participacion" ||
-              tipo === "aportar_plan") && (
-              <label className="block">
-                <span className="label-upper">Importe (€)</span>
-                <input
-                  type="number"
-                  className={fieldClass}
-                  value={importe}
-                  onChange={(e) => setImporte(e.target.value)}
-                  placeholder="Importe"
-                />
-              </label>
-            )}
-          </div>
-
-          {tipo === "traspasar_fondo" && (
-            <label className="block">
-              <span className="label-upper">Fondo destino</span>
-              <input
-                className={fieldClass}
-                value={destino}
-                onChange={(e) => setDestino(e.target.value)}
-                placeholder="Nombre del fondo destino"
-              />
-            </label>
-          )}
-
-          {tipo === "rescatar_plan" && (
-            <div>
-              <span className="label-upper mb-1.5 block">Modalidad</span>
-              <div className="flex flex-wrap gap-2">
-                {(["capital", "renta", "mixto"] as const).map((m) => (
-                  <label
-                    key={m}
-                    className={cn(
-                      "inline-flex cursor-pointer items-center gap-1.5 rounded-[8px] border border-line-2 bg-white px-2.5 py-1.5 text-[12px] font-semibold capitalize",
-                      modalidad === m && "border-ink bg-paper-2",
-                    )}
-                  >
-                    <input
-                      type="radio"
-                      className="accent-ink"
-                      checked={modalidad === m}
-                      onChange={() => setModalidad(m)}
-                    />
-                    {m}
-                  </label>
-                ))}
-              </div>
             </div>
-          )}
-
-          {tipo === "vender_inmueble" && (
-            <label className="inline-flex items-center gap-1.5 text-[12px] text-ink">
-              <input
-                type="checkbox"
-                className="accent-ink"
-                checked={reinvierte}
-                onChange={(e) => setReinvierte(e.target.checked)}
-              />
-              ¿Reinversión en renta vitalicia?
-            </label>
-          )}
-
-          {tipo === "jubilarse" && (
-            <label className="block">
-              <span className="label-upper">Pensión estimada (€ / año)</span>
+          </div>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Hasta el año</label>
               <input
                 type="number"
-                className={fieldClass}
+                value={hastaAnio}
+                onChange={(e) => setHastaAnio(e.target.value)}
+              />
+            </div>
+            <div />
+          </div>
+          {showTitLinea && <TitLinea texto={titLinea!} />}
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "traspasar_fondo" && (
+        <>
+          <div className="field">
+            <label className="lbl">Fondo destino</label>
+            <input
+              type="text"
+              value={destino}
+              onChange={(e) => setDestino(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="lbl">Año</label>
+            <input
+              type="number"
+              value={anio}
+              onChange={(e) => setAnio(e.target.value)}
+            />
+          </div>
+          {showTitLinea && <TitLinea texto={titLinea!} />}
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "pignorar" && (
+        <>
+          <div className="field">
+            <label className="lbl">Importe pignorado</label>
+            <input
+              type="number"
+              value={importe}
+              onChange={(e) => setImporte(e.target.value)}
+            />
+          </div>
+          <div className="field">
+            <label className="lbl">Año</label>
+            <input
+              type="number"
+              value={anio}
+              onChange={(e) => setAnio(e.target.value)}
+            />
+          </div>
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "aportar_fondo" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe</label>
+              <input
+                type="number"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "jubilarse" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Pensión anual estimada</label>
+              <input
+                type="number"
                 value={pension}
                 onChange={(e) => setPension(e.target.value)}
               />
-              <span className="intro-chip mt-2">
-                ✎ Pensión introducida por el asesor · no calculada
-              </span>
-            </label>
-          )}
+            </div>
+          </div>
+          <div
+            className="intro-chip"
+            style={{ alignSelf: "flex-start", marginTop: 12 }}
+          >
+            ✎ Pensión introducida por el asesor · no calculada (motor de
+            pensión: V2)
+          </div>
+        </>
+      )}
 
-          {(tipo === "generico" || tipo === "aportar_plan") && (
-            <label className="block">
-              <span className="label-upper">
-                Impacto fiscal estimado (opcional)
-              </span>
+      {step === "form" && tipo === "vender_inmueble" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe de venta</label>
               <input
                 type="number"
-                className={fieldClass}
-                value={impactoManual}
-                onChange={(e) => setImpactoManual(e.target.value)}
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
               />
-              <span className="intro-chip mt-2">
-                ✎ Si tecleas un impacto fiscal, se marcará «introducido por el
-                asesor, no calculado»
-              </span>
-            </label>
-          )}
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: 12,
+              margin: "8px 0",
+            }}
+          >
+            <input
+              type="checkbox"
+              className="chk"
+              checked={reinvierte}
+              onChange={(e) => setReinvierte(e.target.checked)}
+            />
+            Reinversión en renta vitalicia (mayor de 65)
+          </label>
+          {showTitLinea && <TitLinea texto={titLinea!} />}
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
 
-          {resultado && <ResultadoPanel resultado={resultado} />}
-        </div>
+      {step === "form" && tipo === "amortizar_hipoteca" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe a amortizar</label>
+              <input
+                type="number"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "comprar_inmueble" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Precio</label>
+              <input
+                type="number"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 7,
+              fontSize: 12,
+              margin: "8px 0",
+            }}
+          >
+            <input
+              type="checkbox"
+              className="chk"
+              checked={conHipoteca}
+              onChange={(e) => setConHipoteca(e.target.checked)}
+            />
+            Con hipoteca
+          </label>
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" &&
+        (tipo === "repartir_dividendo" || tipo === "vender_participacion") && (
+          <>
+            <div className="grid2">
+              <div className="field">
+                <label className="lbl">Importe</label>
+                <input
+                  type="number"
+                  value={importe}
+                  onChange={(e) => setImporte(e.target.value)}
+                />
+              </div>
+              <div className="field">
+                <label className="lbl">Año</label>
+                <input
+                  type="number"
+                  value={anio}
+                  onChange={(e) => setAnio(e.target.value)}
+                />
+              </div>
+            </div>
+            <div
+              style={{
+                border: "1px solid var(--line-2)",
+                borderRadius: 8,
+                background: "var(--paper-2)",
+                padding: "10px 12px",
+              }}
+            >
+              <span className="tag-pend">
+                Sin cálculo · liquidador de IS pendiente de definir
+              </span>
+              <div className="tiny" style={{ marginTop: 6 }}>
+                El evento se registra en el escenario, pero Scenia no muestra
+                cifras fiscales societarias que no puede calcular.
+              </div>
+            </div>
+          </>
+        )}
+
+      {step === "form" && tipo === "generico" && (
+        <>
+          <div>
+            <label
+              className="lbl"
+              style={{ display: "block", marginBottom: 6 }}
+            >
+              Tipo
+            </label>
+            <div className="radio-row">
+              {(
+                [
+                  ["ingreso", "Ingreso"],
+                  ["gasto", "Gasto"],
+                  ["movimiento", "Movimiento libre"],
+                ] as const
+              ).map(([id, label]) => (
+                <label key={id}>
+                  <input
+                    type="radio"
+                    name="ev-gt"
+                    checked={tipoGenerico === id}
+                    onChange={() => setTipoGenerico(id)}
+                  />{" "}
+                  {label}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="field">
+            <label className="lbl">Título</label>
+            <input
+              type="text"
+              value={tituloGenerico}
+              onChange={(e) => setTituloGenerico(e.target.value)}
+              placeholder="Ej.: Ingreso extraordinario"
+            />
+          </div>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe</label>
+              <input
+                type="number"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label className="lbl">Impacto fiscal estimado (opcional)</label>
+            <input
+              type="number"
+              value={impactoManual}
+              onChange={(e) => setImpactoManual(e.target.value)}
+            />
+          </div>
+          <div
+            className="intro-chip"
+            style={{ alignSelf: "flex-start" }}
+          >
+            ✎ Si tecleas un impacto fiscal, se marcará «introducido por el
+            asesor, no calculado»
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "rescatar_plan" && (
+        <>
+          <div style={{ marginBottom: 10 }}>
+            <label
+              className="lbl"
+              style={{ display: "block", marginBottom: 6 }}
+            >
+              Modalidad
+            </label>
+            <div className="radio-row">
+              {(["capital", "renta", "mixto"] as const).map((m) => (
+                <label key={m}>
+                  <input
+                    type="radio"
+                    name="ev-mod"
+                    checked={modalidad === m}
+                    onChange={() => setModalidad(m)}
+                  />{" "}
+                  {m.charAt(0).toUpperCase() + m.slice(1)}
+                </label>
+              ))}
+            </div>
+          </div>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe anual</label>
+              <input
+                type="number"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+            {chip}
+          </div>
+        </>
+      )}
+
+      {step === "form" && tipo === "aportar_plan" && (
+        <>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Importe</label>
+              <input
+                type="number"
+                value={importe}
+                onChange={(e) => setImporte(e.target.value)}
+              />
+            </div>
+            <div className="field">
+              <label className="lbl">Año</label>
+              <input
+                type="number"
+                value={anio}
+                onChange={(e) => setAnio(e.target.value)}
+              />
+            </div>
+          </div>
+          <div className="field">
+            <label className="lbl">Impacto fiscal estimado (opcional)</label>
+            <input
+              type="number"
+              value={impactoManual}
+              onChange={(e) => setImpactoManual(e.target.value)}
+            />
+            <div
+              className="intro-chip"
+              style={{ alignSelf: "flex-start", marginTop: 8 }}
+            >
+              ✎ Si tecleas un impacto fiscal, se marcará «introducido por el
+              asesor, no calculado»
+            </div>
+          </div>
+        </>
       )}
     </Modal>
   );
 }
 
-function ResultadoPanel({ resultado }: { resultado: ResultadoFiscalMotor }) {
-  if (resultado.kind === "pendiente_is") {
-    return (
-      <div className="rounded-[8px] border border-dashed border-line-2 bg-paper-2 px-3 py-2.5">
-        <span className="inline-flex items-center rounded-[6px] border border-line-2 bg-paper-2 px-2 py-0.5 text-[10.5px] font-semibold text-slate">
-          Sin cálculo · liquidador de IS pendiente de definir
-        </span>
-        <p className="mt-1.5 text-[11px] text-mute">{resultado.nota}</p>
-      </div>
-    );
-  }
-
-  if (resultado.kind === "sin_calculo") {
-    return (
-      <span className="intro-chip self-start">
-        ✎ {resultado.nota}
-      </span>
-    );
-  }
-
-  // calculado | neutro — cifra del motor (aspecto distinto a introducido)
+function TitLinea({ texto }: { texto: string }) {
   return (
-    <div className="flex flex-col gap-1.5">
-      <span className="calc-chip self-start">
-        {resultado.regla} · {formatEUR(resultado.importe, true)} · orientativo
+    <div className="hint-info" style={{ margin: "10px 0" }}>
+      <b>ⓘ</b>
+      <span>
+        Actúa sobre <b>{texto}</b> — proporcional al reparto de titularidad.
+        Cada titular tributa su parte en su escala.
       </span>
-      <p className="text-[11px] text-mute">{resultado.nota}</p>
     </div>
   );
 }
@@ -396,11 +929,24 @@ export function EventoModal({
   onClose,
   contexto,
   elementoNombre,
+  tipoFiscal,
+  elementoId,
+  clienteId,
+  escenarios,
+  escenarioInicialId,
+  onCreated,
 }: {
   open: boolean;
   onClose: () => void;
   contexto: Exclude<EventoContexto, "completo">;
   elementoNombre: string;
+  tipoFiscal?: string;
+  elementoId?: string;
+  clienteId?: string;
+  /** Si el expediente ya tiene escenarios propios, se ofrece el selector de destino. */
+  escenarios?: Array<{ id: string; nombre: string }>;
+  escenarioInicialId?: string;
+  onCreated?: (payload: EventoCreadoPayload) => void;
 }) {
   return (
     <PlantillaEvento
@@ -408,6 +954,12 @@ export function EventoModal({
       onClose={onClose}
       contexto={contexto}
       elementoNombre={elementoNombre}
+      tipoFiscal={tipoFiscal}
+      elementoId={elementoId}
+      clienteId={clienteId}
+      escenarios={escenarios}
+      escenarioInicialId={escenarioInicialId}
+      onCreated={onCreated}
     />
   );
 }
