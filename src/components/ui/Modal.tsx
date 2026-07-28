@@ -8,19 +8,17 @@ interface ModalProps {
   open: boolean;
   onClose: () => void;
   title: string;
-  /** Eyebrow sobre el título (patrón mockup) */
+  /** Mockup: `.lbl` encima del `.h2` en modal-head */
   eyebrow?: string;
   children: React.ReactNode;
   footer?: React.ReactNode;
+  wide?: boolean;
   size?: "sm" | "md" | "lg";
 }
 
-const sizes = {
-  sm: "max-w-md",
-  md: "max-w-[520px]",
-  lg: "max-w-[640px]",
-} as const;
-
+/**
+ * Mockup `.overlay` + `.modal` + `.modal-head` / `.modal-body` / `.modal-foot`
+ */
 export function Modal({
   open,
   onClose,
@@ -28,7 +26,8 @@ export function Modal({
   eyebrow,
   children,
   footer,
-  size = "md",
+  wide = false,
+  size,
 }: ModalProps) {
   useEffect(() => {
     if (!open) return;
@@ -43,46 +42,44 @@ export function Modal({
     };
   }, [open, onClose]);
 
-  if (!open) return null;
+  const isWide = wide || size === "lg";
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-auto px-4 py-[6vh]">
-      <button
-        type="button"
-        aria-label="Cerrar"
-        className="absolute inset-0 bg-[rgba(12,20,36,0.55)]"
-        onClick={onClose}
-      />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-title"
-        className={cn(
-          "relative z-10 w-full rounded-[14px] border border-line-2 bg-paper",
-          sizes[size],
-        )}
-      >
-        <div className="flex items-center justify-between border-b border-line px-5 py-4">
-          <div>
-            {eyebrow && <p className="label-upper mb-0.5">{eyebrow}</p>}
-            <h2
-              id="modal-title"
-              className="text-[17px] font-bold tracking-[-0.01em] text-ink"
+    <div
+      className={cn("overlay", open && "on")}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+      role="presentation"
+    >
+      {open && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modal-title"
+          className={cn("modal", isWide && "wide")}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="modal-head">
+            <div>
+              {eyebrow && <div className="lbl">{eyebrow}</div>}
+              <div className={eyebrow ? "h2" : "h3"} id="modal-title">
+                {title}
+              </div>
+            </div>
+            <button
+              type="button"
+              className="btn ghost sm"
+              onClick={onClose}
+              aria-label="Cerrar"
             >
-              {title}
-            </h2>
+              ✕
+            </button>
           </div>
-          <Button variant="ghost" size="sm" onClick={onClose} aria-label="Cerrar">
-            ✕
-          </Button>
+          <div className="modal-body">{children}</div>
+          {footer && <div className="modal-foot">{footer}</div>}
         </div>
-        <div className="flex flex-col gap-3.5 px-5 py-[18px]">{children}</div>
-        {footer && (
-          <div className="flex justify-end gap-2 rounded-b-[14px] border-t border-line bg-paper-2 px-5 py-3.5">
-            {footer}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   );
 }

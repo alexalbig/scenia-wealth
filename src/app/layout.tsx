@@ -20,8 +20,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es" className={`${dmSans.variable} h-full`}>
-      <body className="min-h-full font-sans antialiased">{children}</body>
+    <html lang="es" className={dmSans.variable}>
+      <body>{children}</body>
     </html>
   );
 }

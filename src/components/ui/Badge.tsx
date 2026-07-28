@@ -1,53 +1,27 @@
-import { cn } from "@/lib/cn";
-
-type BadgeVariant =
-  | "neutral"
-  | "blue"
-  | "coral"
-  | "green"
-  | "amber"
-  | "segment";
-
-interface BadgeProps {
-  children: React.ReactNode;
-  variant?: BadgeVariant;
-  className?: string;
-}
-
-const variants: Record<BadgeVariant, string> = {
-  neutral: "bg-paper-2 text-slate",
-  blue: "bg-blue-soft text-blue",
-  coral: "bg-coral-soft text-coral-deep",
-  green: "bg-green-bg text-green",
-  amber: "bg-amber-bg text-amber",
-  segment: "bg-paper-2 text-slate",
-};
+import { Pill } from "./Pill";
+import { LiqBadge } from "./LiqBadge";
 
 export function Badge({
   children,
   variant = "neutral",
-  className,
-}: BadgeProps) {
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-[6px] px-2 py-[3px] text-[10.5px] font-semibold tracking-[0.02em]",
-        variants[variant],
-        className,
-      )}
-    >
-      {children}
-    </span>
-  );
+}: {
+  children: React.ReactNode;
+  variant?: "neutral" | "blue" | "coral" | "green" | "amber" | "segment" | "emp";
+  className?: string;
+}) {
+  const tone =
+    variant === "coral" || variant === "emp"
+      ? "emp"
+      : variant === "blue"
+        ? "blue"
+        : "default";
+  return <Pill tone={tone}>{children}</Pill>;
 }
 
-export function LiquidityBadge({ level }: { level: "alta" | "media" | "baja" }) {
-  if (level === "alta") {
-    return <Badge variant="green">Liquidez alta</Badge>;
-  }
-  return (
-    <Badge variant="amber">
-      {level === "media" ? "Liquidez media" : "Liquidez baja"}
-    </Badge>
-  );
+export function LiquidityBadge({
+  level,
+}: {
+  level: "alta" | "media" | "baja";
+}) {
+  return <LiqBadge level={level === "alta" ? "a" : "b"} />;
 }

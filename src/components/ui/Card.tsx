@@ -1,37 +1,31 @@
-import { cn } from "@/lib/cn";
-
-type CardVariant = "paper" | "dark" | "white";
-
-interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: CardVariant;
-  padding?: "sm" | "md" | "lg" | "none";
-}
-
-const paddingMap = {
-  none: "p-0",
-  sm: "p-3.5",
-  md: "p-4",
-  lg: "p-[18px]",
-} as const;
-
+/** Compat: preferir clases mockup (`.darkcard`, `.chartbox`). */
 export function Card({
-  variant = "white",
-  padding = "md",
-  className,
   children,
+  variant = "white",
+  className,
+  style,
   ...rest
-}: CardProps) {
+}: React.HTMLAttributes<HTMLDivElement> & {
+  variant?: "white" | "dark" | "paper";
+  padding?: "sm" | "md" | "lg" | "none";
+}) {
+  if (variant === "dark") {
+    return (
+      <div className={className ? `darkcard ${className}` : "darkcard"} style={style} {...rest}>
+        {children}
+      </div>
+    );
+  }
   return (
     <div
-      className={cn(
-        "rounded-[10px] border",
-        variant === "white" && "border-line-2 bg-white text-ink",
-        variant === "paper" && "border-line-2 bg-paper text-ink",
-        variant === "dark" &&
-          "border-dark-border bg-ink-2 text-dark-text rounded-[12px]",
-        paddingMap[padding],
-        className,
-      )}
+      className={className}
+      style={{
+        border: "1px solid var(--line-2)",
+        borderRadius: 10,
+        background: "#fff",
+        padding: 14,
+        ...style,
+      }}
       {...rest}
     >
       {children}
