@@ -1,11 +1,11 @@
 "use client";
 
 import { cn } from "@/lib/cn";
-import type { EurMode } from "@/lib/fiscal";
 import type { Persona } from "@/lib/types";
 
 /**
- * Controles P4 — marcado mockup: `.toolbar` · `.seg` · `.on`
+ * Controles P4 — persona y año del ejercicio.
+ * Sin € hoy / € futuro (factor inventado retirado).
  */
 export function FiscalControls({
   personas,
@@ -14,8 +14,6 @@ export function FiscalControls({
   anios,
   anio,
   onAnio,
-  eurMode,
-  onEurMode,
 }: {
   personas: Persona[];
   personaId: string;
@@ -23,8 +21,6 @@ export function FiscalControls({
   anios: number[];
   anio: number;
   onAnio: (anio: number) => void;
-  eurMode: EurMode;
-  onEurMode: (mode: EurMode) => void;
 }) {
   const options = anios.includes(anio)
     ? anios
@@ -65,25 +61,6 @@ export function FiscalControls({
           </option>
         ))}
       </select>
-
-      <div className="seg" role="group" aria-label="Unidad monetaria">
-        <button
-          type="button"
-          className={cn(eurMode === "hoy" && "on")}
-          aria-pressed={eurMode === "hoy"}
-          onClick={() => onEurMode("hoy")}
-        >
-          € hoy
-        </button>
-        <button
-          type="button"
-          className={cn(eurMode === "futuro" && "on")}
-          aria-pressed={eurMode === "futuro"}
-          onClick={() => onEurMode("futuro")}
-        >
-          € futuro
-        </button>
-      </div>
     </div>
   );
 }

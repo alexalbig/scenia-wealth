@@ -100,6 +100,21 @@ export function PortfolioFicha({
             <div className="tiny">hecho objetivo del activo</div>
           </div>
         )}
+        {esPlan && (
+          <div>
+            <div className="lbl">% aportaciones ≤ 31/12/2006</div>
+            <div className="v">
+              {instrumento.fraccionPre2007 != null
+                ? `${Math.round(instrumento.fraccionPre2007 * 100)} %`
+                : "—"}
+            </div>
+            <div className="tiny">
+              {instrumento.fraccionPre2007 != null
+                ? "introducido por el asesor · no calculado · DT 12ª"
+                : "hueco · sin dato el motor no aplica la reducción 40 %"}
+            </div>
+          </div>
+        )}
         <div>
           <div className="lbl">Liquidez</div>
           <div className="v" style={{ fontSize: 12 }}>

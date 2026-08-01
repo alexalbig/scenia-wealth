@@ -23,8 +23,18 @@ export const CCAAS = [
 
 export type CCAA = (typeof CCAAS)[number];
 
-/** Única CCAA con parámetros fiscales en el motor (firewall 7). */
+/** Única CCAA con cobertura de base general (rescate). */
 export const CCAA_CON_COBERTURA_FISCAL: CCAA = "Comunitat Valenciana";
+
+/** Regímenes forales: sin cobertura de general ni del ahorro. */
+export const CCAAS_FORALES: readonly CCAA[] = [
+  "País Vasco",
+  "Comunidad Foral de Navarra",
+] as const;
+
+export function esRegimenForal(ccaa: string): boolean {
+  return (CCAAS_FORALES as readonly string[]).includes(ccaa);
+}
 
 /** Entrada de timeline P7 — informe emitido. */
 export interface HistorialInforme {
@@ -115,6 +125,11 @@ export interface Sociedad {
   objetoSocial: string;
   /** Participación por personaId → % (0–1) */
   participaciones: Record<string, number>;
+  /**
+   * Valor de la participación en el patrimonio del cliente.
+   * Si falta → "no valorada" (nunca se muestra 0 € como cifra).
+   */
+  valor?: number;
 }
 
 export interface Titularidad {
@@ -134,6 +149,11 @@ export interface Instrumento {
   costeAdquisicion?: number;
   /** Plusvalía latente (hecho objetivo — único uso del verde) */
   plusvaliaLatente?: number;
+  /**
+   * Fracción 0–1 de derechos por aportaciones ≤ 31/12/2006 (DT 12ª).
+   * Solo planes de pensiones · introducido por el asesor · no calculado.
+   */
+  fraccionPre2007?: number;
   titularidades: Titularidad[];
   /** Si cuelga de una sociedad */
   sociedadId?: string;
@@ -206,13 +226,12 @@ export interface Evento {
   /** Elemento sobre el que actúa */
   targetId?: string;
   /**
-   * Cuota anual orientativa del motor (calculado/neutro).
-   * El total del periodo vive en Escenario.impuestosPeriodo (rollup).
+   * Cuota del primer ejercicio (orientativa · motor).
+   * El impacto agregado del escenario vive en Escenario.impuestosPeriodo (rollup).
    */
   cuotaAnual?: number;
   /**
-   * @deprecated Preferir cuotaAnual. Se mantiene por bags antiguos;
-   * el rollup lo interpreta como cuota anual si cuotaAnual falta.
+   * @deprecated Preferir cuotaAnual. Alias legacy en bags antiguos.
    */
   impuestosPeriodo?: number;
   /** Si el asesor tecleó el impacto a mano */
@@ -226,7 +245,10 @@ export interface Escenario {
   nombre: string;
   /** El plan base ("Situación actual") */
   esPlanBase: boolean;
-  /** Impuestos del periodo — rollup de eventos calculados (nunca seed fijo) */
+  /**
+   * Impacto fiscal · primer ejercicio — rollup de eventos (motor fresco).
+   * No es acumulación multi-año.
+   */
   impuestosPeriodo?: number;
   /** Hay eventos sin liquidador excluidos del total */
   impuestosParcial?: boolean;

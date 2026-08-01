@@ -17,7 +17,11 @@ export const COMPARADOR_METRICAS: Array<{
 }> = [
   { id: "patrimonio", label: "Patrimonio" },
   { id: "liquidos", label: "Líquidos" },
-  { id: "irpf_acumulado", label: "IRPF acumulado", orientativo: true },
+  {
+    id: "irpf_acumulado",
+    label: "Impacto fiscal de los eventos",
+    orientativo: true,
+  },
 ];
 
 const COLS_COMPARADOR = [
@@ -33,8 +37,10 @@ export function colorComparador(index: number): string {
 }
 
 /**
- * Serie del comparador — arrastre desde impuestosPeriodo del bag (rollup).
- * Ya no ancla cifras a ids de seed.
+ * Serie del comparador.
+ * - patrimonio / liquidos: trayectoria base (sin drag fiscal inventado).
+ * - irpf_acumulado: suma el impacto del primer ejercicio (rollup) una sola vez
+ *   en el año del horizonte; sin proyección multi-año inventada.
  */
 export function serieComparador(
   clienteId: string,
@@ -55,18 +61,16 @@ export function serieComparador(
   });
   if (base.length === 0) return [];
 
-  const { desde, hasta } = periodoFilaFiscal();
-  const nYears = Math.max(1, hasta - desde + 1);
-  const extraPeriodo = opts?.esPlanBase ? 0 : (opts?.impuestosPeriodo ?? 0);
-  const extraAnual = extraPeriodo / nYears;
+  const { desde } = periodoFilaFiscal();
+  const impactoPrimerAnio = opts?.esPlanBase
+    ? 0
+    : (opts?.impuestosPeriodo ?? 0);
 
   if (metrica === "irpf_acumulado") {
     let acc = 0;
     return base.map((p) => {
       const extra =
-        !opts?.esPlanBase && p.year >= desde && p.year <= hasta
-          ? extraAnual
-          : 0;
+        !opts?.esPlanBase && p.year === desde ? impactoPrimerAnio : 0;
       acc += p.irpf + extra;
       return acc;
     });
@@ -77,15 +81,7 @@ export function serieComparador(
       ? base.map((p) => p.liquidos)
       : base.map((p) => p.patrimonio);
 
-  let dragAcc = 0;
-  return base.map((p, i) => {
-    const drag =
-      !opts?.esPlanBase && p.year >= desde && p.year <= Math.min(hasta, 2031)
-        ? 20_000 + extraAnual
-        : 0;
-    dragAcc = dragAcc * 1.03 + drag;
-    return Math.max(baseVals[i]! - dragAcc, 0);
-  });
+  return baseVals;
 }
 
 /** @deprecated prefer serieComparador — mantiene YearPoint para compat. */

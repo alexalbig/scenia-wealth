@@ -376,7 +376,11 @@ export function ActivosTab({
                       </TD>
                       <TD className="slt">{participacionLabel(s)}</TD>
                       <TD className="right">
-                        <span className="mut">no valorada</span>
+                        {s.valor != null && Number.isFinite(s.valor) ? (
+                          <span className="num">{formatEUR(s.valor)}</span>
+                        ) : (
+                          <span className="mut">no valorada</span>
+                        )}
                       </TD>
                       <TD>
                         <LiqBadge level="b" />

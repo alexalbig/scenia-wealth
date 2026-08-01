@@ -17,7 +17,11 @@ import {
   type AltaTarget,
 } from "@/components/patrimonio/AltaElementoModal";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
-import { formatFechaDMY } from "@/lib/patrimonio";
+import {
+  eventosQueReferencian,
+  mensajeConfirmacionCascada,
+} from "@/lib/expediente";
+import { formatFechaDMY, personaLabel } from "@/lib/patrimonio";
 import type {
   Gasto,
   Ingreso,
@@ -113,6 +117,73 @@ export function PatrimonioView() {
     window.setTimeout(() => setToast(null), 2600);
   }
 
+  function confirmarCascada(nombre: string, targetId: string): boolean {
+    return window.confirm(
+      mensajeConfirmacionCascada(
+        nombre,
+        eventosQueReferencian(bag, targetId),
+      ),
+    );
+  }
+
+  function confirmarBorrarPersona(p: Persona): boolean {
+    const refs = eventosQueReferencian(bag, p.id);
+    const nIng = bag.ingresos.filter((i) => i.personaId === p.id).length;
+    const nTit =
+      bag.instrumentos.reduce(
+        (n, i) =>
+          n +
+          i.titularidades.filter(
+            (t) => t.owner.kind === "persona" && t.owner.personaId === p.id,
+          ).length,
+        0,
+      ) +
+      bag.inmuebles.reduce(
+        (n, i) =>
+          n +
+          i.titularidades.filter(
+            (t) => t.owner.kind === "persona" && t.owner.personaId === p.id,
+          ).length,
+        0,
+      ) +
+      bag.otrosActivos.reduce(
+        (n, a) =>
+          n +
+          a.titularidades.filter(
+            (t) => t.owner.kind === "persona" && t.owner.personaId === p.id,
+          ).length,
+        0,
+      ) +
+      bag.pasivos.reduce(
+        (n, x) =>
+          n +
+          x.titularidades.filter(
+            (t) => t.owner.kind === "persona" && t.owner.personaId === p.id,
+          ).length,
+        0,
+      );
+    const base = mensajeConfirmacionCascada(personaLabel(p), refs);
+    const extras: string[] = [];
+    if (nIng > 0) {
+      extras.push(
+        `${nIng} ingreso${nIng === 1 ? "" : "s"} asociado${nIng === 1 ? "" : "s"}`,
+      );
+    }
+    if (nTit > 0) {
+      extras.push(
+        `${nTit} titularidad${nTit === 1 ? "" : "es"} en el patrimonio`,
+      );
+    }
+    if (extras.length === 0) return window.confirm(base);
+    const extraTxt = extras.join(" y ");
+    if (refs.length === 0) {
+      return window.confirm(
+        `¿Eliminar «${personaLabel(p)}»? También se quitarán ${extraTxt}.`,
+      );
+    }
+    return window.confirm(`${base} También se quitarán ${extraTxt}.`);
+  }
+
   function withClienteId<T extends { clienteId: string }>(item: T): T {
     return { ...item, clienteId: cliente.id };
   }
@@ -171,6 +242,8 @@ export function PatrimonioView() {
             onAdd={() => setAlta({ kind: "persona" })}
             onEdit={(p) => setAlta({ kind: "persona", item: p })}
             onDelete={(id) => {
+              const p = bag.personas.find((x) => x.id === id);
+              if (!p || !confirmarBorrarPersona(p)) return;
               removePersona(id);
               flash("Persona eliminada");
             }}
@@ -193,18 +266,31 @@ export function PatrimonioView() {
             onEditSociedad={(s) => setAlta({ kind: "sociedad", item: s })}
             onEditOtro={(a) => setAlta({ kind: "otro", item: a })}
             onDeleteInstrumento={(id) => {
+              const nombre =
+                bag.instrumentos.find((i) => i.id === id)?.nombre ??
+                "instrumento";
+              if (!confirmarCascada(nombre, id)) return;
               removeInstrumento(id);
               flash("Instrumento eliminado");
             }}
             onDeleteInmueble={(id) => {
+              const nombre =
+                bag.inmuebles.find((i) => i.id === id)?.nombre ?? "inmueble";
+              if (!confirmarCascada(nombre, id)) return;
               removeInmueble(id);
               flash("Inmueble eliminado");
             }}
             onDeleteSociedad={(id) => {
+              const nombre =
+                bag.sociedades.find((s) => s.id === id)?.nombre ?? "sociedad";
+              if (!confirmarCascada(nombre, id)) return;
               removeSociedad(id);
               flash("Sociedad eliminada");
             }}
             onDeleteOtro={(id) => {
+              const nombre =
+                bag.otrosActivos.find((a) => a.id === id)?.nombre ?? "activo";
+              if (!confirmarCascada(nombre, id)) return;
               removeOtro(id);
               flash("Activo eliminado");
             }}
@@ -220,6 +306,14 @@ export function PatrimonioView() {
             onAdd={() => setAlta({ kind: "pasivo" })}
             onEdit={(p) => setAlta({ kind: "pasivo", item: p })}
             onDelete={(id) => {
+              const nombre = (() => {
+                const p = bag.pasivos.find((x) => x.id === id);
+                if (!p) return "pasivo";
+                return p.tipo === "hipoteca"
+                  ? `Hipoteca ${p.prestamista}`
+                  : `Crédito ${p.prestamista}`;
+              })();
+              if (!confirmarCascada(nombre, id)) return;
               removePasivo(id);
               flash("Pasivo eliminado");
             }}
@@ -236,6 +330,7 @@ export function PatrimonioView() {
             onAdd={() => setAlta({ kind: "ingreso" })}
             onEdit={(i) => setAlta({ kind: "ingreso", item: i })}
             onDelete={(id) => {
+              if (!window.confirm("¿Eliminar este ingreso?")) return;
               removeIngreso(id);
               flash("Ingreso eliminado");
             }}
@@ -253,6 +348,7 @@ export function PatrimonioView() {
             onAdd={() => setAlta({ kind: "gasto" })}
             onEdit={(g) => setAlta({ kind: "gasto", item: g })}
             onDelete={(id) => {
+              if (!window.confirm("¿Eliminar este gasto?")) return;
               removeGasto(id);
               flash("Gasto eliminado");
             }}

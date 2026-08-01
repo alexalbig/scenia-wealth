@@ -1,6 +1,11 @@
 /**
- * Rollup de impuestos del periodo a partir de los eventos del escenario.
- * Solo suma aportaciones calculadas por el motor — nunca cifras tecleadas ni huecos.
+ * Rollup fiscal del escenario — solo el primer ejercicio de cada evento.
+ *
+ * No acumula cuotaAnual × años: eso no depleta plusvalía y es indefendible.
+ * Siempre recalcula con motor fresco (si cambian datos del activo, la cifra cambia).
+ *
+ * Parcial solo por: IS, impacto tecleado del asesor, o sin_calculo real.
+ * Jubilación es neutro (ajusta la base) y no marca parcial.
  */
 
 import type { Evento } from "@/lib/types";
@@ -36,7 +41,17 @@ export function hastaAnioEvento(ev: Evento): number {
   return ev.anio;
 }
 
+/**
+ * ¿El primer ejercicio del evento cae en el horizonte de referencia?
+ * (Usado para decidir si aporta a la fila; la cuota es solo de ese año.)
+ */
+export function primerAnioEnHorizonte(ev: Evento): boolean {
+  const { desde, hasta } = periodoFilaFiscal();
+  return ev.anio >= desde && ev.anio <= hasta;
+}
+
 export interface RollupFiscal {
+  /** Impacto fiscal del primer ejercicio (suma de cuotas del año 1 de cada evento). */
   impuestosPeriodo: number;
   parcial: boolean;
   motivosParcial: string[];
@@ -55,7 +70,6 @@ export function rollupImpuestosEscenario(
   eventos: Evento[],
   ctxFor: (ev: Evento) => ContextoFiscalEvento,
 ): RollupFiscal {
-  const { desde, hasta } = periodoFilaFiscal();
   let total = 0;
   let parcial = false;
   const motivosParcial: string[] = [];
@@ -63,10 +77,24 @@ export function rollupImpuestosEscenario(
   const desglose: RollupFiscal["desglose"] = [];
 
   for (const ev of eventos) {
-    const anios = aniosSolape(ev.anio, hastaAnioEvento(ev), desde, hasta);
-    if (anios === 0) continue;
+    if (!primerAnioEnHorizonte(ev)) continue;
 
-    if (ev.introducidoPorAsesor && ev.impuestosPeriodo != null) {
+    // Jubilación ajusta la base: nunca marca parcial ni suma impacto tecleado
+    if (ev.tipo === "jubilarse") {
+      const ctx = ctxFor(ev);
+      const motor = simularMotorEvento(ev.tipo, ctx);
+      desglose.push({
+        eventoId: ev.id,
+        etiqueta: ev.etiqueta,
+        anios: 1,
+        cuotaAnual: 0,
+        aportePeriodo: 0,
+        kind: motor.kind === "neutro" || motor.kind === "calculado" ? motor.kind : "neutro",
+      });
+      continue;
+    }
+
+    if (ev.introducidoPorAsesor && (ev.cuotaAnual != null || ev.impuestosPeriodo != null)) {
       parcial = true;
       motivosParcial.push(
         `${ev.etiqueta}: impacto introducido por el asesor (no entra en el total calculado)`,
@@ -74,7 +102,7 @@ export function rollupImpuestosEscenario(
       desglose.push({
         eventoId: ev.id,
         etiqueta: ev.etiqueta,
-        anios,
+        anios: 1,
         cuotaAnual: 0,
         aportePeriodo: 0,
         kind: "introducido",
@@ -93,7 +121,7 @@ export function rollupImpuestosEscenario(
       desglose.push({
         eventoId: ev.id,
         etiqueta: ev.etiqueta,
-        anios,
+        anios: 1,
         cuotaAnual: 0,
         aportePeriodo: 0,
         kind: "pendiente_is",
@@ -102,11 +130,12 @@ export function rollupImpuestosEscenario(
     }
 
     if (motor.kind === "sin_calculo") {
-      // jubilarse / amortizar sin cifra: no parcial
+      parcial = true;
+      motivosParcial.push(`${ev.etiqueta}: ${motor.nota}`);
       desglose.push({
         eventoId: ev.id,
         etiqueta: ev.etiqueta,
-        anios,
+        anios: 1,
         cuotaAnual: 0,
         aportePeriodo: 0,
         kind: "sin_calculo",
@@ -116,17 +145,15 @@ export function rollupImpuestosEscenario(
 
     if (motor.kind === "calculado" || motor.kind === "neutro") {
       if (motor.parametrosAVerificar) parametrosAVerificar = true;
-      // Prefer cuota del motor fresco; si el evento guardó cuotaAnual, usarla
-      const cuotaAnual =
-        ev.cuotaAnual ?? ev.impuestosPeriodo ?? motor.importe;
-      const aporte = cuotaAnual * anios;
-      total += aporte;
+      // Siempre motor fresco — no congelar cuotaAnual guardada.
+      const cuotaPrimerAnio = motor.importe;
+      total += cuotaPrimerAnio;
       desglose.push({
         eventoId: ev.id,
         etiqueta: ev.etiqueta,
-        anios,
-        cuotaAnual,
-        aportePeriodo: aporte,
+        anios: 1,
+        cuotaAnual: cuotaPrimerAnio,
+        aportePeriodo: cuotaPrimerAnio,
         kind: motor.kind,
       });
     }

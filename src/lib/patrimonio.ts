@@ -209,11 +209,25 @@ export function totalesActivos(clienteId: string) {
   const financiero = getInstrumentos(clienteId).reduce((s, i) => s + i.valor, 0);
   const inmobiliario = getInmuebles(clienteId).reduce((s, i) => s + i.valor, 0);
   const otros = getOtrosActivos(clienteId).reduce((s, a) => s + a.valor, 0);
-  // Sociedad sin valoración en seed → 0 (hueco F4)
-  const empresarial = 0;
+  const sociedades = getSociedades(clienteId);
+  const valoradas = sociedades.filter(
+    (s) => s.valor != null && Number.isFinite(s.valor),
+  );
+  const empresarial = valoradas.reduce((s, soc) => s + (soc.valor ?? 0), 0);
+  const empresarialSinValorar =
+    sociedades.length > 0 && valoradas.length === 0;
   const pasivos = getPasivos(clienteId).reduce((s, p) => s + p.capitalPendiente, 0);
   const bruto = financiero + inmobiliario + empresarial + otros;
-  return { financiero, inmobiliario, empresarial, otros, pasivos, bruto, neto: bruto - pasivos };
+  return {
+    financiero,
+    inmobiliario,
+    empresarial,
+    empresarialSinValorar,
+    otros,
+    pasivos,
+    bruto,
+    neto: bruto - pasivos,
+  };
 }
 
 export function ingresosPorPersona(clienteId: string, personaId: string) {

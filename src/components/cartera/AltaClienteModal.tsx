@@ -5,9 +5,11 @@ import { Button, Modal } from "@/components/ui";
 import {
   CCAAS,
   CCAA_CON_COBERTURA_FISCAL,
+  esRegimenForal,
   type CCAA,
   type Segmento,
 } from "@/lib/types";
+import { avisoCoberturaCcaa } from "@/lib/fiscal";
 import { cn } from "@/lib/cn";
 
 const SEGMENTOS: Segmento[] = [
@@ -66,6 +68,11 @@ export function AltaClienteModal({
   const hasNonCv = personas.some(
     (p) => p.ccaa !== CCAA_CON_COBERTURA_FISCAL,
   );
+  const foralAvisos = [
+    ...new Set(
+      personas.filter((p) => esRegimenForal(p.ccaa)).map((p) => p.ccaa),
+    ),
+  ];
 
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -253,10 +260,25 @@ export function AltaClienteModal({
           >
             <b className="shrink-0">ⓘ</b>
             <span>
-              El cálculo fiscal solo está disponible para la{" "}
-              <b className="font-semibold">Comunitat Valenciana</b> por ahora.
-              Para esta comunidad, Scenia mostrará el patrimonio sin cifras
-              fiscales.
+              {foralAvisos.length > 0 ? (
+                <>
+                  {foralAvisos.map((c, i) => (
+                    <span key={c}>
+                      {i > 0 ? " " : null}
+                      {avisoCoberturaCcaa(c)}
+                    </span>
+                  ))}{" "}
+                  Ni la base general ni la del ahorro se liquidan.
+                </>
+              ) : (
+                <>
+                  El cálculo de la base general (rescate de plan) solo está
+                  disponible para la{" "}
+                  <b className="font-semibold">Comunitat Valenciana</b>. La
+                  base del ahorro (reembolso) sí se liquida en el resto de
+                  comunidades de régimen común.
+                </>
+              )}
             </span>
           </div>
         )}

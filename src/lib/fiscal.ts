@@ -1,15 +1,24 @@
 /**
- * Motor fiscal de pantalla P4 + reexportes.
- * Tramos de visualización salen de parametros.ts (nunca literales sueltos).
+ * Facade P4 Fiscalidad + reexportes del motor.
+ * Tramos solo desde escalas oficiales de parametros.ts.
+ * Sin series ni KPIs inventados.
  */
 
-import { getCliente, getPersonasDeCliente, ids } from "./seed";
+import { getCliente, getPersonasDeCliente } from "./seed";
 import { ingresosPorPersona } from "./patrimonio";
 import type { CCAA } from "./types";
-import { PARAMETROS } from "./fiscal/parametros";
+import {
+  getEscalaAhorroEstatal,
+  getEscalaAutonomicaGeneral,
+  getEscalaEstatalGeneral,
+  PARAMETROS,
+} from "./fiscal/parametros";
+import {
+  liquidacionEjercicio,
+  minimoPersonalPorEdad,
+} from "./fiscal/escalas";
 
-export type EscalaTramos = "estatal" | "autonomica" | "ahorro" | "general";
-export type EurMode = "hoy" | "futuro";
+export type EscalaTramos = "estatal" | "autonomica" | "ahorro";
 
 export interface Tramo {
   desde: number;
@@ -23,77 +32,16 @@ export interface EspacioTramo {
   espacio: number | null;
 }
 
-export interface PuntoSerieIRPF {
-  anio: number;
-  irpf: number;
-  baseGeneral: number;
-  baseAhorro: number;
-}
-
-export interface KpisVida {
-  irpfTotal: number;
-  etr: number;
-  ingresosProyectados: number;
-  anioInicio: number;
-  anioFin: number;
-}
-
-const ANIO_BASE = 2026;
-const INFLACION = 0.02;
-const ANIO_INICIO = 2024;
-const ANIO_FIN = 2035;
-const CHART_ANIO_INICIO = 2026;
-const CHART_ANIO_FIN = 2060;
-
-/** IRPF acumulado 2026–2040 · cifras fijas del mockup UI · orientativo */
-const IRPF_VIDA: Record<string, number> = {
-  [ids.personaCarlos]: 412_000,
-  [ids.personaMarta]: 88_000,
-};
-
-const CUOTA_ANYO: Record<string, number> = {
-  [ids.personaCarlos]: 27_500,
-  [ids.personaMarta]: 5_900,
-};
-
-const SERIE_CARLOS: Record<number, number> = {
-  2024: 24_800,
-  2025: 25_600,
-  2026: 26_400,
-  2027: 27_200,
-  2028: 28_000,
-  2029: 28_800,
-  2030: 29_600,
-  2031: 30_400,
-  2032: 31_200,
-  2033: 32_000,
-  2034: 32_800,
-  2035: 33_600,
-};
-
-const SERIE_MARTA: Record<number, number> = {
-  2024: 5_200,
-  2025: 5_400,
-  2026: 5_800,
-  2027: 6_000,
-  2028: 6_200,
-  2029: 6_400,
-  2030: 6_600,
-  2031: 6_800,
-  2032: 7_000,
-  2033: 7_200,
-  2034: 7_400,
-  2035: 7_600,
-};
-
-function displayTramos(
-  key: "escalaGeneralDisplayCV" | "escalaAhorroDisplay",
-): Tramo[] {
-  return PARAMETROS[key].valor.map((t) => ({
-    desde: t.desde,
-    hasta: t.hasta,
-    tipo: t.tipo,
-  }));
+export interface LiquidacionEjercicioVista {
+  cuotaGeneral: number;
+  cuotaAhorro: number;
+  total: number;
+  ccaaSinCobertura: boolean;
+  parametrosAVerificar: boolean;
+  estatalGeneral: number;
+  autonomicaGeneral: number;
+  /** true si no hay base del ahorro modelada (hueco, no 0 inventado). */
+  baseAhorroHueco: boolean;
 }
 
 function oficialToTramos(
@@ -112,24 +60,51 @@ export function ccaaConCobertura(ccaa: CCAA): boolean {
   return ccaa === "Comunitat Valenciana";
 }
 
-export function getTramos(escala: EscalaTramos): Tramo[] {
+/** Aviso de cobertura: forales (bloqueo total) vs resto (solo base general = CV). */
+export function avisoCoberturaCcaa(ccaa: CCAA): string {
+  if (ccaa === "Comunidad Foral de Navarra") {
+    return "La Comunidad Foral de Navarra tiene régimen fiscal propio; Scenia no cubre su normativa.";
+  }
+  if (ccaa === "País Vasco") {
+    return "El País Vasco tiene régimen fiscal propio; Scenia no cubre su normativa.";
+  }
+  return "El cálculo fiscal solo está disponible para la Comunitat Valenciana.";
+}
+
+export function getTramos(escala: EscalaTramos, anio: number): Tramo[] {
   switch (escala) {
     case "estatal":
-      return oficialToTramos(PARAMETROS.escalaEstatalGeneral.valor);
-    case "autonomica":
-      return oficialToTramos(PARAMETROS.escalaAutonomicaCV.valor);
-    case "general":
-      return displayTramos("escalaGeneralDisplayCV");
+      return oficialToTramos(getEscalaEstatalGeneral(anio).valor);
+    case "autonomica": {
+      const aut = getEscalaAutonomicaGeneral(anio, "Comunitat Valenciana");
+      return oficialToTramos(aut?.valor ?? []);
+    }
     case "ahorro":
-      return displayTramos("escalaAhorroDisplay");
+      // Mitad estatal (art. 66); la autonómica es espejo — el visor muestra
+      // el tipo conjunto (= 2 × mitad) vía getTramosAhorroConjunto.
+      return oficialToTramos(getEscalaAhorroEstatal(anio).valor);
   }
+}
+
+/**
+ * Escala del ahorro con tipo conjunto (estatal + autonómica).
+ * Los tramos oficiales son idénticos en ambas mitades (Ley 7/2024);
+ * el tipo mostrado es la suma — no es una tarifa inventada.
+ */
+export function getTramosAhorroConjunto(anio: number): Tramo[] {
+  return oficialToTramos(getEscalaAhorroEstatal(anio).valor).map((t) => ({
+    ...t,
+    tipo: t.tipo * 2,
+  }));
 }
 
 export function tramoDeBase(
   base: number,
   escala: EscalaTramos,
+  anio: number,
 ): EspacioTramo | null {
-  const tramos = getTramos(escala);
+  const tramos =
+    escala === "ahorro" ? getTramosAhorroConjunto(anio) : getTramos(escala, anio);
   const tramoIndex = tramos.findIndex(
     (t) => base >= t.desde && base < t.hasta,
   );
@@ -143,20 +118,9 @@ export function tramoDeBase(
 export function espacioHastaSiguiente(
   base: number,
   escala: EscalaTramos,
+  anio: number,
 ): number | null {
-  return tramoDeBase(base, escala)?.espacio ?? null;
-}
-
-export function aniosSerie(): number[] {
-  const out: number[] = [];
-  for (let y = ANIO_INICIO; y <= ANIO_FIN; y++) out.push(y);
-  return out;
-}
-
-function serieFijaPersona(personaId: string): Record<number, number> | null {
-  if (personaId === ids.personaCarlos) return SERIE_CARLOS;
-  if (personaId === ids.personaMarta) return SERIE_MARTA;
-  return null;
+  return tramoDeBase(base, escala, anio)?.espacio ?? null;
 }
 
 export function baseGeneralPersona(
@@ -166,115 +130,76 @@ export function baseGeneralPersona(
   return ingresosPorPersona(clienteId, personaId);
 }
 
+/**
+ * Base del ahorro del ejercicio — hoy no hay modelo de rentas del ahorro
+ * en el expediente (solo plusvalías latentes de activos). Hueco explícito.
+ */
 export function baseAhorroPersona(
-  clienteId: string,
-  personaId: string,
-): number {
-  if (!clienteId || !personaId) return 0;
-  return 0;
+  _clienteId: string,
+  _personaId: string,
+): number | null {
+  return null;
 }
 
-export function serieIRPF(
-  clienteId: string,
-  personaId: string,
-): PuntoSerieIRPF[] {
-  const cliente = getCliente(clienteId);
-  if (!cliente?.completo) return [];
-  const fija = serieFijaPersona(personaId);
-  if (!fija) return [];
+export function liquidacionEjercicioPersona(opts: {
+  clienteId: string;
+  personaId: string;
+  anio: number;
+  ccaa: CCAA;
+}): LiquidacionEjercicioVista | null {
+  const personas = getPersonasDeCliente(opts.clienteId);
+  const persona = personas.find((p) => p.id === opts.personaId);
+  if (!persona) return null;
 
-  const baseG = baseGeneralPersona(clienteId, personaId);
-  const baseA = baseAhorroPersona(clienteId, personaId);
-
-  return aniosSerie().map((anio) => ({
-    anio,
-    irpf: fija[anio] ?? 0,
+  const baseG = baseGeneralPersona(opts.clienteId, opts.personaId);
+  const baseA = baseAhorroPersona(opts.clienteId, opts.personaId);
+  const edad = opts.anio - persona.birthYear;
+  const liq = liquidacionEjercicio({
     baseGeneral: baseG,
-    baseAhorro: baseA,
-  }));
-}
-
-export function kpisVida(
-  clienteId: string,
-  personaId: string,
-): KpisVida | null {
-  const cliente = getCliente(clienteId);
-  if (!cliente?.completo) return null;
-  const irpfTotal = IRPF_VIDA[personaId];
-  const cuota = CUOTA_ANYO[personaId];
-  if (irpfTotal == null || cuota == null) return null;
-
-  const ingresosAnuales = baseGeneralPersona(clienteId, personaId);
-  const etr = ingresosAnuales > 0 ? cuota / ingresosAnuales : 0;
+    baseAhorro: baseA ?? 0,
+    anio: opts.anio,
+    ccaa: opts.ccaa,
+    edad,
+  });
 
   return {
-    irpfTotal,
-    etr,
-    ingresosProyectados: ingresosAnuales,
-    anioInicio: 2026,
-    anioFin: 2040,
+    ...liq,
+    baseAhorroHueco: baseA == null,
   };
 }
 
-export function cuotaIRPFPersona(personaId: string): number {
-  return CUOTA_ANYO[personaId] ?? 0;
-}
-
-export function serieIRPFPlanBase(): PuntoSerieIRPF[] {
-  const out: PuntoSerieIRPF[] = [];
-  for (let y = CHART_ANIO_INICIO; y <= CHART_ANIO_FIN; y++) {
-    const irpf = (y < 2033 ? 27_500 : 6_500) + (y < 2036 ? 5_900 : 1_800);
-    out.push({ anio: y, irpf, baseGeneral: 0, baseAhorro: 0 });
-  }
+export function aniosToolbarFiscal(): number[] {
+  const desde = PARAMETROS.periodoFilaFiscalDesde.valor;
+  const hasta = Math.min(PARAMETROS.periodoFilaFiscalHasta.valor, desde + 5);
+  const out: number[] = [];
+  for (let y = desde; y <= hasta; y++) out.push(y);
   return out;
 }
 
-export function aniosToolbarFiscal(): number[] {
-  return [2026, 2027, 2028, 2029, 2030, 2031];
-}
-
-export function factorFiscalAnyo(anio: number, mode: EurMode): number {
-  if (mode === "hoy") return 1;
-  return Math.pow(1 + INFLACION, anio - ANIO_BASE);
-}
-
-export function irpfVidaPresentado(
-  irpfTotal: number,
-  mode: EurMode,
-): number {
-  return mode === "hoy" ? Math.round(irpfTotal * 0.86) : irpfTotal;
-}
-
-export function enEuros(
-  valorNominal: number,
-  anio: number,
-  mode: EurMode,
-  anioReferencia = ANIO_BASE,
-): number {
-  if (mode === "futuro") return valorNominal;
-  const years = anio - anioReferencia;
-  return Math.round(valorNominal / Math.pow(1 + INFLACION, years));
+export function anioPorDefecto() {
+  return PARAMETROS.periodoFilaFiscalDesde.valor;
 }
 
 export function personasFiscales(clienteId: string) {
   return getPersonasDeCliente(clienteId);
 }
 
-export function anioPorDefecto() {
-  return ANIO_BASE;
-}
-
 export function etiquetaEscala(escala: EscalaTramos): string {
   switch (escala) {
     case "estatal":
-      return "Escala estatal";
+      return "Escala estatal · base general";
     case "autonomica":
-      return "Escala autonómica · CV";
-    case "general":
-      return "Base general · estatal + Comunitat Valenciana";
+      return "Escala autonómica · Comunitat Valenciana";
     case "ahorro":
-      return "Base del ahorro";
+      return "Base del ahorro · tipo conjunto (arts. 66 + 76)";
   }
+}
+
+export function minimoPersonalPersona(
+  birthYear: number,
+  anio: number,
+): number {
+  return minimoPersonalPorEdad(anio - birthYear);
 }
 
 export {
@@ -285,3 +210,7 @@ export {
 } from "./fiscal/motor";
 export { rollupImpuestosEscenario, periodoFilaFiscal } from "./fiscal/rollup";
 export { PARAMETROS, algunParametroAVerificar } from "./fiscal/parametros";
+export { liquidacionEjercicio } from "./fiscal/escalas";
+
+/** Cliente de referencia del seed (compat pantallas). */
+export { getCliente } from "./seed";

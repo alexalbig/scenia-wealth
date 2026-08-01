@@ -509,7 +509,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                 <div className="tiny" style={{ marginTop: 10 }}>
                   Año fijado: <b className="num">{cmpYear}</b> ·{" "}
                   {metrica === "irpf_acumulado"
-                    ? "IRPF acumulado"
+                    ? "impacto fiscal de los eventos"
                     : "valor"}{" "}
                   por escenario:{" "}
                   {compareEscenarios
@@ -701,8 +701,8 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                                 className="calc-chip"
                                 style={{ marginTop: 4 }}
                               >
-                                {formatEUR(ev.cuotaAnual)} /año · orientativo ·
-                                parámetros (a verificar)
+                                {formatEUR(ev.cuotaAnual)} · primer ejercicio ·
+                                orientativo · parámetros (a verificar)
                               </div>
                             )}
                           {ev.cuotaAnual == null &&
@@ -712,8 +712,9 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                                 className="calc-chip"
                                 style={{ marginTop: 4 }}
                               >
-                                {formatEUR(ev.impuestosPeriodo)} /año ·
-                                orientativo · parámetros (a verificar)
+                                {formatEUR(ev.impuestosPeriodo)} · primer
+                                ejercicio · orientativo · parámetros (a
+                                verificar)
                               </div>
                             )}
                           {ev.introducidoPorAsesor && (

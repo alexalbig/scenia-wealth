@@ -197,19 +197,59 @@ export function totalesFromBag(bag: ExpedienteBag) {
   const financiero = bag.instrumentos.reduce((s, i) => s + i.valor, 0);
   const inmobiliario = bag.inmuebles.reduce((s, i) => s + i.valor, 0);
   const otros = bag.otrosActivos.reduce((s, a) => s + a.valor, 0);
-  // Sociedad sin valoración MVP → 0 (hueco F4)
-  const empresarial = 0;
+  const sociedadesValoradas = bag.sociedades.filter(
+    (s) => s.valor != null && Number.isFinite(s.valor),
+  );
+  const empresarial = sociedadesValoradas.reduce(
+    (s, soc) => s + (soc.valor ?? 0),
+    0,
+  );
+  const empresarialSinValorar =
+    bag.sociedades.length > 0 && sociedadesValoradas.length === 0;
   const pasivos = bag.pasivos.reduce((s, p) => s + p.capitalPendiente, 0);
   const bruto = financiero + inmobiliario + empresarial + otros;
   return {
     financiero,
     inmobiliario,
     empresarial,
+    empresarialSinValorar,
     otros,
     pasivos,
     bruto,
     neto: bruto - pasivos,
   };
+}
+
+/** Eventos que referencian un elemento (cascada al borrar). */
+export function eventosQueReferencian(
+  bag: ExpedienteBag,
+  targetId: string,
+): Array<{ evento: Evento; escenarioNombre: string }> {
+  return bag.eventos
+    .filter((e) => e.targetId === targetId)
+    .map((e) => ({
+      evento: e,
+      escenarioNombre:
+        bag.escenarios.find((s) => s.id === e.escenarioId)?.nombre ??
+        "escenario",
+    }));
+}
+
+export function mensajeConfirmacionCascada(
+  nombreElemento: string,
+  refs: Array<{ evento: Evento; escenarioNombre: string }>,
+): string {
+  if (refs.length === 0) {
+    return `¿Eliminar «${nombreElemento}»?`;
+  }
+  const porEsc = new Map<string, number>();
+  for (const r of refs) {
+    porEsc.set(r.escenarioNombre, (porEsc.get(r.escenarioNombre) ?? 0) + 1);
+  }
+  const detalle = [...porEsc.entries()]
+    .map(([nombre, n]) => `${n} en «${nombre}»`)
+    .join(", ");
+  return `«${nombreElemento}» tiene ${refs.length} evento${refs.length === 1 ? "" : "s"} asociado${refs.length === 1 ? "" : "s"} (${detalle}). Se eliminarán junto con el elemento. ¿Continuar?`;
 }
 
 export function capacidadFromBag(bag: ExpedienteBag) {
@@ -382,20 +422,46 @@ export function syncClienteTotales(bag: ExpedienteBag): ExpedienteBag {
   };
 }
 
-/** Recalcula impuestosPeriodo de cada escenario vía rollup del motor. */
+/** Recalcula impuestosPeriodo de cada escenario vía rollup del motor (primer ejercicio, siempre fresco). */
 export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
+  const cuotaByEvento = new Map<string, number | undefined>();
   const escenarios = bag.escenarios.map((esc) => {
     const eventos = eventosDeEscenarioFromBag(bag, esc.id);
     const rollup = rollupImpuestosEscenario(eventos, (ev) =>
-      buildContextoFiscalFromBag(bag, ev),
+      buildContextoFiscalFromBag(bag, ev, undefined, eventos),
     );
+    for (const d of rollup.desglose) {
+      if (d.kind === "calculado" || d.kind === "neutro") {
+        cuotaByEvento.set(d.eventoId, d.cuotaAnual);
+      } else if (!cuotaByEvento.has(d.eventoId)) {
+        cuotaByEvento.set(d.eventoId, undefined);
+      }
+    }
     return {
       ...esc,
       impuestosPeriodo: rollup.impuestosPeriodo,
       impuestosParcial: rollup.parcial,
     };
   });
-  return { ...bag, escenarios };
+
+  const eventos = bag.eventos.map((ev) => {
+    if (ev.introducidoPorAsesor) return ev;
+    if (!cuotaByEvento.has(ev.id)) return ev;
+    const cuota = cuotaByEvento.get(ev.id);
+    if (cuota == null) {
+      const { cuotaAnual: _c, impuestosPeriodo: _i, ...rest } = ev;
+      void _c;
+      void _i;
+      return rest;
+    }
+    return {
+      ...ev,
+      cuotaAnual: cuota,
+      impuestosPeriodo: cuota,
+    };
+  });
+
+  return { ...bag, escenarios, eventos };
 }
 
 /** Asegura campos nuevos en bags antiguos de sessionStorage. */

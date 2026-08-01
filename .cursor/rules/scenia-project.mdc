@@ -5,11 +5,11 @@ alwaysApply: true
 
 # Scenia Wealth — alcance del proyecto
 
-Mockup clicable del MVP de **Scenia Wealth**: SaaS de planificación patrimonial y fiscal para asesores financieros independientes (EAF) en España.
+Aplicación MVP de **Scenia Wealth**: SaaS de planificación patrimonial y fiscal para asesores financieros independientes (EAF) en España. Sin backend ni base de datos todavía, pero con motor fiscal real.
 
 ## Fuente de verdad
 
-- Funcionalidades y pantallas: `docs/spec/scenia-wealth-funcionalidades.md` (v12)
+- Funcionalidades y pantallas: `docs/spec/scenia-wealth-funcionalidades.md` (v13)
 - Sistema de diseño: `docs/spec/scenia-wealth-design-tokens.md`
 
 **Construir solo lo marcado CORE y MVP.** Lo marcado V2 y Futura no se construye, pero la navegación queda preparada para que quepa.

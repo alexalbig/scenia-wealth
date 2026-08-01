@@ -249,13 +249,13 @@ export function defaultsParaEvento(tipo: TipoEvento): {
 }
 
 /**
- * Chip de preview del mockup — cifras fijas del HTML, no inventadas.
- * Se muestra al abrir el form (sin paso «Calcular»).
+ * Chip de preview — textos sin cifras inventadas.
+ * PlantillaEvento prefiere la nota del motor en vivo.
  */
 export function chipPreviewEvento(tipo: TipoEvento, reinvierte = true): string {
   switch (tipo) {
     case "reembolsar_fondo":
-      return "Plusvalía estimada (FIFO) → base del ahorro · cuota ≈ 2.400 €/año · orientativo";
+      return "Plusvalía estimada (FIFO) → base del ahorro · cuota del motor · orientativo";
     case "traspasar_fondo":
       return "Neutro (Art. 94) · cuota 0 € · el destino hereda valor y fecha · orientativo";
     case "pignorar":
@@ -263,13 +263,13 @@ export function chipPreviewEvento(tipo: TipoEvento, reinvierte = true): string {
     case "aportar_fondo":
       return "Sin consecuencia fiscal en el momento de la aportación";
     case "rescatar_plan":
-      return "Base general · se apila sobre los ingresos del año · cuota orientativa";
+      return "Base general · se apila sobre los ingresos del año · cuota del motor · orientativo";
     case "vender_inmueble":
       return reinvierte
-        ? "Exención por reinversión >65 · límite (a verificar) · cuota ≈ 0 € · orientativo"
-        : "Plusvalía → base del ahorro · cuota orientativa (sin reinversión)";
+        ? "Exención por reinversión >65 · límite (a verificar) · sin cifra inventada · orientativo"
+        : "Plusvalía → base del ahorro · cuota del motor · orientativo";
     case "amortizar_hipoteca":
-      return "Interés ahorrado 2,9 % vs rentabilidad esperada 4,0 % · sin cuota fiscal directa · orientativo";
+      return "Comparación amortizar vs invertir · sin cuota fiscal directa del motor · orientativo";
     case "comprar_inmueble":
       return "Sin fiscalidad en IRPF · crea el activo y descuenta liquidez";
     default:

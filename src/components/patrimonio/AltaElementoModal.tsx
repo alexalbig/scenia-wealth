@@ -119,6 +119,7 @@ export function AltaElementoModal({
   const [iFecha, setIFecha] = useState("");
   const [iCoste, setICoste] = useState("");
   const [iTit, setITit] = useState<Titularidad[]>([]);
+  const [iFracPre2007, setIFracPre2007] = useState("");
 
   // Inmueble
   const [nNombre, setNNombre] = useState("");
@@ -182,6 +183,11 @@ export function AltaElementoModal({
       setIFecha(it?.fechaAdquisicion ?? "");
       setICoste(it?.costeAdquisicion != null ? String(it.costeAdquisicion) : "");
       setITit(it?.titularidades ?? defs);
+      setIFracPre2007(
+        it?.fraccionPre2007 != null
+          ? String(Math.round(it.fraccionPre2007 * 100))
+          : "",
+      );
     }
     if (target.kind === "inmueble") {
       const it = target.item;
@@ -199,7 +205,7 @@ export function AltaElementoModal({
       setSCapital(it ? String(it.capitalSocial) : "");
       setSFecha(it?.fechaConstitucion ?? "");
       setSObjeto(it?.objetoSocial ?? "");
-      setSValor("");
+      setSValor(it?.valor != null ? String(it.valor) : "");
       if (it) {
         setSParts(
           Object.entries(it.participaciones).map(([personaId, porcentaje]) => ({
@@ -345,6 +351,14 @@ export function AltaElementoModal({
     if (kind === "instrumento" && target?.kind === "instrumento") {
       const valor = Number(iValor) || 0;
       const coste = iCoste.trim() ? Number(iCoste) : undefined;
+      const fracPct = iFracPre2007.trim() ? Number(iFracPre2007) : NaN;
+      const fraccionPre2007 =
+        iTipo === "plan_pensiones" &&
+        Number.isFinite(fracPct) &&
+        fracPct >= 0 &&
+        fracPct <= 100
+          ? fracPct / 100
+          : undefined;
       onSaveInstrumento({
         id: idOf(target.item, "inst"),
         clienteId: "",
@@ -355,6 +369,7 @@ export function AltaElementoModal({
         costeAdquisicion: coste,
         plusvaliaLatente:
           coste != null && Number.isFinite(coste) ? valor - coste : undefined,
+        fraccionPre2007,
         titularidades: iTit,
       });
     }
@@ -391,8 +406,10 @@ export function AltaElementoModal({
         situacion: "Activa",
         objetoSocial: sObjeto.trim() || "—",
         participaciones,
+        ...(sValor.trim() !== "" && Number.isFinite(Number(sValor))
+          ? { valor: Number(sValor) }
+          : {}),
       });
-      void sValor; // opcional · sin valorar en MVP
     }
     if (kind === "otro" && target?.kind === "otro") {
       onSaveOtro({
@@ -601,6 +618,26 @@ export function AltaElementoModal({
               <b className="num">
                 {(Number(iValor) - Number(iCoste)).toLocaleString("es-ES")} €
               </b>
+            </div>
+          )}
+          {iTipo === "plan_pensiones" && (
+            <div className="field">
+              <label className="lbl">
+                % aportaciones ≤ 31/12/2006 (DT 12ª)
+              </label>
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step={1}
+                value={iFracPre2007}
+                onChange={(e) => setIFracPre2007(e.target.value)}
+                placeholder="Opcional · introducido por el asesor"
+              />
+              <div className="tiny" style={{ marginTop: 4 }}>
+                Dato introducido por el asesor · no calculado. Sin él, el motor
+                no aplica la reducción del 40 % en rescates en capital.
+              </div>
             </div>
           )}
           <TitularidadEditor

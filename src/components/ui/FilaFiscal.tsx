@@ -1,9 +1,10 @@
 import { formatEUR } from "@/lib/format";
-import { periodoFilaFiscal } from "@/lib/fiscal/rollup";
 
 /**
  * CT2 · Fila fiscal — marcado `.fila-fiscal` del mockup.
  * FIREWALL: ignora className; sin props de tono; tinta forzada en CSS.
+ *
+ * Muestra el impacto del primer ejercicio (no acumulación multi-año).
  */
 export function FilaFiscal({
   label,
@@ -23,8 +24,7 @@ export function FilaFiscal({
   className?: string;
 }) {
   void _ignored;
-  const { desde, hasta } = periodoFilaFiscal();
-  const lbl = label ?? `Impuestos del periodo ${desde}–${hasta}`;
+  const lbl = label ?? "Impacto fiscal · primer año · orientativo";
 
   return (
     <div className="fila-fiscal" data-firewall="neutral-only">
@@ -49,7 +49,8 @@ export function FilaFiscal({
           : "Cálculo "}
         orientativo
         {parametrosAVerificar ? " · parámetros (a verificar)" : ""} · Scenia
-        muestra las cifras; la conclusión es del asesor.
+        muestra las cifras; la conclusión es del asesor. Solo el primer
+        ejercicio de cada evento (sin acumulación multi-año).
       </div>
     </div>
   );

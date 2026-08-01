@@ -316,10 +316,11 @@ function EventoRow({
           {ev.anio}
           {elementLabel ? ` · ${elementLabel}` : ""}
         </div>
-        {ev.impuestosPeriodo != null &&
+        {(ev.cuotaAnual != null || ev.impuestosPeriodo != null) &&
           !ev.introducidoPorAsesor && (
             <div className="calc-chip" style={{ marginTop: 4 }}>
-              {formatEUR(ev.impuestosPeriodo)} · orientativo
+              {formatEUR(ev.cuotaAnual ?? ev.impuestosPeriodo!)} · primer
+              ejercicio · orientativo
             </div>
           )}
         {ev.introducidoPorAsesor && (
@@ -329,6 +330,7 @@ function EventoRow({
         )}
         {ev.notas &&
           !ev.introducidoPorAsesor &&
+          ev.cuotaAnual == null &&
           ev.impuestosPeriodo == null && (
             <div className="tiny" style={{ marginTop: 2 }}>
               {ev.notas}

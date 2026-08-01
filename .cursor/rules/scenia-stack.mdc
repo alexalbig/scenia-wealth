@@ -1,17 +1,18 @@
 ---
-description: Stack Next.js/Tailwind y límites estrictos del mockup
+description: Stack Next.js/Tailwind y límites sin backend
 alwaysApply: true
 ---
 
-# Stack y límites del mockup
+# Stack y límites
 
-**Next.js (App Router) + TypeScript + Tailwind.** Se eligió Next.js aunque sea un mockup porque migrará a producto real: el salto debe ser *rellenar*, no reconstruir.
+**Next.js (App Router) + TypeScript + Tailwind.** Se eligió Next.js porque migrará a producto con backend: el salto debe ser *rellenar*, no reconstruir.
 
-**Esto es un MOCKUP. NO construir:**
+**NO construir todavía:**
 
 - Backend, rutas API (`app/api/...`), Server Actions, fetching real.
-- Base de datos ni Supabase. El seed vive hardcodeado en `/lib/seed.ts`.
+- Base de datos ni Supabase. El seed vive hardcodeado en `src/lib/seed.ts`.
 - Autenticación, variables de entorno, deployment.
-- Motor fiscal real: se simula con funciones puras que devuelven las cifras fijas del seed (A ≈ 14.200 € / B ≈ 9.800 €).
+
+**El motor fiscal SÍ es real**: liquida con las escalas oficiales de `src/lib/fiscal/parametros.ts`. Ninguna cifra fiscal puede estar escrita a mano, provenir del seed ni salir de tu conocimiento previo. Si el motor no puede calcular algo, se marca como hueco — nunca se inventa un número.
 
 Client components (`'use client'`) donde haga falta interactividad: pestañas, selectores, clic-en-año, modales.

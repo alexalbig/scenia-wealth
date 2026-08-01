@@ -28,7 +28,7 @@ export function cuotaEscala(base: number, tramos: TramoEscala[]): number {
 
 /**
  * Cuota general = (estatal + autonómica) tras minorar por mínimo personal.
- * Si CCAA ≠ CV → autonomica 0 (no se inventan cifras de otra comunidad).
+ * Si CCAA ≠ CV → no se liquida (ccaaSinCobertura); el motor debe negarse antes.
  */
 export function cuotaGeneralIRPF(
   baseLiquidable: number,
@@ -42,19 +42,26 @@ export function cuotaGeneralIRPF(
   parametrosAVerificar: boolean;
   ccaaSinCobertura: boolean;
 } {
+  const ccaaSinCobertura = ccaa !== "Comunitat Valenciana";
+  if (ccaaSinCobertura || !ccaa) {
+    return {
+      estatal: 0,
+      autonomica: 0,
+      total: 0,
+      parametrosAVerificar: true,
+      ccaaSinCobertura: true,
+    };
+  }
+
   const est = getEscalaEstatalGeneral(anio);
   const aut = getEscalaAutonomicaGeneral(anio, ccaa);
   const base = Math.max(0, baseLiquidable);
   const min = Math.max(0, Math.min(base, minimoPersonal));
 
   const estatal = cuotaEscala(base, est.valor) - cuotaEscala(min, est.valor);
-  let autonomica = 0;
-  let ccaaSinCobertura = false;
-  if (aut) {
-    autonomica = cuotaEscala(base, aut.valor) - cuotaEscala(min, aut.valor);
-  } else if (ccaa && ccaa !== "Comunitat Valenciana") {
-    ccaaSinCobertura = true;
-  }
+  const autonomica = aut
+    ? cuotaEscala(base, aut.valor) - cuotaEscala(min, aut.valor)
+    : 0;
 
   const parametrosAVerificar =
     est.estado === "a-verificar" ||
@@ -66,7 +73,7 @@ export function cuotaGeneralIRPF(
     autonomica: Math.max(0, autonomica),
     total: Math.max(0, estatal) + Math.max(0, autonomica),
     parametrosAVerificar,
-    ccaaSinCobertura,
+    ccaaSinCobertura: false,
   };
 }
 
@@ -102,14 +109,15 @@ export function cuotaMarginalGeneral(
   minimoPersonal: number,
 ): number {
   if (incremento <= 0) return 0;
-  const a = cuotaGeneralIRPF(baseAntes, anio, ccaa, minimoPersonal).total;
+  const a = cuotaGeneralIRPF(baseAntes, anio, ccaa, minimoPersonal);
+  if (a.ccaaSinCobertura) return 0;
   const b = cuotaGeneralIRPF(
     baseAntes + incremento,
     anio,
     ccaa,
     minimoPersonal,
-  ).total;
-  return Math.max(0, b - a);
+  );
+  return Math.max(0, b.total - a.total);
 }
 
 export function cuotaMarginalAhorro(
@@ -125,11 +133,54 @@ export function cuotaMarginalAhorro(
 
 export function minimoPersonalPorEdad(edad?: number): number {
   let m = PARAMETROS.minimoContribuyente.valor;
-  if (edad != null && edad > 65) {
+  const u65 = PARAMETROS.umbralEdadMas65.valor;
+  const u75 = PARAMETROS.umbralEdadMas75.valor;
+  if (edad != null && edad > u65) {
     m += PARAMETROS.minimoContribuyenteMas65.valor;
   }
-  if (edad != null && edad > 75) {
+  if (edad != null && edad > u75) {
     m += PARAMETROS.minimoContribuyenteMas75.valor;
   }
   return m;
+}
+
+/** Liquidación de un ejercicio: cuota general + cuota del ahorro. */
+export function liquidacionEjercicio(opts: {
+  baseGeneral: number;
+  baseAhorro: number;
+  anio: number;
+  ccaa: string;
+  edad?: number;
+}): {
+  cuotaGeneral: number;
+  cuotaAhorro: number;
+  total: number;
+  ccaaSinCobertura: boolean;
+  parametrosAVerificar: boolean;
+  estatalGeneral: number;
+  autonomicaGeneral: number;
+} {
+  const min = minimoPersonalPorEdad(opts.edad);
+  const g = cuotaGeneralIRPF(opts.baseGeneral, opts.anio, opts.ccaa, min);
+  const a = cuotaAhorroIRPF(opts.baseAhorro, opts.anio);
+  if (g.ccaaSinCobertura) {
+    return {
+      cuotaGeneral: 0,
+      cuotaAhorro: 0,
+      total: 0,
+      ccaaSinCobertura: true,
+      parametrosAVerificar: true,
+      estatalGeneral: 0,
+      autonomicaGeneral: 0,
+    };
+  }
+  return {
+    cuotaGeneral: Math.round(g.total),
+    cuotaAhorro: Math.round(a.total),
+    total: Math.round(g.total + a.total),
+    ccaaSinCobertura: false,
+    parametrosAVerificar: g.parametrosAVerificar || a.parametrosAVerificar,
+    estatalGeneral: Math.round(g.estatal),
+    autonomicaGeneral: Math.round(g.autonomica),
+  };
 }

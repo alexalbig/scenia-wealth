@@ -1,6 +1,6 @@
 /**
- * Series de proyección del plan base — cifras del mockup `seriesBase`.
- * Horizonte 2026–2060. IRPF siempre orientativo.
+ * Series de proyección del plan base — trayectoria patrimonial.
+ * Horizonte 2026–2060. IRPF del ejercicio: hueco (0) — no se inventa.
  */
 
 import { getCliente, ids } from "./seed";
@@ -14,8 +14,7 @@ export type ProyeccionSerieId =
   | "patrimonio"
   | "flujos"
   | "ahorro"
-  | "liquidos"
-  | "irpf";
+  | "liquidos";
 
 export const PROYECCION_SERIES: Array<{
   id: ProyeccionSerieId;
@@ -27,7 +26,6 @@ export const PROYECCION_SERIES: Array<{
   { id: "flujos", label: "Flujos" },
   { id: "ahorro", label: "Ahorro" },
   { id: "liquidos", label: "Activos líquidos" },
-  { id: "irpf", label: "IRPF proyectado", orientativo: true },
 ];
 
 export type EuroMode = "hoy" | "futuro";
@@ -38,13 +36,17 @@ export interface YearPoint {
   flujos: number;
   ahorro: number;
   liquidos: number;
-  /** IRPF del ejercicio — cifra fija del mockup, orientativa */
+  /**
+   * Reservado para arrastre del comparador.
+   * Sin liquidador multi-año: siempre 0 (hueco · no inventado).
+   */
   irpf: number;
 }
 
 /**
- * Serie determinista 2026–2060 (mockup seriesBase) para García-Llorente.
- * Otros expedientes completos: trayectoria desde neto + capacidad (IRPF = 0 · sin inventar).
+ * Serie determinista 2026–2060 (trayectoria patrimonial) para García-Llorente.
+ * IRPF = 0 (hueco · no se proyecta fiscal acumulado).
+ * Otros expedientes completos: trayectoria desde neto + capacidad.
  */
 export function buildProyeccionSeries(
   clienteId: string,
@@ -55,7 +57,7 @@ export function buildProyeccionSeries(
     !!cliente?.completo && clienteId === ids.clienteGarciaLlorente;
 
   if (isGL) {
-    return buildGarciaLlorenteSeries();
+    return buildGarciaLlorentePatrimonio();
   }
 
   const completo = opts?.completo ?? cliente?.completo ?? false;
@@ -67,15 +69,14 @@ export function buildProyeccionSeries(
   );
 }
 
-function buildGarciaLlorenteSeries(): YearPoint[] {
+/** Trayectoria patrimonial GL · sin cifras fiscales inventadas. */
+function buildGarciaLlorentePatrimonio(): YearPoint[] {
   const points: YearPoint[] = [];
-  let p = 705_000;
+  let p = 790_000;
   let l = 300_000;
 
   for (let year = PROYECCION_START_YEAR; year <= PROYECCION_END_YEAR; year++) {
     const ahorro = year < 2033 ? 69_000 : year < 2036 ? 30_000 : 18_000;
-    const irpf =
-      (year < 2033 ? 27_500 : 6_500) + (year < 2036 ? 5_900 : 1_800);
 
     points.push({
       year,
@@ -83,7 +84,7 @@ function buildGarciaLlorenteSeries(): YearPoint[] {
       liquidos: Math.round(l),
       ahorro,
       flujos: ahorro,
-      irpf,
+      irpf: 0,
     });
 
     p = p * 1.03 + ahorro;
@@ -93,7 +94,7 @@ function buildGarciaLlorenteSeries(): YearPoint[] {
   return points;
 }
 
-/** Trayectoria patrimonial genérica · IRPF 0 (hueco — no inventar fiscal). */
+/** Trayectoria patrimonial genérica · IRPF 0 (hueco). */
 export function buildSeriesFromNeto(
   patrimonioNeto: number,
   capacidad: number,
@@ -119,7 +120,13 @@ export function buildSeriesFromNeto(
   return points;
 }
 
-/** Deflacta a € de hoy (inflación del plan base, mockup 2 %). */
+export function aniosProyeccion(): number[] {
+  const out: number[] = [];
+  for (let y = PROYECCION_START_YEAR; y <= PROYECCION_END_YEAR; y++) out.push(y);
+  return out;
+}
+
+/** Deflacta a € de hoy (inflación del plan base). */
 export function toEuroHoy(
   valueFuturo: number,
   year: number,

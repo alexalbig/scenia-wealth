@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui";
 
 /** Acciones de fila: editar / eliminar — discretas frente a ⚡ Evento. */
+/** Acciones de fila: editar / eliminar — discretas frente a ⚡ Evento. */
 export function RowCrud({
   onEdit,
   onDelete,
@@ -30,7 +31,7 @@ export function RowCrud({
         variant="ghost"
         onClick={(e) => {
           e.stopPropagation();
-          if (window.confirm("¿Eliminar este elemento?")) onDelete();
+          onDelete();
         }}
       >
         Eliminar

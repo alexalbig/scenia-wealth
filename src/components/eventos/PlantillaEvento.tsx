@@ -267,15 +267,36 @@ export function PlantillaEvento({
         etiqueta: "",
         targetId: elId,
       };
-      return buildContextoFiscalFromBag(exp.bag, stub, {
-        importe: Number(importe) || 0,
-        hastaAnio: hasta,
-        modalidad,
-        reinvierte,
-        impactoManual: Number(impactoManual) || 0,
-      });
+      const eventosEsc = escenarioId
+        ? exp.eventosDeEscenario(escenarioId)
+        : [];
+      // Incluye jubilaciones del escenario para la base general del preview
+      const stubConPension: Evento =
+        tipoEv === "jubilarse"
+          ? {
+              ...stub,
+              etiqueta: `pensión ${Number(pension) || 0} €/año`,
+              notas: `Pensión estimada ${Number(pension) || 0} €/año`,
+            }
+          : stub;
+      const eventosPreview =
+        tipoEv === "jubilarse"
+          ? [...eventosEsc.filter((e) => e.tipo !== "jubilarse" || e.targetId !== elId), stubConPension]
+          : eventosEsc;
+      return buildContextoFiscalFromBag(
+        exp.bag,
+        stubConPension,
+        {
+          importe: Number(importe) || 0,
+          hastaAnio: hasta,
+          modalidad,
+          reinvierte,
+          impactoManual: Number(impactoManual) || 0,
+        },
+        eventosPreview,
+      );
     }
-    // Fallback sin bag: titular único desconocido
+    // Fallback sin bag: sin CCAA inventada — el motor devolverá sin_calculo si hace falta
     const personas = clienteId ? getPersonasDeCliente(clienteId) : [];
     const tits = personas.slice(0, 1).map((p) => ({
       personaId: p.id,
@@ -285,7 +306,7 @@ export function PlantillaEvento({
     }));
     return {
       anio: year,
-      ccaa: "Comunitat Valenciana",
+      ccaa: personas[0]?.ccaa ?? "",
       baseGeneralTitular: 0,
       titularidades: tits,
       importe: Number(importe) || 0,
@@ -302,13 +323,13 @@ export function PlantillaEvento({
     if (!Number.isFinite(year)) return;
 
     if (tipo === "jubilarse") {
+      const pensionAnual = Number(pension) || 0;
       onCreated?.({
         tipo,
-        etiqueta: `Jubilación (${year}) · pensión ${formatEUR(Number(pension) || 0)}/año`,
+        etiqueta: `Jubilación (${year}) · pensión ${formatEUR(pensionAnual)}/año`,
         anio: year,
         introducidoPorAsesor: true,
-        notas:
-          "Pensión introducida por el asesor · no calculada (motor de pensión: V2)",
+        notas: `Pensión estimada ${Math.round(pensionAnual)} €/año · introducida por el asesor · no calculada (motor de pensión: V2)`,
         escenarioId: escenarioId || undefined,
         targetId: elemento?.id ?? elementoIdProp,
       });

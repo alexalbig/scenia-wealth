@@ -4,7 +4,8 @@ import type { HistorialInforme, SeedData } from "./types";
  * Seed ANEXO F — un asesor/EAF con seis clientes.
  * García-Llorente es el único completo; el resto solo pobla la Cartera.
  *
- * Cifras del motor (mockup): A ≈ 14.200 € · B ≈ 9.800 €
+ * impuestosPeriodo de escenarios A/B: rollup del motor (primer ejercicio),
+ * no cifras fijas.
  */
 
 const CUENTA_ID = "cuenta-eaf-1";
@@ -14,6 +15,7 @@ const PERSONA_MARTA = "persona-marta";
 const SOCIEDAD_GC = "sociedad-garcia-consulting";
 const FONDO_A = "inst-fondo-a";
 const PLAN_CARLOS = "inst-plan-carlos";
+const PLAN_MARTA = "inst-plan-marta";
 const INMUEBLE_JAVEA = "inm-javea";
 const PASIVO_HIPOTECA = "pasivo-hipoteca-javea";
 const OTRO_AUDI = "otro-audi-q8";
@@ -53,15 +55,15 @@ export const seed: SeedData = {
       ccaa: "Comunitat Valenciana",
       personaIds: [PERSONA_CARLOS, PERSONA_MARTA],
       sociedadIds: [SOCIEDAD_GC],
-      // 885.000 activos − 180.000 hipoteca = 705.000
-      patrimonioNeto: 705_000,
+      // 970.000 activos − 180.000 hipoteca = 790.000
+      patrimonioNeto: 790_000,
       composicion: {
-        // Activos brutos 885k: financiero 420 · inmobiliario 420 · otros 45
+        // Activos brutos 970k: financiero 505 · inmobiliario 420 · otros 45
         // Sociedad sin valoración en seed (hueco F4)
-        financiero: 420_000 / 885_000,
-        inmobiliario: 420_000 / 885_000,
+        financiero: 505_000 / 970_000,
+        inmobiliario: 420_000 / 970_000,
         empresarial: 0,
-        otros: 45_000 / 885_000,
+        otros: 45_000 / 970_000,
       },
       ultimaRevisionMeses: 1.5,
       completo: true,
@@ -196,12 +198,25 @@ export const seed: SeedData = {
     {
       id: PLAN_CARLOS,
       clienteId: CLIENTE_GL,
-      nombre: "Plan de pensiones",
+      nombre: "Plan de pensiones · Carlos",
       tipoFiscal: "plan_pensiones",
       valor: 120_000,
       fechaAdquisicion: "2009-01-01",
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: PLAN_MARTA,
+      clienteId: CLIENTE_GL,
+      nombre: "Plan de pensiones · Marta",
+      tipoFiscal: "plan_pensiones",
+      valor: 85_000,
+      fechaAdquisicion: "2003-03-01",
+      // Aportaciones ≤ 31/12/2006 · dato introducido por el asesor (demo DT 12ª)
+      fraccionPre2007: 0.55,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_MARTA }, porcentaje: 1 },
       ],
     },
   ],
@@ -493,6 +508,7 @@ export const ids = {
   sociedadGarciaConsulting: SOCIEDAD_GC,
   fondoA: FONDO_A,
   planCarlos: PLAN_CARLOS,
+  planMarta: PLAN_MARTA,
   inmuebleJavea: INMUEBLE_JAVEA,
   pasivoHipoteca: PASIVO_HIPOTECA,
   otroAudi: OTRO_AUDI,

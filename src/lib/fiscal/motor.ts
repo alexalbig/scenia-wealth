@@ -1,9 +1,11 @@
 /**
  * Motor fiscal de eventos — liquida con parámetros de parametros.ts.
  * No inventa cifras: si falta dato (p. ej. % pre-2007), no aplica el beneficio.
+ * Sin defaults silenciosos de CCAA.
  */
 
 import type { TipoEvento } from "@/lib/types";
+import { esRegimenForal } from "@/lib/types";
 import {
   cuotaMarginalAhorro,
   cuotaMarginalGeneral,
@@ -42,6 +44,7 @@ export interface TitularFiscal {
 
 export interface ContextoFiscalEvento {
   anio: number;
+  /** CCAA del expediente — obligatoria; sin default a CV. */
   ccaa: string;
   /** Base general del titular principal (p. ej. dueño del plan). */
   baseGeneralTitular: number;
@@ -58,6 +61,48 @@ export interface ContextoFiscalEvento {
   impactoManual?: number;
 }
 
+const CCAA_COBERTURA_GENERAL = "Comunitat Valenciana";
+
+function mensajeForal(ccaa: string): string {
+  if (ccaa === "Comunidad Foral de Navarra") {
+    return "La Comunidad Foral de Navarra tiene régimen fiscal propio; Scenia no cubre su normativa.";
+  }
+  if (ccaa === "País Vasco") {
+    return "El País Vasco tiene régimen fiscal propio; Scenia no cubre su normativa.";
+  }
+  return "Régimen foral · Scenia no cubre su normativa.";
+}
+
+function ccaaAusenteOSinCoberturaGeneral(ccaa: string): string | null {
+  if (!ccaa.trim()) {
+    return "Falta la CCAA del expediente · no se liquida sin comunidad explícita.";
+  }
+  if (esRegimenForal(ccaa)) return mensajeForal(ccaa);
+  if (ccaa !== CCAA_COBERTURA_GENERAL) {
+    return "El cálculo fiscal de la base general solo está disponible para la Comunitat Valenciana.";
+  }
+  return null;
+}
+
+/** Bloqueo total (general + ahorro) para forales. */
+function ccaaSinCoberturaAbsoluta(ccaa: string): string | null {
+  if (!ccaa.trim()) {
+    return "Falta la CCAA del expediente · no se liquida sin comunidad explícita.";
+  }
+  if (esRegimenForal(ccaa)) return mensajeForal(ccaa);
+  return null;
+}
+
+/** Eventos que liquidan sobre base general (necesitan CV). */
+function usaBaseGeneral(tipo: TipoEvento): boolean {
+  return tipo === "rescatar_plan";
+}
+
+/** Eventos que liquidan sobre base del ahorro (régimen común OK; forales no). */
+function usaBaseAhorro(tipo: TipoEvento): boolean {
+  return tipo === "reembolsar_fondo" || tipo === "vender_inmueble";
+}
+
 function marcaAVerificar(flag: boolean): string {
   return flag ? " · parámetros (a verificar)" : "";
 }
@@ -67,8 +112,22 @@ export function simularMotorEvento(
   ctx: ContextoFiscalEvento,
 ): ResultadoFiscalMotor {
   const anio = ctx.anio;
-  const ccaa = ctx.ccaa || "Comunitat Valenciana";
+  const ccaa = ctx.ccaa;
   const paramsAV = algunParametroAVerificar();
+
+  if (usaBaseGeneral(tipo)) {
+    const bloqueo = ccaaAusenteOSinCoberturaGeneral(ccaa);
+    if (bloqueo) {
+      return { kind: "sin_calculo", nota: bloqueo };
+    }
+  }
+
+  if (usaBaseAhorro(tipo)) {
+    const bloqueo = ccaaSinCoberturaAbsoluta(ccaa);
+    if (bloqueo) {
+      return { kind: "sin_calculo", nota: bloqueo };
+    }
+  }
 
   switch (tipo) {
     case "reembolsar_fondo": {
@@ -107,7 +166,7 @@ export function simularMotorEvento(
         kind: "calculado",
         importe: redondeada,
         regla: "FIFO → base del ahorro",
-        nota: `Plusvalía estimada (FIFO, ratio ${(ratio * 100).toFixed(1)} %) → base del ahorro · cuota ≈ ${redondeada.toLocaleString("es-ES")} €/año · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Plusvalía estimada (FIFO, ratio ${(ratio * 100).toFixed(1)} %) → base del ahorro · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
       };
@@ -160,7 +219,7 @@ export function simularMotorEvento(
         if (soloCapital && ctx.fraccionPre2007 != null && ctx.fraccionPre2007 > 0) {
           const reducible = importe * Math.min(1, ctx.fraccionPre2007);
           baseImponible = importe - reducible * pct;
-          notaReduccion = `Reducción 40 % sobre ${(ctx.fraccionPre2007 * 100).toFixed(0)} % pre-2007 (DT 12ª)`;
+          notaReduccion = `Reducción 40 % sobre ${(ctx.fraccionPre2007 * 100).toFixed(0)} % pre-2007 (DT 12ª · dato introducido)`;
         } else {
           notaReduccion =
             "Reducción 40 % no aplicada: falta la fracción de aportaciones ≤ 31/12/2006 (hueco · no se inventa)";
@@ -195,7 +254,7 @@ export function simularMotorEvento(
         kind: "calculado",
         importe: redondeada,
         regla: "Base general",
-        nota: `Base general · se apila sobre los ingresos del año · ${notaReduccion} · cuota ≈ ${redondeada.toLocaleString("es-ES")} €/año · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Base general · se apila sobre los ingresos del año · ${notaReduccion} · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
       };
@@ -227,7 +286,7 @@ export function simularMotorEvento(
         kind: "calculado",
         importe: cuota,
         regla: "Plusvalía → base del ahorro",
-        nota: `Plusvalía → base del ahorro · cuota ≈ ${cuota.toLocaleString("es-ES")} € · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Plusvalía → base del ahorro · cuota ≈ ${cuota.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
       };
     }
@@ -246,6 +305,14 @@ export function simularMotorEvento(
       };
 
     case "jubilarse":
+      return {
+        kind: "neutro",
+        importe: 0,
+        regla: "Ajuste de base",
+        nota: `Sustituye ingresos de trabajo por la pensión estimada (introducida por el asesor) a partir de este año · sin cuota IRPF propia · orientativo${marcaAVerificar(paramsAV)}`,
+        parametrosAVerificar: paramsAV,
+      };
+
     case "generico":
     default:
       return {
@@ -262,7 +329,7 @@ export function simularMotorEventoCampos(
 ): ResultadoFiscalMotor {
   return simularMotorEvento(tipo, {
     anio: Number(campos.anio) || 2026,
-    ccaa: "Comunitat Valenciana",
+    ccaa: String(campos.ccaa ?? ""),
     baseGeneralTitular: 0,
     titularidades: [],
     importe: Number(campos.importe) || 0,

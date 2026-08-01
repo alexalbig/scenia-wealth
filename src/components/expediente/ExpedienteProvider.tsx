@@ -18,6 +18,7 @@ import {
   recomputeFiscalBag,
   syncClienteTotales,
   titularidadAgregadaFromBag,
+  totalesFromBag,
   type ExpedienteBag,
 } from "@/lib/expediente";
 import {
@@ -43,7 +44,7 @@ import type { EventoCreadoPayload } from "@/lib/eventos-types";
 interface ExpedienteContextValue {
   bag: ExpedienteBag;
   setBag: (updater: (prev: ExpedienteBag) => ExpedienteBag) => void;
-  totales: ReturnType<typeof totalesSafe>;
+  totales: ReturnType<typeof totalesFromBag>;
   ahorro: ReturnType<typeof capacidadFromBag>;
   planBase: Escenario | undefined;
   menuElementos: ReturnType<typeof elementosMenuFromBag>;
@@ -79,22 +80,6 @@ interface ExpedienteContextValue {
   addHistorial: (entry: Omit<HistorialInforme, "id" | "clienteId">) => void;
 }
 
-function totalesSafe(bag: ExpedienteBag) {
-  return {
-    financiero: bag.instrumentos.reduce((s, i) => s + i.valor, 0),
-    inmobiliario: bag.inmuebles.reduce((s, i) => s + i.valor, 0),
-    empresarial: 0,
-    otros: bag.otrosActivos.reduce((s, a) => s + a.valor, 0),
-    pasivos: bag.pasivos.reduce((s, p) => s + p.capitalPendiente, 0),
-    get bruto() {
-      return this.financiero + this.inmobiliario + this.empresarial + this.otros;
-    },
-    get neto() {
-      return this.bruto - this.pasivos;
-    },
-  };
-}
-
 function stripTitularidad(
   titularidades: Titularidad[],
   personaId: string,
@@ -102,6 +87,24 @@ function stripTitularidad(
   return titularidades.filter(
     (t) => !(t.owner.kind === "persona" && t.owner.personaId === personaId),
   );
+}
+
+function sinEventosDeTarget(
+  bag: ExpedienteBag,
+  targetId: string,
+): ExpedienteBag {
+  const removedIds = new Set(
+    bag.eventos.filter((e) => e.targetId === targetId).map((e) => e.id),
+  );
+  if (removedIds.size === 0) return bag;
+  return {
+    ...bag,
+    eventos: bag.eventos.filter((e) => e.targetId !== targetId),
+    escenarios: bag.escenarios.map((esc) => ({
+      ...esc,
+      eventoIds: esc.eventoIds.filter((id) => !removedIds.has(id)),
+    })),
+  };
 }
 
 const ExpedienteContext = createContext<ExpedienteContextValue | null>(null);
@@ -158,23 +161,20 @@ export function ExpedienteProvider({
       (id: string) => {
         setBag((prev) => {
           const list = prev[key] as unknown as Array<{ id: string }>;
-          return { ...prev, [key]: list.filter((x) => x.id !== id) };
+          const next = {
+            ...prev,
+            [key]: list.filter((x) => x.id !== id),
+          };
+          return sinEventosDeTarget(next, id);
         });
       };
 
-    const t = {
-      financiero: bag.instrumentos.reduce((s, i) => s + i.valor, 0),
-      inmobiliario: bag.inmuebles.reduce((s, i) => s + i.valor, 0),
-      empresarial: 0,
-      otros: bag.otrosActivos.reduce((s, a) => s + a.valor, 0),
-      pasivos: bag.pasivos.reduce((s, p) => s + p.capitalPendiente, 0),
-    };
-    const bruto = t.financiero + t.inmobiliario + t.empresarial + t.otros;
+    const t = totalesFromBag(bag);
 
     return {
       bag,
       setBag,
-      totales: { ...t, bruto, neto: bruto - t.pasivos },
+      totales: t,
       ahorro: capacidadFromBag(bag),
       planBase: planBaseFromBag(bag),
       menuElementos: elementosMenuFromBag(bag),
@@ -185,31 +185,34 @@ export function ExpedienteProvider({
         eventosDeEscenarioFromBag(bag, escenarioId),
       upsertPersona: upsert("personas"),
       removePersona: (id) => {
-        setBag((prev) => ({
-          ...prev,
-          personas: prev.personas.filter((p) => p.id !== id),
-          ingresos: prev.ingresos.filter((i) => i.personaId !== id),
-          instrumentos: prev.instrumentos.map((i) => ({
-            ...i,
-            titularidades: stripTitularidad(i.titularidades, id),
-          })),
-          inmuebles: prev.inmuebles.map((i) => ({
-            ...i,
-            titularidades: stripTitularidad(i.titularidades, id),
-          })),
-          otrosActivos: prev.otrosActivos.map((a) => ({
-            ...a,
-            titularidades: stripTitularidad(a.titularidades, id),
-          })),
-          pasivos: prev.pasivos.map((p) => ({
-            ...p,
-            titularidades: stripTitularidad(p.titularidades, id),
-          })),
-          sociedades: prev.sociedades.map((s) => {
-            const { [id]: _, ...rest } = s.participaciones;
-            return { ...s, participaciones: rest };
-          }),
-        }));
+        setBag((prev) => {
+          const next: ExpedienteBag = {
+            ...prev,
+            personas: prev.personas.filter((p) => p.id !== id),
+            ingresos: prev.ingresos.filter((i) => i.personaId !== id),
+            instrumentos: prev.instrumentos.map((i) => ({
+              ...i,
+              titularidades: stripTitularidad(i.titularidades, id),
+            })),
+            inmuebles: prev.inmuebles.map((i) => ({
+              ...i,
+              titularidades: stripTitularidad(i.titularidades, id),
+            })),
+            otrosActivos: prev.otrosActivos.map((a) => ({
+              ...a,
+              titularidades: stripTitularidad(a.titularidades, id),
+            })),
+            pasivos: prev.pasivos.map((p) => ({
+              ...p,
+              titularidades: stripTitularidad(p.titularidades, id),
+            })),
+            sociedades: prev.sociedades.map((s) => {
+              const { [id]: _, ...rest } = s.participaciones;
+              return { ...s, participaciones: rest };
+            }),
+          };
+          return sinEventosDeTarget(next, id);
+        });
       },
       upsertInstrumento: upsert("instrumentos"),
       removeInstrumento: remove("instrumentos"),

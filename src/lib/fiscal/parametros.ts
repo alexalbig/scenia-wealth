@@ -25,15 +25,25 @@ export interface TramoEscala {
   cuotaAcumulada: number;
 }
 
-const FECHA = "2026-07-29";
+/** Vigencia de una escala por ejercicio. */
+interface EscalaPorVigencia {
+  /** Primer ejercicio de aplicación (incluido). */
+  desdeAnio: number;
+  /** Último ejercicio (incluido); null = vigente en adelante. */
+  hastaAnio: number | null;
+  escala: ParametroFiscal<TramoEscala[]>;
+}
+
+const FECHA = "2026-08-01";
 const AV = "a-verificar" as const;
 
 function p<T>(
   valor: T,
   fuente: string,
   estado: ParametroEstado = AV,
+  fechaConsulta: string = FECHA,
 ): ParametroFiscal<T> {
-  return { valor, fuente, fechaConsulta: FECHA, estado };
+  return { valor, fuente, fechaConsulta, estado };
 }
 
 /** Escala estatal base general · art. 63.1 LIRPF (AEAT Manual Renta 2025). */
@@ -47,8 +57,11 @@ const ESCALA_ESTATAL_GENERAL: TramoEscala[] = [
 ];
 
 /**
- * Escala autonómica CV · Ley 13/1997 art. 2 (texto hisenda.gva.es a 1-ene-2024).
- * Posible reforma 2026 en prensa — no incorporada; queda a-verificar.
+ * Escala autonómica CV · Ley 13/1997 art. 2, redacción DF primera.1 Ley 9/2022
+ * (texto hisenda.gva / Hacienda estatal Cap. IV 2026 · vigencia desde 2023).
+ *
+ * Reforma 2026 (rebaja de tipos): solo en ANTEPROYECTO de Ley de Medidas 2026
+ * (hisenda.gva.es). NO publicada en DOGV como ley — no incorporada.
  */
 const ESCALA_CV_GENERAL: TramoEscala[] = [
   { hasta: 12_000, tipo: 0.09, cuotaAcumulada: 0 },
@@ -66,7 +79,6 @@ const ESCALA_CV_GENERAL: TramoEscala[] = [
 
 /**
  * Mitad estatal del ahorro · art. 66 LIRPF (Ley 7/2024 DF 7ª, efectos 1-ene-2025).
- * AEAT: novedades normativa 2024.
  */
 const ESCALA_AHORRO_ESTATAL: TramoEscala[] = [
   { hasta: 6_000, tipo: 0.095, cuotaAcumulada: 0 },
@@ -85,31 +97,10 @@ const ESCALA_AHORRO_AUTONOMICA: TramoEscala[] = [
   { hasta: null, tipo: 0.15, cuotaAcumulada: 35_940 },
 ];
 
-/**
- * Aproximación UI (estatal+CV sumados) para el visor de tramos del mockup.
- * NO es tarifa oficial — solo composición visual.
- */
-const ESCALA_GENERAL_DISPLAY: Array<{ desde: number; hasta: number; tipo: number }> = [
-  { desde: 0, hasta: 12_450, tipo: 0.19 },
-  { desde: 12_450, hasta: 20_200, tipo: 0.24 },
-  { desde: 20_200, hasta: 35_200, tipo: 0.3 },
-  { desde: 35_200, hasta: 60_000, tipo: 0.37 },
-  { desde: 60_000, hasta: 300_000, tipo: 0.45 },
-  { desde: 300_000, hasta: Infinity, tipo: 0.47 },
-];
-
-const ESCALA_AHORRO_DISPLAY: Array<{ desde: number; hasta: number; tipo: number }> = [
-  { desde: 0, hasta: 6_000, tipo: 0.19 },
-  { desde: 6_000, hasta: 50_000, tipo: 0.21 },
-  { desde: 50_000, hasta: 200_000, tipo: 0.23 },
-  { desde: 200_000, hasta: 300_000, tipo: 0.27 },
-  { desde: 300_000, hasta: Infinity, tipo: 0.3 },
-];
-
 const FUENTE_ESTATAL_G =
   "Ley 35/2006 art. 63.1 · AEAT Manual Renta 2025 (gravamen estatal) · https://sede.agenciatributaria.gob.es/";
 const FUENTE_CV_G =
-  "Ley 13/1997 art. 2 (CV) · texto actualizado a 1-ene-2024 (hisenda.gva.es). Posible reforma 2026 no incorporada.";
+  "Ley 13/1997 art. 2 · redacción DF primera.1 Ley 9/2022 (vigencia desde 2023) · Hacienda Cap. IV tributación autonómica 2026. Reforma 2026: solo anteproyecto — no DOGV.";
 const FUENTE_AHORRO =
   "Ley 35/2006 arts. 66 y 76 · Ley 7/2024 DF 7ª (efectos 1-ene-2025) · AEAT novedades normativa 2024";
 
@@ -118,14 +109,6 @@ export const PARAMETROS = {
   escalaAutonomicaCV: p(ESCALA_CV_GENERAL, FUENTE_CV_G),
   escalaAhorroEstatal: p(ESCALA_AHORRO_ESTATAL, FUENTE_AHORRO),
   escalaAhorroAutonomica: p(ESCALA_AHORRO_AUTONOMICA, FUENTE_AHORRO),
-  escalaGeneralDisplayCV: p(
-    ESCALA_GENERAL_DISPLAY,
-    "Aproximación UI mockup (suma orientativa estatal+CV) · NO es tarifa oficial",
-  ),
-  escalaAhorroDisplay: p(
-    ESCALA_AHORRO_DISPLAY,
-    "Aproximación UI (suma mitades art. 66+76) · Ley 7/2024 último tramo 30 %",
-  ),
   minimoContribuyente: p(
     5_550,
     "Ley 35/2006 art. 57.1 · AEAT Manual Renta 2025 (mínimo del contribuyente)",
@@ -137,6 +120,16 @@ export const PARAMETROS = {
   minimoContribuyenteMas75: p(
     1_400,
     "Ley 35/2006 art. 57.2 · AEAT Manual Renta 2025",
+  ),
+  /** Edad a partir de la cual aplica el incremento art. 57.2 (primer tramo). */
+  umbralEdadMas65: p(
+    65,
+    "Ley 35/2006 art. 57.2 · «edad superior a 65 años»",
+  ),
+  /** Edad a partir de la cual aplica el incremento adicional art. 57.2. */
+  umbralEdadMas75: p(
+    75,
+    "Ley 35/2006 art. 57.2 · «edad superior a 75 años»",
   ),
   reduccion40PlanesPre2007: p(
     0.4,
@@ -158,37 +151,94 @@ export const PARAMETROS = {
     6,
     "Ley 35/2006 art. 38.3 · AEAT Manual Renta 2025",
   ),
-  /** Horizonte de la fila fiscal CT2 — decisión de producto, no norma. */
-  periodoFilaFiscalDesde: p(2026, "Spec producto CT2 · horizonte comparador"),
-  periodoFilaFiscalHasta: p(2033, "Spec producto CT2 · horizonte comparador"),
+  /**
+   * Horizonte de referencia del comparador (producto).
+   * La fila fiscal ya no acumula el periodo — solo el primer ejercicio.
+   */
+  periodoFilaFiscalDesde: p(2026, "Spec producto CT2 · horizonte de referencia"),
+  periodoFilaFiscalHasta: p(2033, "Spec producto CT2 · horizonte de referencia"),
 } as const;
 
 export type ParametroKey = keyof typeof PARAMETROS;
 
+/** Vigencias: el año del ejercicio selecciona la fila. */
+const VIGENCIA_ESTATAL_GENERAL: EscalaPorVigencia[] = [
+  {
+    desdeAnio: 2025,
+    hastaAnio: null,
+    escala: PARAMETROS.escalaEstatalGeneral,
+  },
+];
+
+const VIGENCIA_CV_GENERAL: EscalaPorVigencia[] = [
+  {
+    desdeAnio: 2023,
+    hastaAnio: null,
+    escala: PARAMETROS.escalaAutonomicaCV,
+  },
+];
+
+const VIGENCIA_AHORRO_ESTATAL: EscalaPorVigencia[] = [
+  {
+    desdeAnio: 2025,
+    hastaAnio: null,
+    escala: PARAMETROS.escalaAhorroEstatal,
+  },
+];
+
+const VIGENCIA_AHORRO_AUTONOMICA: EscalaPorVigencia[] = [
+  {
+    desdeAnio: 2025,
+    hastaAnio: null,
+    escala: PARAMETROS.escalaAhorroAutonomica,
+  },
+];
+
+function escalaParaAnio(
+  anio: number,
+  vigencias: EscalaPorVigencia[],
+): ParametroFiscal<TramoEscala[]> | null {
+  for (const v of vigencias) {
+    if (anio < v.desdeAnio) continue;
+    if (v.hastaAnio != null && anio > v.hastaAnio) continue;
+    return v.escala;
+  }
+  return null;
+}
+
 export function getEscalaEstatalGeneral(
-  _anio: number,
+  anio: number,
 ): ParametroFiscal<TramoEscala[]> {
-  return PARAMETROS.escalaEstatalGeneral;
+  return (
+    escalaParaAnio(anio, VIGENCIA_ESTATAL_GENERAL) ??
+    PARAMETROS.escalaEstatalGeneral
+  );
 }
 
 export function getEscalaAutonomicaGeneral(
-  _anio: number,
+  anio: number,
   ccaa: string,
 ): ParametroFiscal<TramoEscala[]> | null {
   if (ccaa !== "Comunitat Valenciana") return null;
-  return PARAMETROS.escalaAutonomicaCV;
+  return escalaParaAnio(anio, VIGENCIA_CV_GENERAL);
 }
 
 export function getEscalaAhorroEstatal(
-  _anio: number,
+  anio: number,
 ): ParametroFiscal<TramoEscala[]> {
-  return PARAMETROS.escalaAhorroEstatal;
+  return (
+    escalaParaAnio(anio, VIGENCIA_AHORRO_ESTATAL) ??
+    PARAMETROS.escalaAhorroEstatal
+  );
 }
 
 export function getEscalaAhorroAutonomica(
-  _anio: number,
+  anio: number,
 ): ParametroFiscal<TramoEscala[]> {
-  return PARAMETROS.escalaAhorroAutonomica;
+  return (
+    escalaParaAnio(anio, VIGENCIA_AHORRO_AUTONOMICA) ??
+    PARAMETROS.escalaAhorroAutonomica
+  );
 }
 
 export function parametrosUsadosEnMotor(): ParametroKey[] {
@@ -200,6 +250,8 @@ export function parametrosUsadosEnMotor(): ParametroKey[] {
     "minimoContribuyente",
     "minimoContribuyenteMas65",
     "minimoContribuyenteMas75",
+    "umbralEdadMas65",
+    "umbralEdadMas75",
     "reduccion40PlanesPre2007",
     "reduccion40SoloFormaCapital",
     "reduccion40AportacionesHasta",

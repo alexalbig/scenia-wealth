@@ -8,6 +8,7 @@ type Totales = {
   financiero: number;
   inmobiliario: number;
   empresarial: number;
+  empresarialSinValorar?: boolean;
   otros: number;
   pasivos: number;
   bruto: number;
@@ -181,12 +182,23 @@ export function ResumenTab({
                 <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
                   Empresarial
                 </div>
-                <div className="tm-v" style={{ fontSize: 13 }}>
-                  {labels.empresarial ?? "Sin sociedades"}
+                <div
+                  className={
+                    totales.empresarialSinValorar || totales.empresarial <= 0
+                      ? "tm-v"
+                      : "tm-v num"
+                  }
+                  style={{ fontSize: 13 }}
+                >
+                  {totales.empresarialSinValorar
+                    ? "no valorada"
+                    : totales.empresarial > 0
+                      ? formatEUR(totales.empresarial)
+                      : "—"}
                 </div>
               </div>
               <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
-                no valorada
+                {labels.empresarial ?? "Sin sociedades"}
               </span>
             </div>
 

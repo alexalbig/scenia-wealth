@@ -6,7 +6,8 @@ alwaysApply: true
 `docs/spec/scenia-wealth-mockup.html` es la **realización visual de referencia** del producto: composición de tablas, treemap, tarjetas, chips, modales y fila fiscal.
 
 - Los **tokens** (`docs/spec/scenia-wealth-design-tokens.md`) definen los valores; el **mockup** define cómo se componen. Ante duda visual, manda el mockup.
-- El mockup es HTML/CSS plano; el producto es Next.js + Tailwind. **Traducir, no copiar**: usar las variables de `tailwind.config.ts` y los componentes React existentes.
+- El mockup es HTML/CSS plano; el producto es Next.js + Tailwind. **Portar, no traducir.** El CSS del mockup se lleva literal a `globals.css` y los componentes emiten el mismo marcado con las mismas clases. Tailwind solo para layout puntual que el CSS portado no cubra. No conviertas clases del mockup a utilidades.
 - El mockup **no** es referencia de arquitectura ni de lógica — para eso manda `docs/spec/scenia-wealth-funcionalidades.md`.
-- **No importar los atajos de la demo**: cifras fijas, datos hardcodeados, edición de eventos por eliminar-y-recrear, ni el `!important` del CSS.
+- **No importar los atajos de la demo:** cifras fiscales inventadas, atajos de UI de la demo HTML, edición de eventos por eliminar-y-recrear. El seed patrimonial de `src/lib/seed.ts` **sí** debe existir (MVP sin backend); no es un atajo prohibido.
+- Se porta el CSS del mockup tal cual, pero **el firewall de `FilaFiscal` no se implementa con `!important`** sino por API del componente (ignorar `className` externo, sin props de tono).
 - Cualquier pantalla nueva debe heredar el patrón visual de P1 Cartera y P3 Patrimonio, ya alineadas.
