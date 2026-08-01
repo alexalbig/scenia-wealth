@@ -33,6 +33,8 @@ import type {
   Titularidad,
 } from "@/lib/types";
 import type { ElementoMenuItem } from "@/lib/eventos-menu";
+import { buildContextoFiscalFromBag } from "@/lib/fiscal/contexto";
+import { rollupImpuestosEscenario } from "@/lib/fiscal/rollup";
 
 /** Estado mutable del expediente (mockup · session). */
 export interface ExpedienteBag {
@@ -380,6 +382,22 @@ export function syncClienteTotales(bag: ExpedienteBag): ExpedienteBag {
   };
 }
 
+/** Recalcula impuestosPeriodo de cada escenario vía rollup del motor. */
+export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
+  const escenarios = bag.escenarios.map((esc) => {
+    const eventos = eventosDeEscenarioFromBag(bag, esc.id);
+    const rollup = rollupImpuestosEscenario(eventos, (ev) =>
+      buildContextoFiscalFromBag(bag, ev),
+    );
+    return {
+      ...esc,
+      impuestosPeriodo: rollup.impuestosPeriodo,
+      impuestosParcial: rollup.parcial,
+    };
+  });
+  return { ...bag, escenarios };
+}
+
 /** Asegura campos nuevos en bags antiguos de sessionStorage. */
 export function normalizeBag(bag: ExpedienteBag): ExpedienteBag {
   const escenarios =
@@ -388,12 +406,13 @@ export function normalizeBag(bag: ExpedienteBag): ExpedienteBag {
       : bag.cliente.completo
         ? [makePlanBase(bag.cliente.id)]
         : [];
-  return syncClienteTotales({
+  const normalized = syncClienteTotales({
     ...bag,
     escenarios,
     eventos: bag.eventos ?? [],
     historial: bag.historial ?? [],
   });
+  return recomputeFiscalBag(normalized);
 }
 
 export function seedClienteIds() {

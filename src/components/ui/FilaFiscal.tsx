@@ -1,25 +1,34 @@
 import { formatEUR } from "@/lib/format";
+import { periodoFilaFiscal } from "@/lib/fiscal/rollup";
 
 /**
  * CT2 · Fila fiscal — marcado `.fila-fiscal` del mockup.
  * FIREWALL: ignora className; sin props de tono; tinta forzada en CSS.
  */
 export function FilaFiscal({
-  label = "Impuestos del periodo 2026–2033",
+  label,
   cells,
   delta,
+  parcial = false,
+  parametrosAVerificar = true,
   className: _ignored,
 }: {
   label?: string;
   cells: Array<{ name: string; amount: number }>;
   /** Δ absoluta entre alternativas (sin signo de “ganador”). */
   delta?: number | null;
+  /** Hay eventos sin liquidador excluidos del total */
+  parcial?: boolean;
+  parametrosAVerificar?: boolean;
   className?: string;
 }) {
   void _ignored;
+  const { desde, hasta } = periodoFilaFiscal();
+  const lbl = label ?? `Impuestos del periodo ${desde}–${hasta}`;
+
   return (
     <div className="fila-fiscal" data-firewall="neutral-only">
-      <div className="ff-lbl">{label}</div>
+      <div className="ff-lbl">{lbl}</div>
       <div className="ff-cells">
         {cells.map((c) => (
           <div key={c.name} className="ff-cell">
@@ -35,8 +44,12 @@ export function FilaFiscal({
         )}
       </div>
       <div className="ff-note">
-        Cálculo orientativo · parámetros (a verificar) · Scenia muestra las
-        cifras; la conclusión es del asesor.
+        {parcial
+          ? "Cálculo parcial · hay eventos sin liquidador (no sumados) · "
+          : "Cálculo "}
+        orientativo
+        {parametrosAVerificar ? " · parámetros (a verificar)" : ""} · Scenia
+        muestra las cifras; la conclusión es del asesor.
       </div>
     </div>
   );

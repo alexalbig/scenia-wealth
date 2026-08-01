@@ -34,6 +34,7 @@ export function formatDeltaEUR(value: number, exact = false): string {
 
 /** Fecha relativa tipo "hace 2 meses" a partir de meses atrás desde hoy. */
 export function monthsAgoLabel(monthsAgo: number, now = new Date()): string {
+  if (monthsAgo <= 0) return "hoy";
   if (monthsAgo < 1) {
     const weeks = Math.max(1, Math.round(monthsAgo * 4.345));
     return weeks === 1 ? "hace 1 semana" : `hace ${weeks} semanas`;

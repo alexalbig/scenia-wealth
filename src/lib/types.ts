@@ -200,10 +200,20 @@ export interface Evento {
   escenarioId: string;
   tipo: TipoEvento;
   anio: number;
+  /** Fin del rango anual (inclusive); si falta, = anio */
+  hastaAnio?: number;
   etiqueta: string;
   /** Elemento sobre el que actúa */
   targetId?: string;
-  /** Impacto fiscal del periodo — cifra del motor (seed fijo en mockup) */
+  /**
+   * Cuota anual orientativa del motor (calculado/neutro).
+   * El total del periodo vive en Escenario.impuestosPeriodo (rollup).
+   */
+  cuotaAnual?: number;
+  /**
+   * @deprecated Preferir cuotaAnual. Se mantiene por bags antiguos;
+   * el rollup lo interpreta como cuota anual si cuotaAnual falta.
+   */
   impuestosPeriodo?: number;
   /** Si el asesor tecleó el impacto a mano */
   introducidoPorAsesor?: boolean;
@@ -216,8 +226,10 @@ export interface Escenario {
   nombre: string;
   /** El plan base ("Situación actual") */
   esPlanBase: boolean;
-  /** Impuestos del periodo para el comparador (seed fijo) */
+  /** Impuestos del periodo — rollup de eventos calculados (nunca seed fijo) */
   impuestosPeriodo?: number;
+  /** Hay eventos sin liquidador excluidos del total */
+  impuestosParcial?: boolean;
   rentabilidadEsperada?: number;
   inflacion?: number;
   eventoIds: string[];

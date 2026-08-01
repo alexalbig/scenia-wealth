@@ -15,6 +15,7 @@ import {
   ingresosPersonaFromBag,
   newId,
   planBaseFromBag,
+  recomputeFiscalBag,
   syncClienteTotales,
   titularidadAgregadaFromBag,
   type ExpedienteBag,
@@ -74,6 +75,7 @@ interface ExpedienteContextValue {
   upsertEscenario: (esc: Escenario) => void;
   cloneEscenario: (fromId: string, nombre: string) => Escenario | null;
   patchEscenario: (id: string, patch: Partial<Escenario>) => void;
+  removeEscenario: (id: string) => void;
   addHistorial: (entry: Omit<HistorialInforme, "id" | "clienteId">) => void;
 }
 
@@ -231,18 +233,22 @@ export function ExpedienteProvider({
             opts?.escenarioId ||
             plan?.id;
           if (!escenarioId) return prev;
+          const cuotaAnual =
+            payload.cuotaAnual ?? payload.impuestosPeriodo;
           const ev: Evento = {
             id: newId("evt"),
             escenarioId,
             tipo: payload.tipo,
             anio: payload.anio,
+            hastaAnio: payload.hastaAnio,
             etiqueta: payload.etiqueta,
-            targetId: opts?.targetId,
-            impuestosPeriodo: payload.impuestosPeriodo,
+            targetId: payload.targetId || opts?.targetId,
+            cuotaAnual,
+            impuestosPeriodo: cuotaAnual,
             introducidoPorAsesor: payload.introducidoPorAsesor,
             notas: payload.notas,
           };
-          return {
+          const next: ExpedienteBag = {
             ...prev,
             eventos: [...prev.eventos, ev],
             escenarios: prev.escenarios.map((e) =>
@@ -251,25 +257,30 @@ export function ExpedienteProvider({
                 : e,
             ),
           };
+          return recomputeFiscalBag(next);
         });
       },
       updateEvento: (evento) => {
-        setBag((prev) => ({
-          ...prev,
-          eventos: prev.eventos.map((e) =>
-            e.id === evento.id ? evento : e,
-          ),
-        }));
+        setBag((prev) =>
+          recomputeFiscalBag({
+            ...prev,
+            eventos: prev.eventos.map((e) =>
+              e.id === evento.id ? evento : e,
+            ),
+          }),
+        );
       },
       removeEvento: (eventoId) => {
-        setBag((prev) => ({
-          ...prev,
-          eventos: prev.eventos.filter((e) => e.id !== eventoId),
-          escenarios: prev.escenarios.map((e) => ({
-            ...e,
-            eventoIds: e.eventoIds.filter((id) => id !== eventoId),
-          })),
-        }));
+        setBag((prev) =>
+          recomputeFiscalBag({
+            ...prev,
+            eventos: prev.eventos.filter((e) => e.id !== eventoId),
+            escenarios: prev.escenarios.map((e) => ({
+              ...e,
+              eventoIds: e.eventoIds.filter((id) => id !== eventoId),
+            })),
+          }),
+        );
       },
       upsertEscenario: upsert("escenarios"),
       cloneEscenario: (fromId, nombre) => {
@@ -291,22 +302,38 @@ export function ExpedienteProvider({
             nombre,
             esPlanBase: false,
             eventoIds: clonedEvents.map((e) => e.id),
+            impuestosPeriodo: undefined,
+            impuestosParcial: undefined,
           };
-          return {
+          return recomputeFiscalBag({
             ...prev,
             escenarios: [...prev.escenarios, created],
             eventos: [...prev.eventos, ...clonedEvents],
-          };
+          });
         });
         return created;
       },
       patchEscenario: (id, patch) => {
-        setBag((prev) => ({
-          ...prev,
-          escenarios: prev.escenarios.map((e) =>
-            e.id === id ? { ...e, ...patch } : e,
-          ),
-        }));
+        setBag((prev) =>
+          recomputeFiscalBag({
+            ...prev,
+            escenarios: prev.escenarios.map((e) =>
+              e.id === id ? { ...e, ...patch } : e,
+            ),
+          }),
+        );
+      },
+      removeEscenario: (id) => {
+        setBag((prev) => {
+          const esc = prev.escenarios.find((e) => e.id === id);
+          if (!esc || esc.esPlanBase) return prev;
+          const drop = new Set(esc.eventoIds);
+          return recomputeFiscalBag({
+            ...prev,
+            escenarios: prev.escenarios.filter((e) => e.id !== id),
+            eventos: prev.eventos.filter((e) => !drop.has(e.id)),
+          });
+        });
       },
       addHistorial: (entry) => {
         setBag((prev) => ({
@@ -357,4 +384,9 @@ export function useExpediente() {
     throw new Error("useExpediente debe usarse dentro de ExpedienteProvider");
   }
   return ctx;
+}
+
+/** Dentro o fuera del provider (PlantillaEvento en flujos mixtos). */
+export function useExpedienteOptional() {
+  return useContext(ExpedienteContext);
 }

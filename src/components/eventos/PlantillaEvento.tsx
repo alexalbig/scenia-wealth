@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@/components/ui";
-import { formatEUR } from "@/lib/format";
-import {
-  simularMotorEvento,
-} from "@/lib/escenarios";
+import { useExpedienteOptional } from "@/components/expediente/ExpedienteProvider";
+import { formatEUR, ageFromBirthYear } from "@/lib/format";
+import { simularMotorEvento } from "@/lib/fiscal/motor";
+import { buildContextoFiscalFromBag } from "@/lib/fiscal/contexto";
 import {
   accionesParaElemento,
   chipPreviewEvento,
@@ -21,7 +21,7 @@ import {
   getOtrosActivos,
 } from "@/lib/patrimonio";
 import { getPersonasDeCliente } from "@/lib/seed";
-import type { TipoEvento } from "@/lib/types";
+import type { Evento, TipoEvento } from "@/lib/types";
 import type { EventoCreadoPayload } from "@/lib/eventos-types";
 
 export type { EventoCreadoPayload } from "@/lib/eventos-types";
@@ -76,6 +76,7 @@ export function PlantillaEvento({
   elementosOverride,
   onCreated,
 }: PlantillaEventoProps) {
+  const exp = useExpedienteOptional();
   const menuCompleto = contexto === "completo";
 
   const elementos = useMemo(() => {
@@ -252,6 +253,49 @@ export function PlantillaEvento({
     }
   }
 
+  function buildMotorCtx(tipoEv: TipoEvento) {
+    const year = Number(anio) || 2026;
+    const hasta = Number(hastaAnio) || undefined;
+    const elId = elemento?.id ?? elementoIdProp;
+    if (exp?.bag && elId) {
+      const stub: Evento = {
+        id: "preview",
+        escenarioId: escenarioId || "",
+        tipo: tipoEv,
+        anio: year,
+        hastaAnio: hasta,
+        etiqueta: "",
+        targetId: elId,
+      };
+      return buildContextoFiscalFromBag(exp.bag, stub, {
+        importe: Number(importe) || 0,
+        hastaAnio: hasta,
+        modalidad,
+        reinvierte,
+        impactoManual: Number(impactoManual) || 0,
+      });
+    }
+    // Fallback sin bag: titular único desconocido
+    const personas = clienteId ? getPersonasDeCliente(clienteId) : [];
+    const tits = personas.slice(0, 1).map((p) => ({
+      personaId: p.id,
+      pct: 1,
+      baseGeneral: 0,
+      edad: ageFromBirthYear(p.birthYear),
+    }));
+    return {
+      anio: year,
+      ccaa: "Comunitat Valenciana",
+      baseGeneralTitular: 0,
+      titularidades: tits,
+      importe: Number(importe) || 0,
+      hastaAnio: hasta,
+      modalidad,
+      reinvierte,
+      impactoManual: Number(impactoManual) || 0,
+    };
+  }
+
   function guardar() {
     if (!tipo) return;
     const year = Number(anio);
@@ -266,34 +310,27 @@ export function PlantillaEvento({
         notas:
           "Pensión introducida por el asesor · no calculada (motor de pensión: V2)",
         escenarioId: escenarioId || undefined,
+        targetId: elemento?.id ?? elementoIdProp,
       });
       handleClose();
       return;
     }
 
-    const motor = simularMotorEvento(tipo, {
-      importe: Number(importe) || 0,
-      anio: year,
-      destino,
-      modalidad,
-      reinvierte,
-      pension: Number(pension) || 0,
-      impactoManual: Number(impactoManual) || 0,
-    });
+    const ctx = buildMotorCtx(tipo);
+    const motor = simularMotorEvento(tipo, ctx);
 
     const label = opciones.find((o) => o.tipo === tipo)?.label ?? tipo;
     const introducido =
       tipo === "generico" ||
       (impactoManual.trim() !== "" && motor.kind === "sin_calculo");
 
-    let impuestos: number | undefined;
+    let cuotaAnual: number | undefined;
     if (motor.kind === "calculado" || motor.kind === "neutro") {
-      impuestos = motor.importe;
+      cuotaAnual = motor.importe;
     } else if (introducido && impactoManual.trim()) {
-      impuestos = Number(impactoManual);
+      cuotaAnual = Number(impactoManual);
     }
 
-    // Etiquetas al estilo guardarEvento del mockup
     let etiqueta = `${label} · ${nombreEl}`;
     if (tipo === "reembolsar_fondo") {
       etiqueta = `Reembolsar ${nombreEl} · ${formatEUR(Number(importe) || 0)}/año`;
@@ -309,6 +346,8 @@ export function PlantillaEvento({
       etiqueta = `Amortizar hipoteca · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "comprar_inmueble") {
       etiqueta = `Comprar inmueble · ${formatEUR(Number(importe) || 0)}`;
+    } else if (tipo === "rescatar_plan") {
+      etiqueta = `Rescatar plan · ${modalidad} · ${formatEUR(Number(importe) || 0)}/año`;
     } else if (tipo === "repartir_dividendo") {
       etiqueta = `Repartir dividendo · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "vender_participacion") {
@@ -317,21 +356,29 @@ export function PlantillaEvento({
       etiqueta = tituloGenerico.trim() || "Evento genérico";
     }
 
-    const notasExtra =
-      tipo === "reembolsar_fondo" && hastaAnio
-        ? `${year}–${hastaAnio}`
-        : motor.kind === "pendiente_is"
-          ? motor.nota
-          : motor.nota;
+    const hastaN = Number(hastaAnio);
+    const usaHasta =
+      (tipo === "reembolsar_fondo" || tipo === "rescatar_plan") &&
+      Number.isFinite(hastaN) &&
+      hastaN > year;
+
+    const notasExtra = usaHasta
+      ? `${year}–${hastaN}`
+      : motor.kind === "pendiente_is" || motor.kind === "sin_calculo"
+        ? motor.nota
+        : motor.nota;
 
     onCreated?.({
       tipo,
       etiqueta,
       anio: year,
-      impuestosPeriodo: impuestos,
+      hastaAnio: usaHasta ? hastaN : undefined,
+      cuotaAnual,
+      impuestosPeriodo: cuotaAnual,
       introducidoPorAsesor: introducido || undefined,
       notas: notasExtra,
       escenarioId: escenarioId || undefined,
+      targetId: elemento?.id ?? elementoIdProp,
     });
     handleClose();
   }
@@ -355,7 +402,13 @@ export function PlantillaEvento({
 
   const chip =
     tipo && tipo !== "jubilarse" && tipo !== "generico"
-      ? chipPreviewEvento(tipo, reinvierte)
+      ? (() => {
+          const m = simularMotorEvento(tipo, buildMotorCtx(tipo));
+          if (m.kind === "calculado" || m.kind === "neutro") return m.nota;
+          if (m.kind === "pendiente_is" || m.kind === "sin_calculo")
+            return m.nota;
+          return chipPreviewEvento(tipo, reinvierte);
+        })()
       : "";
 
   const showTitLinea =
@@ -863,6 +916,14 @@ export function PlantillaEvento({
                 onChange={(e) => setAnio(e.target.value)}
               />
             </div>
+          </div>
+          <div className="field">
+            <label className="lbl">Hasta el año</label>
+            <input
+              type="number"
+              value={hastaAnio}
+              onChange={(e) => setHastaAnio(e.target.value)}
+            />
           </div>
           <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
             {chip}

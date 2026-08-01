@@ -1,39 +1,32 @@
 /**
- * Motor fiscal MOCK — funciones puras con cifras fijas del seed.
- * NO es un liquidador real. Todo parámetro marcado `(a verificar)`.
- *
- * Alcance MVP: plan base ("Situación actual") · Comunitat Valenciana.
+ * Motor fiscal de pantalla P4 + reexportes.
+ * Tramos de visualización salen de parametros.ts (nunca literales sueltos).
  */
 
 import { getCliente, getPersonasDeCliente, ids } from "./seed";
 import { ingresosPorPersona } from "./patrimonio";
 import type { CCAA } from "./types";
+import { PARAMETROS } from "./fiscal/parametros";
 
 export type EscalaTramos = "estatal" | "autonomica" | "ahorro" | "general";
 export type EurMode = "hoy" | "futuro";
 
 export interface Tramo {
-  /** Límite inferior inclusive (a verificar) */
   desde: number;
-  /** Límite superior exclusive; Infinity = último (a verificar) */
   hasta: number;
-  /** Tipo marginal del tramo (a verificar) */
   tipo: number;
 }
 
 export interface EspacioTramo {
   tramoIndex: number;
   tramo: Tramo;
-  /** € hasta el inicio del siguiente tramo; null = tramo máximo */
   espacio: number | null;
 }
 
 export interface PuntoSerieIRPF {
   anio: number;
   irpf: number;
-  /** Base general del ejercicio (ingresos trabajo en plan base) */
   baseGeneral: number;
-  /** Base del ahorro del ejercicio (0 en plan base sin eventos) */
   baseAhorro: number;
 }
 
@@ -46,79 +39,23 @@ export interface KpisVida {
 }
 
 const ANIO_BASE = 2026;
-const INFLACION = 0.02; // supuesto del plan base en seed
+const INFLACION = 0.02;
 const ANIO_INICIO = 2024;
 const ANIO_FIN = 2035;
-
-/** Escala estatal IRPF · base general · (a verificar) */
-const TRAMOS_ESTATAL: Tramo[] = [
-  { desde: 0, hasta: 12_450, tipo: 0.095 },
-  { desde: 12_450, hasta: 20_200, tipo: 0.12 },
-  { desde: 20_200, hasta: 35_200, tipo: 0.15 },
-  { desde: 35_200, hasta: 60_000, tipo: 0.185 },
-  { desde: 60_000, hasta: 300_000, tipo: 0.225 },
-  { desde: 300_000, hasta: Infinity, tipo: 0.245 },
-];
-
-/**
- * Escala autonómica Comunitat Valenciana · base general · (a verificar).
- * Simplificada para el mockup; no usar fuera de CV.
- */
-const TRAMOS_CV: Tramo[] = [
-  { desde: 0, hasta: 12_000, tipo: 0.09 },
-  { desde: 12_000, hasta: 22_000, tipo: 0.12 },
-  { desde: 22_000, hasta: 32_000, tipo: 0.15 },
-  { desde: 32_000, hasta: 42_000, tipo: 0.175 },
-  { desde: 42_000, hasta: 52_000, tipo: 0.2 },
-  { desde: 52_000, hasta: 65_000, tipo: 0.225 },
-  { desde: 65_000, hasta: 80_000, tipo: 0.25 },
-  { desde: 80_000, hasta: 120_000, tipo: 0.275 },
-  { desde: 120_000, hasta: 200_000, tipo: 0.3 },
-  { desde: 200_000, hasta: Infinity, tipo: 0.32 },
-];
-
-/**
- * Escala agregada estatal + CV (mockup P4) · (a verificar).
- * Tipos sumados para la conversación de tramo; no sustituyen al liquidador.
- */
-const TRAMOS_GENERAL: Tramo[] = [
-  { desde: 0, hasta: 12_450, tipo: 0.19 },
-  { desde: 12_450, hasta: 20_200, tipo: 0.24 },
-  { desde: 20_200, hasta: 35_200, tipo: 0.3 },
-  { desde: 35_200, hasta: 60_000, tipo: 0.37 },
-  { desde: 60_000, hasta: 300_000, tipo: 0.45 },
-  { desde: 300_000, hasta: Infinity, tipo: 0.47 },
-];
-
-/** Escala base del ahorro (estatal) · (a verificar) — distinta de la base general */
-const TRAMOS_AHORRO: Tramo[] = [
-  { desde: 0, hasta: 6_000, tipo: 0.19 },
-  { desde: 6_000, hasta: 50_000, tipo: 0.21 },
-  { desde: 50_000, hasta: 200_000, tipo: 0.23 },
-  { desde: 200_000, hasta: 300_000, tipo: 0.27 },
-  { desde: 300_000, hasta: Infinity, tipo: 0.28 },
-];
-
-/** Horizonte del gráfico P4 (mockup seriesBase). */
 const CHART_ANIO_INICIO = 2026;
 const CHART_ANIO_FIN = 2060;
 
-/** IRPF acumulado 2026–2040 · cifras fijas del mockup · orientativo */
+/** IRPF acumulado 2026–2040 · cifras fijas del mockup UI · orientativo */
 const IRPF_VIDA: Record<string, number> = {
   [ids.personaCarlos]: 412_000,
   [ids.personaMarta]: 88_000,
 };
 
-/** Cuota IRPF del ejercicio de referencia · orientativo */
 const CUOTA_ANYO: Record<string, number> = {
   [ids.personaCarlos]: 27_500,
   [ids.personaMarta]: 5_900,
 };
 
-/**
- * Serie IRPF año a año — plan base García-Llorente (cifras fijas orientativas).
- * Derivada del patrón de ingresos seed (Carlos 95k · Marta 32k), sin eventos.
- */
 const SERIE_CARLOS: Record<number, number> = {
   2024: 24_800,
   2025: 25_600,
@@ -149,6 +86,28 @@ const SERIE_MARTA: Record<number, number> = {
   2035: 7_600,
 };
 
+function displayTramos(
+  key: "escalaGeneralDisplayCV" | "escalaAhorroDisplay",
+): Tramo[] {
+  return PARAMETROS[key].valor.map((t) => ({
+    desde: t.desde,
+    hasta: t.hasta,
+    tipo: t.tipo,
+  }));
+}
+
+function oficialToTramos(
+  rows: Array<{ hasta: number | null; tipo: number }>,
+): Tramo[] {
+  let prev = 0;
+  return rows.map((r) => {
+    const hasta = r.hasta ?? Infinity;
+    const t = { desde: prev, hasta, tipo: r.tipo };
+    prev = r.hasta ?? prev;
+    return t;
+  });
+}
+
 export function ccaaConCobertura(ccaa: CCAA): boolean {
   return ccaa === "Comunitat Valenciana";
 }
@@ -156,17 +115,20 @@ export function ccaaConCobertura(ccaa: CCAA): boolean {
 export function getTramos(escala: EscalaTramos): Tramo[] {
   switch (escala) {
     case "estatal":
-      return TRAMOS_ESTATAL;
+      return oficialToTramos(PARAMETROS.escalaEstatalGeneral.valor);
     case "autonomica":
-      return TRAMOS_CV;
+      return oficialToTramos(PARAMETROS.escalaAutonomicaCV.valor);
     case "general":
-      return TRAMOS_GENERAL;
+      return displayTramos("escalaGeneralDisplayCV");
     case "ahorro":
-      return TRAMOS_AHORRO;
+      return displayTramos("escalaAhorroDisplay");
   }
 }
 
-export function tramoDeBase(base: number, escala: EscalaTramos): EspacioTramo | null {
+export function tramoDeBase(
+  base: number,
+  escala: EscalaTramos,
+): EspacioTramo | null {
   const tramos = getTramos(escala);
   const tramoIndex = tramos.findIndex(
     (t) => base >= t.desde && base < t.hasta,
@@ -178,7 +140,6 @@ export function tramoDeBase(base: number, escala: EscalaTramos): EspacioTramo | 
   return { tramoIndex, tramo, espacio };
 }
 
-/** Cuánto espacio queda hasta el siguiente tramo (€). */
 export function espacioHastaSiguiente(
   base: number,
   escala: EscalaTramos,
@@ -198,23 +159,21 @@ function serieFijaPersona(personaId: string): Record<number, number> | null {
   return null;
 }
 
-/** Base general del plan base = ingresos anuales de la persona (seed). */
-export function baseGeneralPersona(clienteId: string, personaId: string): number {
+export function baseGeneralPersona(
+  clienteId: string,
+  personaId: string,
+): number {
   return ingresosPorPersona(clienteId, personaId);
 }
 
-/**
- * Base del ahorro en plan base sin eventos de realización = 0.
- * (Reembolso / plusvalías viven en escenarios alternativos — V2 en P4.)
- */
-export function baseAhorroPersona(clienteId: string, personaId: string): number {
+export function baseAhorroPersona(
+  clienteId: string,
+  personaId: string,
+): number {
   if (!clienteId || !personaId) return 0;
   return 0;
 }
 
-/**
- * Serie IRPF año a año (plan base). Cifras fijas del seed; no liquida tramos.
- */
 export function serieIRPF(
   clienteId: string,
   personaId: string,
@@ -235,11 +194,10 @@ export function serieIRPF(
   }));
 }
 
-/**
- * KPIs de por vida · orientativo · cifras fijas del mockup (2026–2040).
- * ETR del ejercicio = cuota del año / base general (ingresos).
- */
-export function kpisVida(clienteId: string, personaId: string): KpisVida | null {
+export function kpisVida(
+  clienteId: string,
+  personaId: string,
+): KpisVida | null {
   const cliente = getCliente(clienteId);
   if (!cliente?.completo) return null;
   const irpfTotal = IRPF_VIDA[personaId];
@@ -258,15 +216,10 @@ export function kpisVida(clienteId: string, personaId: string): KpisVida | null 
   };
 }
 
-/** Cuota IRPF del ejercicio (seed) · orientativo */
 export function cuotaIRPFPersona(personaId: string): number {
   return CUOTA_ANYO[personaId] ?? 0;
 }
 
-/**
- * Serie IRPF del plan base para el gráfico P4 (familia, mockup seriesBase).
- * Caída en jubilación 2033 · orientativo.
- */
 export function serieIRPFPlanBase(): PuntoSerieIRPF[] {
   const out: PuntoSerieIRPF[] = [];
   for (let y = CHART_ANIO_INICIO; y <= CHART_ANIO_FIN; y++) {
@@ -276,18 +229,15 @@ export function serieIRPFPlanBase(): PuntoSerieIRPF[] {
   return out;
 }
 
-/** Años del selector corto del toolbar (mockup). */
 export function aniosToolbarFiscal(): number[] {
   return [2026, 2027, 2028, 2029, 2030, 2031];
 }
 
-/** Factor nominal → presentación según € hoy / € futuro (mockup). */
 export function factorFiscalAnyo(anio: number, mode: EurMode): number {
   if (mode === "hoy") return 1;
   return Math.pow(1 + INFLACION, anio - ANIO_BASE);
 }
 
-/** IRPF de por vida según modo € (mockup: ×0,86 en € hoy). */
 export function irpfVidaPresentado(
   irpfTotal: number,
   mode: EurMode,
@@ -295,7 +245,6 @@ export function irpfVidaPresentado(
   return mode === "hoy" ? Math.round(irpfTotal * 0.86) : irpfTotal;
 }
 
-/** Ajusta una cifra nominal a € de hoy (descuento por inflación del plan base). */
 export function enEuros(
   valorNominal: number,
   anio: number,
@@ -327,3 +276,12 @@ export function etiquetaEscala(escala: EscalaTramos): string {
       return "Base del ahorro";
   }
 }
+
+export {
+  simularMotorEvento,
+  simularMotorEventoCampos,
+  type ResultadoFiscalMotor,
+  type ContextoFiscalEvento,
+} from "./fiscal/motor";
+export { rollupImpuestosEscenario, periodoFilaFiscal } from "./fiscal/rollup";
+export { PARAMETROS, algunParametroAVerificar } from "./fiscal/parametros";

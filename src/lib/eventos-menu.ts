@@ -229,7 +229,7 @@ export function defaultsParaEvento(tipo: TipoEvento): {
     case "aportar_fondo":
       return { importe: "10000", anio: "2026" };
     case "rescatar_plan":
-      return { importe: "15000", anio: "2026" };
+      return { importe: "15000", anio: "2026", hastaAnio: "2033" };
     case "vender_inmueble":
       return { importe: "420000", anio: "2026", reinvierte: true };
     case "amortizar_hipoteca":

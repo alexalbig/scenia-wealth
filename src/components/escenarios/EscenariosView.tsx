@@ -45,6 +45,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
     removeEvento,
     cloneEscenario,
     patchEscenario,
+    removeEscenario,
     addHistorial,
   } = useExpediente();
 
@@ -80,6 +81,8 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
   const [eventoOpen, setEventoOpen] = useState(false);
   const [informeOpen, setInformeOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [renamingId, setRenamingId] = useState<string | null>(null);
+  const [renameDraft, setRenameDraft] = useState("");
 
   const selected =
     escenarios.find((e) => e.id === selectedId) ?? escenarios[0];
@@ -103,7 +106,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
 
   const fiscalCells = compareEscenarios.map((e) => ({
     name: e.nombre,
-    amount: e.esPlanBase ? 0 : (e.impuestosPeriodo ?? 0),
+    amount: e.impuestosPeriodo ?? 0,
   }));
   const conCifra = compareEscenarios.filter((e) => !e.esPlanBase);
   const delta =
@@ -113,6 +116,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
             (conCifra[1]!.impuestosPeriodo ?? 0),
         )
       : null;
+  const fiscalParcial = compareEscenarios.some((e) => e.impuestosParcial);
 
   function flash(msg: string) {
     setToast(msg);
@@ -147,7 +151,10 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
 
   function onEventoCreado(payload: EventoCreadoPayload) {
     const targetId = payload.escenarioId || selectedId;
-    addEvento(payload, { escenarioId: targetId });
+    addEvento(payload, {
+      escenarioId: targetId,
+      targetId: payload.targetId,
+    });
     setSelectedId(targetId);
     setModo("detalle");
     flash("Evento añadido");
@@ -244,7 +251,38 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                     justifyContent: "space-between",
                   }}
                 >
-                  <b style={{ fontSize: 12.5 }}>{e.nombre}</b>
+                  {renamingId === e.id ? (
+                    <input
+                      autoFocus
+                      value={renameDraft}
+                      onClick={(ev) => ev.stopPropagation()}
+                      onChange={(ev) => setRenameDraft(ev.target.value)}
+                      onBlur={() => {
+                        const n = renameDraft.trim();
+                        if (n && n !== e.nombre) {
+                          patchEscenario(e.id, { nombre: n });
+                          flash("Escenario renombrado");
+                        }
+                        setRenamingId(null);
+                      }}
+                      onKeyDown={(ev) => {
+                        if (ev.key === "Enter") {
+                          (ev.target as HTMLInputElement).blur();
+                        }
+                        if (ev.key === "Escape") setRenamingId(null);
+                      }}
+                      style={{
+                        flex: 1,
+                        fontSize: 12.5,
+                        fontWeight: 700,
+                        border: "1px solid var(--line-2)",
+                        borderRadius: 6,
+                        padding: "4px 8px",
+                      }}
+                    />
+                  ) : (
+                    <b style={{ fontSize: 12.5 }}>{e.nombre}</b>
+                  )}
                   {e.esPlanBase && (
                     <span className="base-tag">Plan base</span>
                   )}
@@ -256,7 +294,8 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   style={{
                     display: "flex",
                     alignItems: "center",
-                    gap: 10,
+                    gap: 8,
+                    flexWrap: "wrap",
                   }}
                   onClick={(ev) => ev.stopPropagation()}
                 >
@@ -285,6 +324,43 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   >
                     ⧉ Clonar
                   </Button>
+                  {!e.esPlanBase && (
+                    <>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setRenamingId(e.id);
+                          setRenameDraft(e.nombre);
+                        }}
+                      >
+                        Renombrar
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          if (
+                            !window.confirm(
+                              `¿Eliminar el escenario «${e.nombre}»?`,
+                            )
+                          )
+                            return;
+                          removeEscenario(e.id);
+                          setCompareIds((prev) =>
+                            prev.filter((x) => x !== e.id),
+                          );
+                          if (selectedId === e.id) {
+                            setSelectedId(planBase?.id ?? "");
+                            setModo("comparador");
+                          }
+                          flash("Escenario eliminado");
+                        }}
+                      >
+                        Eliminar
+                      </Button>
+                    </>
+                  )}
                 </div>
               </div>
             );
@@ -367,7 +443,12 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
               </div>
 
               <div style={{ marginTop: 12 }}>
-                <FilaFiscal cells={fiscalCells} delta={delta} />
+                <FilaFiscal
+                  cells={fiscalCells}
+                  delta={delta}
+                  parcial={fiscalParcial}
+                  parametrosAVerificar
+                />
               </div>
 
               <div className="lbl" style={{ margin: "16px 0 6px" }}>
@@ -468,12 +549,78 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   >
                     <div>
                       <div className="lbl">Escenario</div>
-                      <div className="h2">{selected.nombre}</div>
+                      {renamingId === selected.id ? (
+                        <input
+                          autoFocus
+                          value={renameDraft}
+                          onChange={(ev) => setRenameDraft(ev.target.value)}
+                          onBlur={() => {
+                            const n = renameDraft.trim();
+                            if (n && n !== selected.nombre) {
+                              patchEscenario(selected.id, { nombre: n });
+                              flash("Escenario renombrado");
+                            }
+                            setRenamingId(null);
+                          }}
+                          onKeyDown={(ev) => {
+                            if (ev.key === "Enter") {
+                              (ev.target as HTMLInputElement).blur();
+                            }
+                            if (ev.key === "Escape") setRenamingId(null);
+                          }}
+                          className="h2"
+                          style={{
+                            width: "100%",
+                            border: "1px solid var(--line-2)",
+                            borderRadius: 6,
+                            padding: "4px 8px",
+                            font: "inherit",
+                          }}
+                        />
+                      ) : (
+                        <div
+                          className="h2"
+                          style={{ cursor: selected.esPlanBase ? "default" : "text" }}
+                          onDoubleClick={() => {
+                            if (selected.esPlanBase) return;
+                            setRenamingId(selected.id);
+                            setRenameDraft(selected.nombre);
+                          }}
+                          title={
+                            selected.esPlanBase
+                              ? undefined
+                              : "Doble clic para renombrar"
+                          }
+                        >
+                          {selected.nombre}
+                        </div>
+                      )}
                       {selected.esPlanBase && (
                         <div className="tiny" style={{ marginTop: 2 }}>
                           La vida «tal como va» — comparable y editable como
                           cualquier otro.
                         </div>
+                      )}
+                      {!selected.esPlanBase && renamingId !== selected.id && (
+                        <button
+                          type="button"
+                          className="tiny"
+                          style={{
+                            marginTop: 4,
+                            background: "none",
+                            border: "none",
+                            padding: 0,
+                            color: "var(--slate)",
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                          }}
+                          onClick={() => {
+                            setRenamingId(selected.id);
+                            setRenameDraft(selected.nombre);
+                          }}
+                        >
+                          Renombrar
+                        </button>
                       )}
                     </div>
                     <div className="toolbar">
@@ -548,13 +695,25 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                               ? `${ev.notas}`
                               : ev.anio}
                           </div>
-                          {ev.impuestosPeriodo != null &&
+                          {ev.cuotaAnual != null &&
                             !ev.introducidoPorAsesor && (
                               <div
                                 className="calc-chip"
                                 style={{ marginTop: 4 }}
                               >
-                                {formatEUR(ev.impuestosPeriodo)} · orientativo
+                                {formatEUR(ev.cuotaAnual)} /año · orientativo ·
+                                parámetros (a verificar)
+                              </div>
+                            )}
+                          {ev.cuotaAnual == null &&
+                            ev.impuestosPeriodo != null &&
+                            !ev.introducidoPorAsesor && (
+                              <div
+                                className="calc-chip"
+                                style={{ marginTop: 4 }}
+                              >
+                                {formatEUR(ev.impuestosPeriodo)} /año ·
+                                orientativo · parámetros (a verificar)
                               </div>
                             )}
                           {ev.introducidoPorAsesor && (
