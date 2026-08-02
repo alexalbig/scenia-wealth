@@ -35,6 +35,7 @@ import {
   type TipoOtroActivo,
   type TipoPasivo,
   type Titularidad,
+  type UsoInmueble,
 } from "@/lib/types";
 
 export type AltaTarget =
@@ -127,6 +128,7 @@ export function AltaElementoModal({
   const [nFecha, setNFecha] = useState("");
   const [nCoste, setNCoste] = useState("");
   const [nPasivoId, setNPasivoId] = useState("");
+  const [nUso, setNUso] = useState<UsoInmueble | "">("vivienda_habitual");
   const [nTit, setNTit] = useState<Titularidad[]>([]);
 
   // Sociedad
@@ -158,6 +160,7 @@ export function AltaElementoModal({
   const [ingPersonaId, setIngPersonaId] = useState("");
   const [ingFuente, setIngFuente] = useState<FuenteIngreso>("trabajo");
   const [ingImporte, setIngImporte] = useState("");
+  const [ingCotizaciones, setIngCotizaciones] = useState("");
 
   // Gasto
   const [gCat, setGCat] = useState<string>(GASTO_CATEGORIAS[0]);
@@ -196,6 +199,7 @@ export function AltaElementoModal({
       setNFecha(it?.fechaAdquisicion ?? "");
       setNCoste(it?.costeAdquisicion != null ? String(it.costeAdquisicion) : "");
       setNPasivoId(it?.pasivoId ?? "");
+      setNUso(it?.uso ?? "vivienda_habitual");
       setNTit(it?.titularidades ?? defs);
     }
     if (target.kind === "sociedad") {
@@ -238,6 +242,9 @@ export function AltaElementoModal({
       setIngPersonaId(it?.personaId ?? personas[0]?.id ?? "");
       setIngFuente(it?.fuente ?? "trabajo");
       setIngImporte(it ? String(it.importeAnual) : "");
+      setIngCotizaciones(
+        it?.cotizacionesSS != null ? String(it.cotizacionesSS) : "",
+      );
     }
     if (target.kind === "gasto") {
       const it = target.item;
@@ -385,6 +392,7 @@ export function AltaElementoModal({
         costeAdquisicion: coste,
         plusvaliaLatente:
           coste != null && Number.isFinite(coste) ? valor - coste : undefined,
+        uso: nUso || undefined,
         pasivoId: nPasivoId || undefined,
         titularidades: nTit,
       });
@@ -437,12 +445,21 @@ export function AltaElementoModal({
       });
     }
     if (kind === "ingreso" && target?.kind === "ingreso") {
+      const cotizRaw = ingCotizaciones.trim();
+      const cotiz =
+        cotizRaw !== "" && Number.isFinite(Number(cotizRaw))
+          ? Number(cotizRaw)
+          : undefined;
       onSaveIngreso({
         id: idOf(target.item, "ing"),
         clienteId: "",
         personaId: ingPersonaId,
         fuente: ingFuente,
         importeAnual: Number(ingImporte) || 0,
+        cotizacionesSS:
+          ingFuente === "trabajo" || ingFuente === "pension"
+            ? cotiz
+            : undefined,
       });
     }
     if (kind === "gasto" && target?.kind === "gasto") {
@@ -690,21 +707,35 @@ export function AltaElementoModal({
               />
             </div>
             <div className="field">
-              <label className="lbl">Hipoteca asociada</label>
+              <label className="lbl">Uso</label>
               <select
-                value={nPasivoId}
-                onChange={(e) => setNPasivoId(e.target.value)}
+                value={nUso}
+                onChange={(e) =>
+                  setNUso(e.target.value as UsoInmueble | "")
+                }
               >
-                <option value="">Ninguna</option>
-                {pasivos
-                  .filter((p) => p.tipo === "hipoteca")
-                  .map((p) => (
-                    <option key={p.id} value={p.id}>
-                      Hipoteca {p.prestamista}
-                    </option>
-                  ))}
+                <option value="vivienda_habitual">Vivienda habitual</option>
+                <option value="segunda_residencia">Segunda residencia</option>
+                <option value="alquiler">Inmueble en alquiler</option>
+                <option value="local">Local</option>
               </select>
             </div>
+          </div>
+          <div className="field">
+            <label className="lbl">Hipoteca asociada</label>
+            <select
+              value={nPasivoId}
+              onChange={(e) => setNPasivoId(e.target.value)}
+            >
+              <option value="">Ninguna</option>
+              {pasivos
+                .filter((p) => p.tipo === "hipoteca")
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    Hipoteca {p.prestamista}
+                  </option>
+                ))}
+            </select>
           </div>
           <TitularidadEditor
             personas={personas}
@@ -959,6 +990,23 @@ export function AltaElementoModal({
               className={err("ingImporte") ? "err" : undefined}
             />
           </div>
+          {(ingFuente === "trabajo" || ingFuente === "pension") && (
+            <div className="field">
+              <label className="lbl">
+                Cotizaciones SS anuales (opcional)
+              </label>
+              <input
+                type="number"
+                value={ingCotizaciones}
+                onChange={(e) => setIngCotizaciones(e.target.value)}
+                placeholder="Art. 19.2.a · no se estima si falta"
+              />
+              <div className="tiny" style={{ marginTop: 4 }}>
+                Dato del asesor. Si no se informa, el motor resta 0 € (no inventa
+                cotizaciones).
+              </div>
+            </div>
+          )}
         </>
       )}
 

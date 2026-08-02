@@ -97,7 +97,8 @@ export function PlantillaEvento({
   const [modalidad, setModalidad] = useState<"capital" | "renta" | "mixto">(
     "capital",
   );
-  const [reinvierte, setReinvierte] = useState(true);
+  const [anioContingencia, setAnioContingencia] = useState("2026");
+  const [reinvierte, setReinvierte] = useState(false);
   const [conHipoteca, setConHipoteca] = useState(false);
   const [pension, setPension] = useState("");
   const [impactoManual, setImpactoManual] = useState("");
@@ -155,6 +156,7 @@ export function PlantillaEvento({
     setTituloGenerico("");
     setTipoGenerico("ingreso");
     setModalidad("capital");
+    setAnioContingencia(yearPref);
   }
 
   useEffect(() => {
@@ -291,6 +293,7 @@ export function PlantillaEvento({
           hastaAnio: hasta,
           modalidad,
           reinvierte,
+          anioContingencia: Number(anioContingencia) || undefined,
           impactoManual: Number(impactoManual) || 0,
         },
         eventosPreview,
@@ -313,6 +316,7 @@ export function PlantillaEvento({
       hastaAnio: hasta,
       modalidad,
       reinvierte,
+      anioContingencia: Number(anioContingencia) || undefined,
       impactoManual: Number(impactoManual) || 0,
     };
   }
@@ -369,6 +373,8 @@ export function PlantillaEvento({
       etiqueta = `Comprar inmueble · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "rescatar_plan") {
       etiqueta = `Rescatar plan · ${modalidad} · ${formatEUR(Number(importe) || 0)}/año`;
+    } else if (tipo === "aportar_plan") {
+      etiqueta = `Aportar a plan · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "repartir_dividendo") {
       etiqueta = `Repartir dividendo · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "vender_participacion") {
@@ -397,6 +403,14 @@ export function PlantillaEvento({
       cuotaAnual,
       impuestosPeriodo: cuotaAnual,
       introducidoPorAsesor: introducido || undefined,
+      sobreDatoIntroducido:
+        motor.kind === "calculado" || motor.kind === "neutro"
+          ? motor.sobreDatoIntroducido
+          : undefined,
+      anioContingencia:
+        tipo === "rescatar_plan" && modalidad === "capital"
+          ? Number(anioContingencia) || undefined
+          : undefined,
       notas: notasExtra,
       escenarioId: escenarioId || undefined,
       targetId: elemento?.id ?? elementoIdProp,
@@ -421,16 +435,27 @@ export function PlantillaEvento({
   const showEscenarioSelect =
     !menuCompleto && escenarios && escenarios.length > 0;
 
-  const chip =
+  const chipMotor =
     tipo && tipo !== "jubilarse" && tipo !== "generico"
-      ? (() => {
-          const m = simularMotorEvento(tipo, buildMotorCtx(tipo));
-          if (m.kind === "calculado" || m.kind === "neutro") return m.nota;
-          if (m.kind === "pendiente_is" || m.kind === "sin_calculo")
-            return m.nota;
-          return chipPreviewEvento(tipo, reinvierte);
-        })()
-      : "";
+      ? simularMotorEvento(tipo, buildMotorCtx(tipo))
+      : null;
+  const chip =
+    chipMotor == null
+      ? ""
+      : chipMotor.kind === "calculado" || chipMotor.kind === "neutro"
+        ? chipMotor.nota +
+          (chipMotor.kind === "calculado" &&
+          chipMotor.estimacionNoAutoliquidable
+            ? " · ⚠ no válida para autoliquidación"
+            : "")
+        : chipMotor.kind === "pendiente_is" || chipMotor.kind === "sin_calculo"
+          ? chipMotor.nota
+          : chipPreviewEvento(tipo!, reinvierte);
+  const chipSobreDato =
+    chipMotor &&
+    (chipMotor.kind === "calculado" || chipMotor.kind === "neutro")
+      ? chipMotor.sobreDatoIntroducido
+      : undefined;
 
   const showTitLinea =
     titLinea &&
@@ -559,9 +584,7 @@ export function PlantillaEvento({
             <div />
           </div>
           {showTitLinea && <TitLinea texto={titLinea!} />}
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -584,9 +607,7 @@ export function PlantillaEvento({
             />
           </div>
           {showTitLinea && <TitLinea texto={titLinea!} />}
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -608,9 +629,7 @@ export function PlantillaEvento({
               onChange={(e) => setAnio(e.target.value)}
             />
           </div>
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -634,9 +653,7 @@ export function PlantillaEvento({
               />
             </div>
           </div>
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -708,9 +725,7 @@ export function PlantillaEvento({
             Reinversión en renta vitalicia (mayor de 65)
           </label>
           {showTitLinea && <TitLinea texto={titLinea!} />}
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -734,9 +749,7 @@ export function PlantillaEvento({
               />
             </div>
           </div>
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -777,9 +790,7 @@ export function PlantillaEvento({
             />
             Con hipoteca
           </label>
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -930,7 +941,7 @@ export function PlantillaEvento({
               />
             </div>
             <div className="field">
-              <label className="lbl">Año</label>
+              <label className="lbl">Año del rescate</label>
               <input
                 type="number"
                 value={anio}
@@ -938,6 +949,20 @@ export function PlantillaEvento({
               />
             </div>
           </div>
+          {modalidad === "capital" && (
+            <div className="field">
+              <label className="lbl">Año de la contingencia (DT 12ª)</label>
+              <input
+                type="number"
+                value={anioContingencia}
+                onChange={(e) => setAnioContingencia(e.target.value)}
+              />
+              <div className="tiny" style={{ marginTop: 4 }}>
+                En 2026 la reducción 40 % solo cabe si la contingencia es 2024,
+                2025 o 2026 (plazo = contingencia + 2 ejercicios).
+              </div>
+            </div>
+          )}
           <div className="field">
             <label className="lbl">Hasta el año</label>
             <input
@@ -946,9 +971,7 @@ export function PlantillaEvento({
               onChange={(e) => setHastaAnio(e.target.value)}
             />
           </div>
-          <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
-            {chip}
-          </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
 
@@ -972,24 +995,41 @@ export function PlantillaEvento({
               />
             </div>
           </div>
-          <div className="field">
-            <label className="lbl">Impacto fiscal estimado (opcional)</label>
-            <input
-              type="number"
-              value={impactoManual}
-              onChange={(e) => setImpactoManual(e.target.value)}
-            />
-            <div
-              className="intro-chip"
-              style={{ alignSelf: "flex-start", marginTop: 8 }}
-            >
-              ✎ Si tecleas un impacto fiscal, se marcará «introducido por el
-              asesor, no calculado»
-            </div>
+          <div className="hint-info" style={{ margin: "8px 0" }}>
+            <b>ⓘ</b>
+            <span>
+              La aportación reduce la base liquidable general hasta el límite
+              del art. 52 (min. de 1.500 € y 30 % del rendimiento neto del
+              trabajo). Si aportas de más, el exceso no reduce la base y se
+              avisa. Plan individual · sin incremento empresarial.
+            </span>
           </div>
+          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
     </Modal>
+  );
+}
+
+function ChipMotorResult({
+  texto,
+  sobreDato,
+}: {
+  texto: string;
+  sobreDato?: string;
+}) {
+  if (!texto) return null;
+  return (
+    <>
+      <div className="calc-chip" style={{ alignSelf: "flex-start" }}>
+        {texto}
+      </div>
+      {sobreDato ? (
+        <div className="intro-chip" style={{ alignSelf: "flex-start" }}>
+          ✎ Calculado sobre una {sobreDato}
+        </div>
+      ) : null}
+    </>
   );
 }
 

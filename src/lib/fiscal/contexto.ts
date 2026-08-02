@@ -2,14 +2,21 @@
  * Construye el contexto del motor a partir del expediente + evento.
  * Tipado mínimo para evitar ciclo con expediente.ts.
  *
- * La base general respeta jubilaciones del mismo escenario:
- * a partir del año de jubilación, los ingresos de trabajo se sustituyen
- * por la pensión estimada (introducida por el asesor).
+ * La base general es la base liquidable aproximada (arts. 19/20), no el bruto.
+ * Respeta jubilaciones del mismo escenario: a partir del año de jubilación,
+ * los ingresos de trabajo se sustituyen por la pensión estimada del asesor.
  */
 
-import type { Evento, Persona, Titularidad } from "@/lib/types";
+import type { Evento, FuenteIngreso, Persona, Titularidad } from "@/lib/types";
+import {
+  desgloseBaseLiquidable,
+  type BasePersonaEnAnio,
+  type DesgloseBaseLiquidable,
+} from "./base-liquidable";
 import type { ContextoFiscalEvento, TitularFiscal } from "./motor";
 import { hastaAnioEvento } from "./rollup";
+
+const FUENTES_TRABAJO: FuenteIngreso[] = ["trabajo", "pension"];
 
 /** Subconjunto del bag necesario para el motor (sin importar ExpedienteBag). */
 export interface BagFiscalSlice {
@@ -29,12 +36,15 @@ export interface BagFiscalSlice {
     valor: number;
     plusvaliaLatente?: number;
     costeAdquisicion?: number;
+    uso?: import("@/lib/types").UsoInmueble;
     titularidades: Titularidad[];
   }>;
   ingresos: Array<{
     personaId: string;
     importeAnual: number;
     fuente?: string;
+    /** Cotizaciones SS anuales · art. 19.2.a · solo si las informa el asesor. */
+    cotizacionesSS?: number;
   }>;
 }
 
@@ -56,15 +66,15 @@ export function parsePensionJubilacion(ev: Evento): number | null {
 }
 
 /**
- * Base general de una persona en un año, dentro de un escenario.
+ * Desglose bruto → liquidable de una persona en un año.
  * Si hay jubilación ≤ anio, sustituye ingresos de trabajo por la pensión.
  */
-export function baseGeneralPersonaEnAnio(
+export function basePersonaEnAnio(
   bag: BagFiscalSlice,
   personaId: string,
   anio: number,
   eventosEscenario: Evento[] = [],
-): number {
+): BasePersonaEnAnio {
   const jubilaciones = eventosEscenario
     .filter(
       (e) =>
@@ -76,15 +86,72 @@ export function baseGeneralPersonaEnAnio(
 
   const lineas = bag.ingresos.filter((i) => i.personaId === personaId);
 
-  if (jubilaciones.length === 0) {
-    return lineas.reduce((s, i) => s + i.importeAnual, 0);
+  let trabajoBruto = 0;
+  let otrasRentas = 0;
+  let cotizaciones: number | null = null;
+  const sobrePensionEstimada = jubilaciones.length > 0;
+
+  if (!sobrePensionEstimada) {
+    for (const i of lineas) {
+      const f = (i.fuente ?? "trabajo") as FuenteIngreso;
+      if (FUENTES_TRABAJO.includes(f)) {
+        trabajoBruto += i.importeAnual;
+        if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
+          cotizaciones = (cotizaciones ?? 0) + i.cotizacionesSS;
+        }
+      } else {
+        otrasRentas += i.importeAnual;
+      }
+    }
+  } else {
+    const pension = parsePensionJubilacion(jubilaciones[0]!) ?? 0;
+    trabajoBruto = pension;
+    for (const i of lineas) {
+      const f = (i.fuente ?? "trabajo") as FuenteIngreso;
+      if (f === "trabajo") continue; // sustituido por pensión
+      if (FUENTES_TRABAJO.includes(f)) {
+        trabajoBruto += i.importeAnual;
+        if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
+          cotizaciones = (cotizaciones ?? 0) + i.cotizacionesSS;
+        }
+      } else {
+        otrasRentas += i.importeAnual;
+      }
+    }
   }
 
-  const pension = parsePensionJubilacion(jubilaciones[0]!) ?? 0;
-  const sinTrabajo = lineas
-    .filter((i) => i.fuente !== "trabajo")
-    .reduce((s, i) => s + i.importeAnual, 0);
-  return sinTrabajo + pension;
+  return {
+    desglose: desgloseBaseLiquidable({
+      ingresosTrabajoBrutos: trabajoBruto,
+      otrasRentasBrutas: otrasRentas,
+      cotizacionesSS: cotizaciones,
+    }),
+    sobrePensionEstimada,
+  };
+}
+
+/** @deprecated Preferir basePersonaEnAnio · mantiene compat. */
+export function desgloseBasePersonaEnAnio(
+  bag: BagFiscalSlice,
+  personaId: string,
+  anio: number,
+  eventosEscenario: Evento[] = [],
+): DesgloseBaseLiquidable {
+  return basePersonaEnAnio(bag, personaId, anio, eventosEscenario).desglose;
+}
+
+/**
+ * Base liquidable general de una persona en un año (arts. 19/20).
+ * Antes era la suma de brutos.
+ */
+export function baseGeneralPersonaEnAnio(
+  bag: BagFiscalSlice,
+  personaId: string,
+  anio: number,
+  eventosEscenario: Evento[] = [],
+): number {
+  return basePersonaEnAnio(bag, personaId, anio, eventosEscenario).desglose
+    .baseLiquidable;
 }
 
 export function buildContextoFiscalFromBag(
@@ -100,6 +167,7 @@ export function buildContextoFiscalFromBag(
   const inm = bag.inmuebles.find((i) => i.id === ev.targetId);
 
   const titsSrc = inst?.titularidades ?? inm?.titularidades ?? [];
+  const bases: BasePersonaEnAnio[] = [];
   const titularidades: TitularFiscal[] = titsSrc
     .filter((t) => t.owner.kind === "persona")
     .map((t) => {
@@ -107,43 +175,52 @@ export function buildContextoFiscalFromBag(
         t.owner.kind === "persona" ? t.owner.personaId : "";
       const persona = bag.personas.find((p) => p.id === personaId);
       const edad = persona ? anio - persona.birthYear : undefined;
+      const base = basePersonaEnAnio(
+        bag,
+        personaId,
+        anio,
+        eventosEscenario,
+      );
+      bases.push(base);
       return {
         personaId,
         pct: t.porcentaje,
-        baseGeneral: baseGeneralPersonaEnAnio(
-          bag,
-          personaId,
-          anio,
-          eventosEscenario,
-        ),
+        baseGeneral: base.desglose.baseLiquidable,
         edad,
       };
     });
 
-  // Rescate / jubilación: titular = target persona o dueño del plan
+  // Rescate / aportación / jubilación: titular = target persona o dueño del plan
   if (titularidades.length === 0 && ev.targetId) {
     const persona = bag.personas.find((p) => p.id === ev.targetId);
     if (persona) {
+      const base = basePersonaEnAnio(
+        bag,
+        persona.id,
+        anio,
+        eventosEscenario,
+      );
+      bases.push(base);
       titularidades.push({
         personaId: persona.id,
         pct: 1,
-        baseGeneral: baseGeneralPersonaEnAnio(
-          bag,
-          persona.id,
-          anio,
-          eventosEscenario,
-        ),
+        baseGeneral: base.desglose.baseLiquidable,
         edad: anio - persona.birthYear,
       });
     }
   }
 
   let baseGeneralTitular = 0;
+  let baseTitular: BasePersonaEnAnio | undefined;
   if (titularidades.length === 1) {
     baseGeneralTitular = titularidades[0]!.baseGeneral;
+    baseTitular = bases[0];
   } else if (titularidades.length > 0) {
-    const top = [...titularidades].sort((a, b) => b.pct - a.pct)[0]!;
-    baseGeneralTitular = top.baseGeneral;
+    const ranked = titularidades
+      .map((t, i) => ({ t, b: bases[i], pct: t.pct }))
+      .sort((a, b) => b.pct - a.pct);
+    baseGeneralTitular = ranked[0]!.t.baseGeneral;
+    baseTitular = ranked[0]!.b;
   }
 
   const modalidad =
@@ -164,6 +241,8 @@ export function buildContextoFiscalFromBag(
       : Number(raw.replace(/\./g, ""));
   }
 
+  const desgloseTitular = baseTitular?.desglose;
+
   return {
     anio,
     ccaa,
@@ -177,6 +256,16 @@ export function buildContextoFiscalFromBag(
     modalidad: overrides?.modalidad ?? modalidad,
     reinvierte: overrides?.reinvierte,
     fraccionPre2007: overrides?.fraccionPre2007 ?? inst?.fraccionPre2007,
+    anioContingencia: overrides?.anioContingencia ?? ev.anioContingencia,
+    usoInmueble: overrides?.usoInmueble ?? inm?.uso,
+    notaBaseLiquidable: desgloseTitular?.nota,
+    rendimientoNetoTrabajo: desgloseTitular
+      ? Math.max(
+          0,
+          desgloseTitular.baseLiquidable - desgloseTitular.otrasRentas,
+        )
+      : undefined,
+    baseSobrePensionEstimada: baseTitular?.sobrePensionEstimada === true,
     ...overrides,
   };
 }

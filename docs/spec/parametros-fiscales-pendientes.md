@@ -1,9 +1,13 @@
 # Parámetros fiscales pendientes de verificación
 
 Documento para el fiscalista. Toda cifra que consume el motor de Scenia aparece aquí.
-**Estado actual de todos los parámetros: `a-verificar`.** Fecha de consulta de fuentes: **2026-08-01**.
+**Estado actual de todos los parámetros: `a-verificar`.** Fecha de consulta de fuentes: **2026-08-02** (arts. 19/20/52) · **2026-08-01** (escalas previas).
+
+**Aviso:** nada de lo siguiente justifica marcar un parámetro como `verificado` sin confirmación del fiscalista. Las cifras de arts. 19, 20 y 52 se contrastaron con redacción consolidada / AEAT Manual Renta 2025 y RDL 4/2024; siguen en `a-verificar`.
 
 Fuente de verdad en código: `src/lib/fiscal/parametros.ts`. Ninguna cifra fiscal debe vivir fuera de ese módulo.
+
+Las **cuotas íntegras acumuladas ya no se guardan**: se derivan de `(hasta, tipo)` en `cuotaEscala` / `cuotasAcumuladasDerivadas`. Test: `npm test` (`escalas.test.ts`).
 
 ---
 
@@ -23,74 +27,115 @@ Mientras el estado sea `a-verificar`, la UI marca **orientativo · parámetros (
 ## 1. Escala estatal · base liquidable general
 
 - **Qué es:** Tipos del art. 63.1 LIRPF (cuota íntegra estatal).
-- **Valor actual:**  
-  0–12.450 @ 9,5 % · 12.450–20.200 @ 12 % · 20.200–35.200 @ 15 % · 35.200–60.000 @ 18,5 % · 60.000–300.000 @ 22,5 % · >300.000 @ 24,5 %  
-  (cuotas acumuladas AEAT: 0 / 1.182,75 / 2.112,75 / 4.362,75 / 8.950,75 / 62.950,75)
+- **Valor actual (tramos/tipos):**  
+  0–12.450 @ 9,5 % · 12.450–20.200 @ 12 % · 20.200–35.200 @ 15 % · 35.200–60.000 @ 18,5 % · 60.000–300.000 @ 22,5 % · >300.000 @ 24,5 %
+- **Cuotas acumuladas:** derivadas en runtime (no almacenadas).
 - **Fuente citada:** Ley 35/2006 art. 63.1 · AEAT Manual Renta 2025
-- **Vigencia en código:** desde ejercicio **2025** (getters indexados por año).
+- **Vigencia en código:** desde ejercicio **2025**.
 - **Qué confirmar:** Vigencia para ejercicios **2026–2033**. ¿Alguna PGE posterior modifica tramos o tipos?
 
 ## 2. Escala autonómica · Comunitat Valenciana · base general
 
 - **Qué es:** Tramo autonómico art. 2 Ley 13/1997 (CV).
 - **Valor actual (Ley 9/2022, vigencia desde 2023):**  
-  0–12.000 @ 9 % · … · >200.000 @ 29,5 %  
-  (cuotas acum.: 0 / 1.080 / 2.280 / 3.780 / 5.530 / 7.530 / 9.780 / 12.280 / 19.700 / 33.450 / 47.700)
-- **Fuente citada:** Ley 13/1997 art. 2 · DF primera.1 Ley 9/2022 · Hacienda estatal Cap. IV tributación autonómica 2026 (sigue citando Ley 9/2022).
+  0–12.000 @ 9 % · 12–22k @ 12 % · 22–32k @ 15 % · 32–42k @ 17,5 % · 42–52k @ 20 % · **52–62k @ 22,5 %** · 62–72k @ 25 % · 72–100k @ 26,5 % · 100–150k @ 27,5 % · 150–200k @ 28,5 % · >200k @ 29,5 %
+- **Atención: conviven dos escalas valencianas históricas.** La del Decreto-ley 14/2022 (temporal, solo ejercicio 2022, con corte de tramo en **65.000 €**) y la de la Ley 9/2022 (vigente desde 2023, con corte en **62.000 €**). Cargada la segunda. Una revisión externa ya mezcló ambas (derivó 10.455 € con corte a 65k frente a la cuota 9.780 de la escala 62k). **Pregunta al fiscalista:** ¿es la correcta para cada ejercicio del horizonte 2026–2033, y hay alguna modificación posterior que no hayamos localizado?
+- **Fuente citada:** Ley 13/1997 art. 2 · DF primera.1 Ley 9/2022 · AEAT Manual
 - **Vigencia en código:** desde ejercicio **2023**; aplicada también a 2026+ **mientras no haya DOGV definitivo de la reforma**.
 - **Qué confirmar:**  
-  1) ¿La escala de Ley 9/2022 sigue vigente en **2025 y 2026**?  
-  2) **Reforma 2026 (rebaja de tipos):** existe como **ANTEPROYECTO** de Ley de Medidas 2026 en hisenda.gva.es (tipos 8,8 % / 11,7 % / …). **No incorporada** — no hay publicación en DOGV como ley. Cuando se publique, añadir vigencia `desdeAnio: 2026` en `parametros.ts`.
+  1) ¿La escala de Ley 9/2022 sigue vigente en **2025 y 2026** (y en 2027–2033)?  
+  2) **Reforma 2026 (rebaja de tipos):** **ANTEPROYECTO** · **NO incorporada** · sin DOGV. Cuando se publique, añadir vigencia `desdeAnio: 2026`.
 
 ## 3. Escala del ahorro · estatal (art. 66)
 
 - **Valor actual (efectos 1-ene-2025, Ley 7/2024):**  
   0–6.000 @ 9,5 % · 6.000–50.000 @ 10,5 % · 50.000–200.000 @ 11,5 % · 200.000–300.000 @ 13,5 % · >300.000 @ **15 %**
-- **Fuente citada:** Ley 35/2006 art. 66 · Ley 7/2024 DF 7ª · AEAT novedades normativa 2024
-- **Vigencia en código:** desde ejercicio **2025**.
 - **Qué confirmar:** Último tramo 15 % vigente en 2026+.
 
 ## 4. Escala del ahorro · autonómica (art. 76)
 
 - **Valor actual:** Idénticos tramos/tipos a la mitad estatal (tope 15 %).
-- **Fuente citada:** Ley 35/2006 art. 76 · Ley 7/2024 DF 7ª
 - **Qué confirmar:** Que CV no tenga especialidad distinta en el ahorro.
 
-## 5. Mínimo del contribuyente + umbrales de edad
+## 5. Mínimo del contribuyente + umbrales de edad (estatal)
 
 - **Valor actual:** 5.550 € general · +1.150 si edad >65 · +1.400 adicional si edad >75
-- **Umbrales:** `umbralEdadMas65` = 65 · `umbralEdadMas75` = 75 (ahora en la tabla, no hardcode)
+- **Umbrales:** 65 / 75
 - **Fuente citada:** Ley 35/2006 art. 57.1 y 57.2 · AEAT Manual Renta 2025
-- **Qué confirmar:** Cuantías 2026+. ¿CV aplica mínimo autonómico distinto? (hoy el motor usa el mismo mínimo en ambas mitades).
+- **Qué confirmar:** Cuantías 2026+.
+
+## 5.bis Mínimo autonómico valenciano — HUECO (no inventar)
+
+- **Qué es:** Mínimos del art. 2 bis Ley 13/1997 (incorporados por Ley 9/2022), aproximadamente un 10 % superiores al estatal.
+- **Valor actual:** **NO cargado.** El gravamen autonómico usa el **mínimo estatal** como **simplificación declarada** (`minimoAutonomicoCVUsaEstatal = true`). La UI lo indica.
+- **Pregunta concreta al fiscalista:** *¿qué importes exactos del mínimo autonómico valenciano rigen en 2026 y debe aplicarlos el gravamen autonómico?*
+- **No cargar cifras** hasta verificarlas en el DOGV.
 
 ## 6. Mínimo familiar (descendientes / ascendientes / discapacidad)
 
 - **Valor actual:** **VACÍO — no modelado.**
-- **Fuente citada:** —
 - **Qué confirmar:** Si el liquidador MVP debe aplicar mínimos por hijos.
 
 ## 7. Reducción 40 % planes pre-2007 (DT 12ª)
 
 - **Valor actual:** 40 % · solo capital · fecha corte 2006-12-31
-- **Dato de partícipe:** campo `Instrumento.fraccionPre2007` (0–1), introducido por el asesor en alta/edición de plan. Sin él, el motor **no aplica** la reducción.
-- **Fuente citada:** LIRPF DT 12ª · AEAT Manual Renta 2025
-- **Qué confirmar:** Plazos temporales (contingencia + 2 ejercicios) en el flujo del producto.
+- **Dato de partícipe:** `Instrumento.fraccionPre2007`
+- **Plazos (Ley 26/2014) en el motor:**  
+  - Contingencias ≥ 2015: contingencia + 2 ejercicios  
+  - Contingencias 2011–2014: hasta el 8.º ejercicio siguiente  
+  - Contingencias ≤ 2010: plazo terminado 31/12/2018  
+  → En **2026** solo aplica a contingencias **2024, 2025 o 2026**.
+- **Dato de evento:** `Evento.anioContingencia` (formulario de rescate capital).
+- **Qué confirmar:** Plazos y redacción vigente de la DT 12ª.
 
-## 8. Exención reinversión renta vitalicia >65 (art. 38.3)
+## 8. Exención reinversión renta vitalicia (art. 38.3) vs vivienda habitual >65 (art. 33.4.b)
 
-- **Valor actual:** Límite 240.000 € · plazo 6 meses
-- **Fuente citada:** Ley 35/2006 art. 38.3 · AEAT Manual Renta 2025
-- **Estado del liquidador:** solo aviso si reinversión marcada; sin cifra automática.
+- **Art. 38.3:** límite 240.000 € · plazo 6 meses · requisitos art. 42 RIRPF **pendientes de recoger en el flujo** (aseguramiento a favor del contribuyente · percepción en 1 año · comunicación a la aseguradora · exención proporcional si reinversión parcial). Aplica a **cualquier elemento patrimonial**. Hoy: `sin_calculo` con aviso.
+- **Art. 33.4.b):** transmisión de **vivienda habitual** por titular **≥65** (edad = año del evento − año de nacimiento) · **exenta sin reinversión ni tope 240k**. Se evalúa **por titular** (uno puede estar exento y otro no).
+- **Campo:** `Inmueble.uso` (`vivienda_habitual` | `segunda_residencia` | `alquiler` | `local`). Si falta uso o edad → `sin_calculo`, sin asumir.
+- **Qué confirmar:** Redacción y umbral exacto (≥65 vs >65) de art. 33.4.b) y requisitos vigentes de art. 38.3 / 42 RIRPF.
 
-## 9. Horizonte de referencia (producto)
+## 9. Periodo fila fiscal
 
 - **Valor actual:** 2026–2033
-- **Uso hoy:** filtra qué eventos aportan a la fila fiscal; la fila muestra **solo el primer ejercicio** (no acumulación `× años`).
-- **Fuente citada:** Spec producto CT2 (no norma)
+- **Uso hoy:** filtra qué eventos aportan a la fila fiscal; la fila muestra **solo el primer ejercicio**.
 
 ## 10. Escalas "display" aproximadas
 
-- **Retiradas.** `escalaGeneralDisplayCV` y `escalaAhorroDisplay` ya no existen. El visor P4 usa escalas oficiales (estatal + autonómica por separado; ahorro como tipo conjunto = suma de mitades oficiales idénticas).
+- **Retiradas.** El visor P4 usa escalas oficiales.
+
+## 11. Art. 19 · gastos del trabajo
+
+- **Art. 19.2.f) otros gastos:** **2.000 €** anuales.  
+  Fuente: Ley 35/2006 art. 19.2.f) · AEAT Manual Renta 2025.  
+  Estado: `a-verificar`.
+- **Art. 19.2.a) cotizaciones SS:** **no se estiman en el motor.** Campo `Ingreso.cotizacionesSS`.  
+  **Seed García-Llorente (2026-08-02):** Carlos **4.050 €** · Marta **2.080 €**, calculadas con:
+  - Base máxima **5.101,20 €/mes** (Orden PJC/297/2026 art. 2.1 · BOE-A-2026-7296).
+  - Tipos a cargo del trabajador: contingencias comunes **4,70 %** (art. 4) + desempleo **1,55 %** (art. 33.2.a) + FP **0,10 %** (art. 33.2.c) + MEI **0,15 %** (art. 16) = **6,50 %**.
+  - Carlos: tope × 12 × 6,50 % + cotización adicional de solidaridad art. 17 (sueldo 95k > tope) ≈ 4.050 €.
+  - Marta: 32.000 × 6,50 % = 2.080 € (bajo el tope · sin solidaridad).
+  - Son **datos del expediente** (introducidos), no parámetros de `parametros.ts`.
+  - **Revisión anual obligatoria:** la Orden de cotización a la Seguridad Social **cambia cada enero** (bases máximas/mínimas y, a menudo, tipos). No es un parámetro estable como los tramos del IRPF: hay que contrastarla cada año junto con las escalas.
+- **Art. 19.2.b–e)** (derechos pasivos, sindicatos, defensa jurídica…): **no modelados** · hueco.
+- **Qué confirmar:** vigencia 2026+ del 2.000 € y si el MVP debe pedir más gastos a–e.
+
+## 12. Art. 20 · reducción por obtención de rendimientos del trabajo (nuevo)
+
+- Redacción **RDL 4/2024** (efectos 1-ene-2024), contrastada con AEAT.  
+  Tope RNT &lt; **19.747,50 €** · otras rentas ≤ **6.500 €**.  
+  Tramos: ≤14.852 → 7.302 € · hasta 17.673,52 → 7.302 − 1,75×Δ · hasta 19.747,5 → 2.364,34 − 1,14×Δ.  
+  Umbrales art. 20 usan RNT **sin** letra f) del art. 19.2.  
+  Estado: `a-verificar`.  
+  **Qué confirmar:** vigencia 2026+ (¿PGE o RDL posterior?).
+
+## 13. Art. 52 · límite aportaciones a planes (regla ⑥) (nuevo)
+
+- Límite conjunto: **menor de** 30 % RNT (trabajo + AAEE) y **1.500 €**.  
+  Incremento hasta **+8.500 €** por contribuciones empresariales / condiciones art. 52.1 — **no aplicado** al plan individual del partícipe sin empresa (MVP).  
+  Fuente: Ley 35/2006 art. 52 · AEAT Manual Renta 2025 §8.2.2.6 / §6.2.  
+  Estado: `a-verificar`.  
+  **Qué confirmar:** vigencia 2026+ y si el MVP debe modelar el incremento empresarial.
 
 ---
 
@@ -98,29 +143,40 @@ Mientras el estado sea `a-verificar`, la UI marca **orientativo · parámetros (
 
 | Hueco | Por qué |
 | --- | --- |
-| Escala CV 2026 post-reforma | Anteproyecto hisenda.gva · **sin DOGV definitivo** · no incorporada |
-| % aportaciones pre-2007 por plan | Dato de partícipe; campo en UI; vacío en seed GL |
+| Escala CV 2026 post-reforma | Anteproyecto · **sin DOGV** · no incorporada |
+| Mínimos autonómicos CV (art. 2 bis) | Sin importes verificados en DOGV · simplificación = mínimo estatal |
+| % aportaciones pre-2007 por plan | Dato de partícipe; vacío en seed GL (Carlos); Marta sí tiene demo |
 | Mínimos por descendientes/ascendientes | No modelados en MVP |
 | Liquidador IS | Firewall · pendiente de definir |
-| Base del ahorro en P4 | Sin modelo de rentas del ahorro en el expediente (hueco marcado) |
-| Reducción trabajo / cotizaciones | El motor apila el rescate sobre **ingresos brutos**, no sobre base liquidable neta |
-| Acumulación multi-año / FIFO sucesivo | Fuera de alcance actual · fila = primer ejercicio |
+| Base del ahorro en P4 | Sin modelo de rentas del ahorro en el expediente |
+| FIFO real por lotes (art. 37.2) | Hoy: ratio único marcado **no válido para autoliquidación** (temporal) |
+| Requisitos art. 42 RIRPF en flujo 38.3 | Aviso sin liquidar |
+| Cotizaciones SS estimadas por el motor | **No** · dato del asesor (`Ingreso.cotizacionesSS`) · seed GL ya informado (Carlos 4.050 € · Marta 2.080 € · Orden PJC/297/2026) |
+| Gastos art. 19.2.b–e | No modelados |
+| Incremento empresarial art. 52 (+8.500) | Fuera de MVP plan individual |
+| Acumulación multi-año | Fuera de alcance · fila = primer ejercicio |
 
 ---
 
 ## Decisiones de arquitectura fiscal (2026-08)
 
-1. **Rollup = primer ejercicio.** No `cuotaAnual × años`. Recalcula siempre con motor fresco (si cambian datos del activo, cambia la cifra).
-2. **`sin_calculo` → parcial.** La fila no muestra un 0 € limpio sin avisar.
-3. **CCAA ≠ CV → `sin_calculo` en base general** (rescate). Sin default silencioso a Comunitat Valenciana.
-4. **P4** liquida el ejercicio con escalas oficiales; sin KPIs de vida ni series inventadas.
+1. **Rollup = primer ejercicio.** No `cuotaAnual × años`.
+2. **`sin_calculo` → parcial.**
+3. **CCAA ≠ CV → `sin_calculo` en base general** (rescate / aportación). Forales: sin general ni ahorro.
+4. **Cuotas acumuladas derivadas**, nunca almacenadas.
+5. **Reembolso = estimación ratio**, no FIFO · visible como no autoliquidable.
+6. **P4** liquida con escalas oficiales; sin KPIs inventados.
+7. **Base = liquidable arts. 19/20**, no brutos · cotizaciones solo informadas.
+8. **Regla ⑥** aporta · límite art. 52 · exceso avisado.
 
 ---
 
 ## Cómo liquida el motor hoy
 
-1. **Reembolso de fondo:** `ganancia = importe × (plusvalíaLatente / valor)` · titularidad · cuota marginal del ahorro (base previa = 0) · **solo primer ejercicio**.
+1. **Reembolso de fondo:** `ganancia = importe × (plusvalíaLatente / valor)` · **estimación · no FIFO · no autoliquidable**.
 2. **Traspaso de fondo:** cuota 0 (art. 94).
-3. **Rescate de plan (renta):** importe a base general · sin 40 % · Δ IRPF(base+rescate) − IRPF(base) · CV obligatoria.
-4. **Rescate capital:** 40 % solo si `fraccionPre2007` informada en el plan.
-5. **Fila fiscal:** suma de cuotas del **primer año** de cada evento calculado/neutro en el horizonte. Etiqueta: «Impacto fiscal · primer año · orientativo».
+3. **Rescate de plan (renta):** importe a base liquidable general · sin 40 % · Δ IRPF · CV obligatoria · mínimo autonómico = estatal (simplificación).
+4. **Rescate capital:** 40 % solo si `fraccionPre2007` + plazo DT 12ª (`anioContingencia`) OK.
+5. **Aportación a plan:** reduce base liquidable hasta límite art. 52 · ahorro = Δ cuota · exceso avisado.
+6. **Venta inmueble:** art. 33.4.b) si vivienda habitual >65; art. 38.3 si reinversión (aviso); resto → plusvalía al ahorro.
+7. **Fila fiscal:** primer año · «Impacto fiscal · primer año · orientativo».

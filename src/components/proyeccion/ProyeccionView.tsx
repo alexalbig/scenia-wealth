@@ -323,6 +323,11 @@ function EventoRow({
               ejercicio · orientativo
             </div>
           )}
+        {ev.sobreDatoIntroducido && !ev.introducidoPorAsesor && (
+          <div className="intro-chip" style={{ marginTop: 4 }}>
+            ✎ Calculado sobre una {ev.sobreDatoIntroducido}
+          </div>
+        )}
         {ev.introducidoPorAsesor && (
           <div className="intro-chip" style={{ marginTop: 4 }}>
             ✎ Introducido por el asesor · no calculado

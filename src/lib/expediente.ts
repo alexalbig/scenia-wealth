@@ -17,6 +17,7 @@ import {
   getPersonasDeCliente,
   seed,
 } from "@/lib/seed";
+import { desgloseBaseLiquidable } from "@/lib/fiscal/base-liquidable";
 import type {
   Cliente,
   Escenario,
@@ -270,6 +271,32 @@ export function ingresosPersonaFromBag(bag: ExpedienteBag, personaId: string) {
     .reduce((s, i) => s + i.importeAnual, 0);
 }
 
+/** Base liquidable (arts. 19/20) usada por P4 / motor — no el bruto. */
+export function baseLiquidablePersonaFromBag(
+  bag: ExpedienteBag,
+  personaId: string,
+) {
+  const lineas = bag.ingresos.filter((i) => i.personaId === personaId);
+  let trabajo = 0;
+  let otras = 0;
+  let cotiz: number | null = null;
+  for (const i of lineas) {
+    if (i.fuente === "trabajo" || i.fuente === "pension") {
+      trabajo += i.importeAnual;
+      if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
+        cotiz = (cotiz ?? 0) + i.cotizacionesSS;
+      }
+    } else {
+      otras += i.importeAnual;
+    }
+  }
+  return desgloseBaseLiquidable({
+    ingresosTrabajoBrutos: trabajo,
+    otrasRentasBrutas: otras,
+    cotizacionesSS: cotiz,
+  });
+}
+
 export function titularidadAgregadaFromBag(
   bag: ExpedienteBag,
   personaId: string,
@@ -425,6 +452,7 @@ export function syncClienteTotales(bag: ExpedienteBag): ExpedienteBag {
 /** Recalcula impuestosPeriodo de cada escenario vía rollup del motor (primer ejercicio, siempre fresco). */
 export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
   const cuotaByEvento = new Map<string, number | undefined>();
+  const sobreByEvento = new Map<string, string | undefined>();
   const escenarios = bag.escenarios.map((esc) => {
     const eventos = eventosDeEscenarioFromBag(bag, esc.id);
     const rollup = rollupImpuestosEscenario(eventos, (ev) =>
@@ -433,14 +461,17 @@ export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
     for (const d of rollup.desglose) {
       if (d.kind === "calculado" || d.kind === "neutro") {
         cuotaByEvento.set(d.eventoId, d.cuotaAnual);
+        sobreByEvento.set(d.eventoId, d.sobreDatoIntroducido);
       } else if (!cuotaByEvento.has(d.eventoId)) {
         cuotaByEvento.set(d.eventoId, undefined);
+        sobreByEvento.set(d.eventoId, undefined);
       }
     }
     return {
       ...esc,
       impuestosPeriodo: rollup.impuestosPeriodo,
       impuestosParcial: rollup.parcial,
+      impuestosSobreDatoIntroducido: rollup.sobreDatoIntroducido,
     };
   });
 
@@ -448,16 +479,19 @@ export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
     if (ev.introducidoPorAsesor) return ev;
     if (!cuotaByEvento.has(ev.id)) return ev;
     const cuota = cuotaByEvento.get(ev.id);
+    const sobre = sobreByEvento.get(ev.id);
     if (cuota == null) {
-      const { cuotaAnual: _c, impuestosPeriodo: _i, ...rest } = ev;
+      const { cuotaAnual: _c, impuestosPeriodo: _i, sobreDatoIntroducido: _s, ...rest } = ev;
       void _c;
       void _i;
+      void _s;
       return rest;
     }
     return {
       ...ev,
       cuotaAnual: cuota,
       impuestosPeriodo: cuota,
+      sobreDatoIntroducido: sobre,
     };
   });
 

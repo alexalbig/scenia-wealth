@@ -90,8 +90,9 @@ export function IngresosTab({
         </TFoot>
       </Table>
       <div className="tiny" style={{ marginTop: 10 }}>
-        El total por persona es el input del liquidador de base general — el
-        rescate del plan se apila sobre estos ingresos.
+        Los importes de la tabla son brutos. El motor liquida sobre la base
+        liquidable (arts. 19/20 · cotizaciones solo si las informas) — el
+        rescate del plan se apila ahí, no sobre el bruto.
       </div>
     </>
   );

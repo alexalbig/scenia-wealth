@@ -394,7 +394,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **Comprar inmueble** | Precio · año · ¿hipoteca? | **Sin fiscalidad** (comprar no tributa en IRPF) pero crea el activo y descuenta liquidez. Guiado por ser un caso muy común | MVP |
 | **Jubilarse** | Año/edad · **pensión estimada introducida a mano** | Sin motor de pensión en MVP: cambia los ingresos de la persona al importe que indique el asesor, marcado como introducido | MVP |
 | **Repartir dividendo / vender participación** | Importe · año | ⚠️ **Sin cálculo — el liquidador de IS no existe.** El hueco se marca visiblemente | MVP (registro) · V2 (cálculo) |
-| **Aportar a plan de pensiones** | Importe · año | Tiene fiscalidad real (reducción en base general con límite) pero **no está entre las 5 reglas** → va como genérico sin cálculo. Candidata a **regla ⑥ en V2** | MVP (genérico) · V2 (regla) |
+| **Aportar a plan de pensiones** | Importe · año | **Regla ⑥** — reduce la base liquidable general hasta el límite art. 52 (min. 1.500 € / 30 % RNT · plan individual). Exceso avisado, no aplicado en silencio. Ahorro = Δ cuota | CORE·MVP |
 | **Evento genérico** | Ingreso / gasto / movimiento libre | **Sin cálculo fiscal.** Si el asesor teclea un impacto, se marca "introducido por el asesor, no calculado". Disponible también desde Ingresos y Gastos | MVP |
 
 | Funcionalidad del modal | Detalle | Fase |
@@ -445,18 +445,18 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 - **Liquidación de ejercicio** *(construida)* — base, escala progresiva, cuota de un año. Es lo que responde a las preguntas frecuentes del asesor: rescate en capital/renta/mixto, pignorar vs rescatar, reembolso.
 - **Acumulación de periodo** *(V2)* — FIFO real a través de reembolsos sucesivos, interacción entre eventos del mismo año, herencia patrimonial del traspaso, y suma año a año con bases que cambian.
 
-**Hueco conocido:** el motor apila sobre **ingresos brutos**, no sobre base liquidable neta de reducciones y cotizaciones.
+**Base del motor:** liquidable aproximada (arts. 19/20 LIRPF) — no brutos. Cotizaciones SS solo si las informa el asesor (no se estiman). La UI etiqueta explícitamente «base liquidable».
 
 | Pieza | Detalle | Fase |
 |---|---|---|
 | Clasificador + liquidadores | Función pura, sin efectos secundarios | CORE·MVP |
 | Tabla de parámetros por (año, CCAA) | Arranca en **Comunitat Valenciana** | CORE·MVP |
 | **① Traspaso vs reembolso** | Traspaso Art. 94 sin peaje, el destino hereda valor y fecha; reembolso realiza plusvalía → base del ahorro. FIFO básico | CORE·MVP |
-| **② Rescate del plan** | Capital / renta / mixto → base general, apilado sobre ingresos del año | CORE·MVP |
+| **② Rescate del plan** | Capital / renta / mixto → base general liquidable, apilado sobre arts. 19/20 | CORE·MVP |
 | **③ Amortizar hipoteca vs invertir** | ⚠️ **Hoy es un stub**: no calcula interés ahorrado ni coste de oportunidad. El evento se registra sin cifra | V2 |
 | **④ Pignorar** | No realiza plusvalía → cuota 0 | CORE·MVP |
-| **⑤ Venta de inmueble >65** | Parcial: sin reinversión liquida la plusvalía; con reinversión avisa pero **no liquida la exención**. No comprueba edad ≥65, ni plazo, ni uso del inmueble | MVP (parcial) · V2 (completa) |
-| ⑥ Aportación a plan de pensiones | Reducción en base general con límite | V2 |
+| **⑤ Venta de inmueble >65** | **Art. 33.4.b)** vivienda habitual + titular ≥65 → exento (por titular). **Art. 38.3** reinversión renta vitalicia → aviso sin liquidar (art. 42 RIRPF). Resto → plusvalía al ahorro. Campo `uso` del inmueble obligatorio | MVP (33.4.b sí · 38.3 aviso) · V2 (38.3 completa) |
+| **⑥ Aportación a plan de pensiones** | Reduce base liquidable · límite art. 52 (1.500 € / 30 % RNT · sin incremento empresarial en MVP) · exceso avisado | CORE·MVP |
 | Impuesto de Sociedades | Prerrequisito para que F4 calcule | V2 |
 | ISD por CCAA (sucesiones y donaciones) | Motor nuevo | V2 |
 | Patrimonio + ISGF | Alerta de cruce de umbral, con deducción cruzada | V2 |

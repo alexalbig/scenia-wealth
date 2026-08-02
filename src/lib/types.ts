@@ -167,10 +167,22 @@ export interface Inmueble {
   fechaAdquisicion: string;
   costeAdquisicion?: number;
   plusvaliaLatente?: number;
+  /**
+   * Uso del inmueble — distingue art. 33.4.b) (vivienda habitual >65)
+   * de art. 38.3 (reinversión en renta vitalicia).
+   */
+  uso?: UsoInmueble;
   titularidades: Titularidad[];
   pasivoId?: string;
   sociedadId?: string;
 }
+
+/** Uso fiscal del inmueble. */
+export type UsoInmueble =
+  | "vivienda_habitual"
+  | "segunda_residencia"
+  | "alquiler"
+  | "local";
 
 export interface OtroActivo {
   id: string;
@@ -201,6 +213,11 @@ export interface Ingreso {
   fuente: FuenteIngreso;
   importeAnual: number;
   descripcion?: string;
+  /**
+   * Cotizaciones a la Seguridad Social del año (art. 19.2.a LIRPF).
+   * Solo si las informa el asesor — el motor no las estima.
+   */
+  cotizacionesSS?: number;
 }
 
 export interface Gasto {
@@ -236,6 +253,16 @@ export interface Evento {
   impuestosPeriodo?: number;
   /** Si el asesor tecleó el impacto a mano */
   introducidoPorAsesor?: boolean;
+  /**
+   * Cuota del motor calculada sobre un dato introducido por el asesor
+   * (p. ej. «pensión estimada por el asesor»). Cálculo real · base estimada.
+   */
+  sobreDatoIntroducido?: string;
+  /**
+   * Año de la contingencia (jubilación, invalidez…) · DT 12ª plazos.
+   * Obligatorio para valorar la reducción 40 % en rescate capital.
+   */
+  anioContingencia?: number;
   notas?: string;
 }
 
@@ -252,6 +279,11 @@ export interface Escenario {
   impuestosPeriodo?: number;
   /** Hay eventos sin liquidador excluidos del total */
   impuestosParcial?: boolean;
+  /**
+   * Alguna cuota del rollup usa base con dato introducido (pensión estimada).
+   * No implica parcial.
+   */
+  impuestosSobreDatoIntroducido?: boolean;
   rentabilidadEsperada?: number;
   inflacion?: number;
   eventoIds: string[];

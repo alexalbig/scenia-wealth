@@ -7,6 +7,7 @@ import {
   newId,
 } from "@/lib/expediente";
 import type { Cliente, Persona, Segmento, CCAA } from "@/lib/types";
+import { CCAA_CON_COBERTURA_FISCAL } from "@/lib/types";
 
 const KEY_PREFIX = "scenia-expediente-v1:";
 const KEY_INDEX = "scenia-expediente-index-v1";
@@ -76,6 +77,7 @@ export function resolveExpediente(clienteId: string): ExpedienteBag | null {
 export function createExpedienteFromAlta(payload: {
   nombre: string;
   segmento: Segmento;
+  ccaa?: CCAA;
   personas: Array<{
     nombre: string;
     birthDate: string;
@@ -83,6 +85,10 @@ export function createExpedienteFromAlta(payload: {
   }>;
 }): ExpedienteBag {
   const clienteId = newId("cliente");
+  const ccaaExpediente =
+    payload.ccaa ??
+    payload.personas[0]?.ccaa ??
+    CCAA_CON_COBERTURA_FISCAL;
   const personas: Persona[] = payload.personas.map((p) => {
     const parts = p.nombre.trim().split(/\s+/);
     const nombre = parts[0] ?? "";
@@ -93,7 +99,7 @@ export function createExpedienteFromAlta(payload: {
       nombre,
       apellidos,
       birthYear: Number.isFinite(year) ? year : 1970,
-      ccaa: p.ccaa,
+      ccaa: p.ccaa || ccaaExpediente,
     };
   });
 
@@ -102,7 +108,7 @@ export function createExpedienteFromAlta(payload: {
     cuentaId: "cuenta-local",
     nombre: payload.nombre.trim(),
     segmento: payload.segmento,
-    ccaa: personas[0]?.ccaa ?? "Comunitat Valenciana",
+    ccaa: ccaaExpediente,
     personaIds: personas.map((p) => p.id),
     sociedadIds: [],
     patrimonioNeto: 0,

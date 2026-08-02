@@ -21,7 +21,7 @@ import type { Cliente } from "@/lib/types";
  * Sin KPIs de vida, sin series inventadas, sin 0 € limpios en huecos.
  */
 export function FiscalidadView({ cliente }: { cliente: Cliente }) {
-  const { bag, ingresosPersona } = useExpediente();
+  const { bag, desgloseBasePersona } = useExpediente();
   const personas = bag.personas;
 
   const anios = useMemo(() => aniosToolbarFiscal(), []);
@@ -66,7 +66,8 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
   const pid = personaActiva?.id ?? "";
   const nombreCorto = personaActiva?.nombre ?? "";
 
-  const baseG = ingresosPersona(pid);
+  const desg = desgloseBasePersona(pid);
+  const baseG = desg.baseLiquidable;
   const baseA = baseAhorroPersona(cliente.id, pid);
   const edad = personaActiva
     ? anio - personaActiva.birthYear
@@ -79,7 +80,7 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
     edad,
   });
 
-  const sinIngresos = baseG <= 0;
+  const sinIngresos = desg.bruto <= 0 && desg.otrasRentas <= 0;
 
   return (
     <SheetPad>
@@ -130,11 +131,24 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
             {formatEUR(liq.cuotaGeneral)}
           </div>
           <div className="tiny">
-            Base general {formatEUR(Math.round(baseG))} · estatal{" "}
-            {formatEUR(liq.estatalGeneral)} · autonómica CV{" "}
+            Base liquidable general {formatEUR(Math.round(baseG))} (no
+            bruta) · estatal {formatEUR(liq.estatalGeneral)} · autonómica CV{" "}
             {formatEUR(liq.autonomicaGeneral)} · orientativo
             {liq.parametrosAVerificar ? " · parámetros (a verificar)" : ""}
           </div>
+          <div className="tiny" style={{ marginTop: 4 }}>
+            {desg.nota}
+            {!desg.cotizacionesInformadas && desg.bruto > 0
+              ? " · cotizaciones SS: dato del asesor (hueco si no informadas)"
+              : ""}
+          </div>
+          {liq.minimoAutonomicoSimplificado && (
+            <div className="tiny" style={{ marginTop: 4 }}>
+              Gravamen autonómico: usa el mínimo estatal como simplificación
+              declarada (mínimos autonómicos CV pendientes de verificar en
+              DOGV).
+            </div>
+          )}
           {baseA == null ? (
             <div className="tiny" style={{ marginTop: 4 }}>
               Base del ahorro: sin modelo en el expediente (hueco · no se suma
@@ -154,6 +168,7 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
         personaNombre={nombreCorto}
         baseGeneral={baseG}
         baseAhorro={baseA}
+        etiquetaBase="Base liquidable general (arts. 19/20)"
       />
     </SheetPad>
   );

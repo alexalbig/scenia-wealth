@@ -4,6 +4,9 @@
  *
  * Ninguna cifra fiscal puede vivir fuera de este módulo.
  * Todos los parámetros quedan en 'a-verificar' hasta confirmación del fiscalista.
+ *
+ * Las cuotas íntegras acumuladas NO se guardan: se derivan de (hasta, tipo)
+ * en tiempo de cálculo (`cuotasAcumuladasDerivadas` / `cuotaEscala`).
  */
 
 export type ParametroEstado = "verificado" | "a-verificar";
@@ -15,14 +18,12 @@ export interface ParametroFiscal<T = number> {
   estado: ParametroEstado;
 }
 
-/** Fila de una escala oficial (formato AEAT / LIRPF). */
+/** Fila de una escala oficial — solo tramos y tipos (sin cuota acumulada). */
 export interface TramoEscala {
   /** Límite superior de la base liquidable (null = resto). */
   hasta: number | null;
   /** Tipo marginal (fracción, p. ej. 0,095). */
   tipo: number;
-  /** Cuota íntegra acumulada al inicio de este tramo. */
-  cuotaAcumulada: number;
 }
 
 /** Vigencia de una escala por ejercicio. */
@@ -48,53 +49,55 @@ function p<T>(
 
 /** Escala estatal base general · art. 63.1 LIRPF (AEAT Manual Renta 2025). */
 const ESCALA_ESTATAL_GENERAL: TramoEscala[] = [
-  { hasta: 12_450, tipo: 0.095, cuotaAcumulada: 0 },
-  { hasta: 20_200, tipo: 0.12, cuotaAcumulada: 1_182.75 },
-  { hasta: 35_200, tipo: 0.15, cuotaAcumulada: 2_112.75 },
-  { hasta: 60_000, tipo: 0.185, cuotaAcumulada: 4_362.75 },
-  { hasta: 300_000, tipo: 0.225, cuotaAcumulada: 8_950.75 },
-  { hasta: null, tipo: 0.245, cuotaAcumulada: 62_950.75 },
+  { hasta: 12_450, tipo: 0.095 },
+  { hasta: 20_200, tipo: 0.12 },
+  { hasta: 35_200, tipo: 0.15 },
+  { hasta: 60_000, tipo: 0.185 },
+  { hasta: 300_000, tipo: 0.225 },
+  { hasta: null, tipo: 0.245 },
 ];
 
 /**
  * Escala autonómica CV · Ley 13/1997 art. 2, redacción DF primera.1 Ley 9/2022
- * (texto hisenda.gva / Hacienda estatal Cap. IV 2026 · vigencia desde 2023).
+ * (vigencia desde 2023 · AEAT Manual / hisenda.gva).
  *
- * Reforma 2026 (rebaja de tipos): solo en ANTEPROYECTO de Ley de Medidas 2026
- * (hisenda.gva.es). NO publicada en DOGV como ley — no incorporada.
+ * Cortes: 12k · 22k · 32k · 42k · 52k · 62k · 72k · 100k · 150k · 200k · resto.
+ * (El DL 14/2022 usó 65k/80k solo para el ejercicio 2022 — no aplica aquí.)
+ *
+ * Reforma 2026 (rebaja de tipos): solo ANTEPROYECTO · NO publicada en DOGV · no incorporada.
  */
 const ESCALA_CV_GENERAL: TramoEscala[] = [
-  { hasta: 12_000, tipo: 0.09, cuotaAcumulada: 0 },
-  { hasta: 22_000, tipo: 0.12, cuotaAcumulada: 1_080 },
-  { hasta: 32_000, tipo: 0.15, cuotaAcumulada: 2_280 },
-  { hasta: 42_000, tipo: 0.175, cuotaAcumulada: 3_780 },
-  { hasta: 52_000, tipo: 0.2, cuotaAcumulada: 5_530 },
-  { hasta: 62_000, tipo: 0.225, cuotaAcumulada: 7_530 },
-  { hasta: 72_000, tipo: 0.25, cuotaAcumulada: 9_780 },
-  { hasta: 100_000, tipo: 0.265, cuotaAcumulada: 12_280 },
-  { hasta: 150_000, tipo: 0.275, cuotaAcumulada: 19_700 },
-  { hasta: 200_000, tipo: 0.285, cuotaAcumulada: 33_450 },
-  { hasta: null, tipo: 0.295, cuotaAcumulada: 47_700 },
+  { hasta: 12_000, tipo: 0.09 },
+  { hasta: 22_000, tipo: 0.12 },
+  { hasta: 32_000, tipo: 0.15 },
+  { hasta: 42_000, tipo: 0.175 },
+  { hasta: 52_000, tipo: 0.2 },
+  { hasta: 62_000, tipo: 0.225 },
+  { hasta: 72_000, tipo: 0.25 },
+  { hasta: 100_000, tipo: 0.265 },
+  { hasta: 150_000, tipo: 0.275 },
+  { hasta: 200_000, tipo: 0.285 },
+  { hasta: null, tipo: 0.295 },
 ];
 
 /**
  * Mitad estatal del ahorro · art. 66 LIRPF (Ley 7/2024 DF 7ª, efectos 1-ene-2025).
  */
 const ESCALA_AHORRO_ESTATAL: TramoEscala[] = [
-  { hasta: 6_000, tipo: 0.095, cuotaAcumulada: 0 },
-  { hasta: 50_000, tipo: 0.105, cuotaAcumulada: 570 },
-  { hasta: 200_000, tipo: 0.115, cuotaAcumulada: 5_190 },
-  { hasta: 300_000, tipo: 0.135, cuotaAcumulada: 22_440 },
-  { hasta: null, tipo: 0.15, cuotaAcumulada: 35_940 },
+  { hasta: 6_000, tipo: 0.095 },
+  { hasta: 50_000, tipo: 0.105 },
+  { hasta: 200_000, tipo: 0.115 },
+  { hasta: 300_000, tipo: 0.135 },
+  { hasta: null, tipo: 0.15 },
 ];
 
 /** Mitad autonómica del ahorro · art. 76 LIRPF (misma Ley 7/2024). */
 const ESCALA_AHORRO_AUTONOMICA: TramoEscala[] = [
-  { hasta: 6_000, tipo: 0.095, cuotaAcumulada: 0 },
-  { hasta: 50_000, tipo: 0.105, cuotaAcumulada: 570 },
-  { hasta: 200_000, tipo: 0.115, cuotaAcumulada: 5_190 },
-  { hasta: 300_000, tipo: 0.135, cuotaAcumulada: 22_440 },
-  { hasta: null, tipo: 0.15, cuotaAcumulada: 35_940 },
+  { hasta: 6_000, tipo: 0.095 },
+  { hasta: 50_000, tipo: 0.105 },
+  { hasta: 200_000, tipo: 0.115 },
+  { hasta: 300_000, tipo: 0.135 },
+  { hasta: null, tipo: 0.15 },
 ];
 
 const FUENTE_ESTATAL_G =
@@ -120,6 +123,15 @@ export const PARAMETROS = {
   minimoContribuyenteMas75: p(
     1_400,
     "Ley 35/2006 art. 57.2 · AEAT Manual Renta 2025",
+  ),
+  /**
+   * Hueco: CV tiene mínimos autonómicos propios (Ley 13/1997 art. 2 bis · Ley 9/2022).
+   * Sin importes verificados en DOGV → el gravamen autonómico usa el mínimo estatal
+   * como simplificación declarada (ver parametros-fiscales-pendientes.md).
+   */
+  minimoAutonomicoCVUsaEstatal: p(
+    true,
+    "Simplificación declarada · mínimos autonómicos CV (art. 2 bis Ley 13/1997) pendientes de verificar en DOGV",
   ),
   /** Edad a partir de la cual aplica el incremento art. 57.2 (primer tramo). */
   umbralEdadMas65: p(
@@ -150,6 +162,65 @@ export const PARAMETROS = {
   exencionReinversionPlazoMeses: p(
     6,
     "Ley 35/2006 art. 38.3 · AEAT Manual Renta 2025",
+  ),
+  /** Art. 19.2.f) LIRPF · otros gastos distintos · 2.000 € anuales. */
+  gastoOtrosTrabajoArt19: p(
+    2_000,
+    "Ley 35/2006 art. 19.2.f) · AEAT Manual Renta 2025 (fase 2 rendimiento neto del trabajo)",
+  ),
+  /**
+   * Art. 20 LIRPF · reducción por obtención de rendimientos del trabajo
+   * (redacción RDL 4/2024, efectos desde 1-ene-2024). Solo si RNT < tope.
+   */
+  reduccionTrabajoTopeRNT: p(
+    19_747.5,
+    "Ley 35/2006 art. 20 · redacción RDL 4/2024 art. 3.Uno · AEAT Manual Renta 2024/2025",
+  ),
+  reduccionTrabajoOtrasRentasMax: p(
+    6_500,
+    "Ley 35/2006 art. 20 · otras rentas (no exentas) distintas del trabajo ≤ 6.500 €",
+  ),
+  reduccionTrabajoTramo1Hasta: p(
+    14_852,
+    "Ley 35/2006 art. 20.a) · RDL 4/2024",
+  ),
+  reduccionTrabajoTramo1Cuantia: p(
+    7_302,
+    "Ley 35/2006 art. 20.a) · RDL 4/2024",
+  ),
+  reduccionTrabajoTramo2Hasta: p(
+    17_673.52,
+    "Ley 35/2006 art. 20.b) · RDL 4/2024",
+  ),
+  reduccionTrabajoTramo2Coef: p(
+    1.75,
+    "Ley 35/2006 art. 20.b) · RDL 4/2024",
+  ),
+  reduccionTrabajoTramo3Cuantia: p(
+    2_364.34,
+    "Ley 35/2006 art. 20.c) · RDL 4/2024",
+  ),
+  reduccionTrabajoTramo3Coef: p(
+    1.14,
+    "Ley 35/2006 art. 20.c) · RDL 4/2024",
+  ),
+  /**
+   * Art. 52.1 LIRPF · límite conjunto aportaciones previsión social.
+   * Redacción vigente (PGE 2023 / AEAT Manual Renta 2025): 1.500 € o 30 % RNT.
+   * El incremento +8.500 € por contribuciones empresariales no se aplica
+   * al plan individual del partícipe sin aportación de empresa.
+   */
+  aportacionPlanLimiteEuros: p(
+    1_500,
+    "Ley 35/2006 art. 52.1.b) · redacción vigente · AEAT Manual Renta 2025 §8.2.2.6",
+  ),
+  aportacionPlanLimitePctRNT: p(
+    0.3,
+    "Ley 35/2006 art. 52.1.a) · 30 % de rendimientos netos del trabajo y actividades económicas · AEAT Manual Renta 2025",
+  ),
+  aportacionPlanIncrementoEmpresarial: p(
+    8_500,
+    "Ley 35/2006 art. 52.1 · incremento máx. por contribuciones empresariales / aportaciones al mismo instrumento · AEAT Manual Renta 2025",
   ),
   /**
    * Horizonte de referencia del comparador (producto).
@@ -250,6 +321,7 @@ export function parametrosUsadosEnMotor(): ParametroKey[] {
     "minimoContribuyente",
     "minimoContribuyenteMas65",
     "minimoContribuyenteMas75",
+    "minimoAutonomicoCVUsaEstatal",
     "umbralEdadMas65",
     "umbralEdadMas75",
     "reduccion40PlanesPre2007",
@@ -257,6 +329,18 @@ export function parametrosUsadosEnMotor(): ParametroKey[] {
     "reduccion40AportacionesHasta",
     "exencionReinversionRentaVitaliciaLimite",
     "exencionReinversionPlazoMeses",
+    "gastoOtrosTrabajoArt19",
+    "reduccionTrabajoTopeRNT",
+    "reduccionTrabajoOtrasRentasMax",
+    "reduccionTrabajoTramo1Hasta",
+    "reduccionTrabajoTramo1Cuantia",
+    "reduccionTrabajoTramo2Hasta",
+    "reduccionTrabajoTramo2Coef",
+    "reduccionTrabajoTramo3Cuantia",
+    "reduccionTrabajoTramo3Coef",
+    "aportacionPlanLimiteEuros",
+    "aportacionPlanLimitePctRNT",
+    "aportacionPlanIncrementoEmpresarial",
     "periodoFilaFiscalDesde",
     "periodoFilaFiscalHasta",
   ];

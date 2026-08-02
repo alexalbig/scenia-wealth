@@ -230,6 +230,7 @@ export const seed: SeedData = {
       fechaAdquisicion: "2009-01-01",
       costeAdquisicion: 295_000,
       plusvaliaLatente: 125_000,
+      uso: "vivienda_habitual",
       pasivoId: PASIVO_HIPOTECA,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 0.5 },
@@ -277,6 +278,16 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 95_000,
       descripcion: "Trabajo",
+      /**
+       * Cotizaciones SS del trabajador · ejercicio 2026.
+       * Base tope 5.101,20 €/mes (Orden PJC/297/2026 art. 2.1) × 12 = 61.214,40 €.
+       * Tipos trabajador: CC 4,70 % + desempleo 1,55 % + FP 0,10 % + MEI 0,15 % = 6,50 %
+       * → 3.978,94 € sobre base tope.
+       * + cotización adicional de solidaridad (art. 17) sobre retribución > tope
+       *   (sueldo mensual 7.916,67 €) ≈ 70,68 € → total redondeado 4.050 €.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026.
+       */
+      cotizacionesSS: 4_050,
     },
     {
       id: "ing-marta-trabajo",
@@ -285,6 +296,13 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 32_000,
       descripcion: "Trabajo",
+      /**
+       * Cotizaciones SS del trabajador · ejercicio 2026.
+       * Sueldo 32.000 €/año (2.666,67 €/mes) < base máxima 5.101,20 €/mes
+       * → cotiza por el íntegro: 6,50 % × 32.000 = 2.080 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 2_080,
     },
   ],
 

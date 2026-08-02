@@ -379,10 +379,11 @@ export default function CarteraPage() {
       <AltaClienteModal
         open={altaOpen}
         onClose={() => setAltaOpen(false)}
-        onCreated={({ nombre, segmento, personas }) => {
+        onCreated={({ nombre, segmento, ccaa, personas }) => {
           const bag = createExpedienteFromAlta({
             nombre,
             segmento: segmento as Segmento,
+            ccaa,
             personas,
           });
           setSessionTick((t) => t + 1);

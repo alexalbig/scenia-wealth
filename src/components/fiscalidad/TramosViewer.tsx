@@ -19,12 +19,15 @@ export function TramosViewer({
   personaNombre,
   baseGeneral,
   baseAhorro,
+  etiquetaBase = "Base liquidable general (arts. 19/20)",
 }: {
   anio: number;
   personaNombre: string;
   baseGeneral: number;
   /** null = hueco (sin modelo de rentas del ahorro). */
   baseAhorro: number | null;
+  /** Etiqueta explícita: liquidable vs bruta. */
+  etiquetaBase?: string;
 }) {
   const activoEst = tramoDeBase(baseGeneral, "estatal", anio);
   const tramosEst = getTramos("estatal", anio);
@@ -60,7 +63,7 @@ export function TramosViewer({
           }}
         >
           <div className="lbl">
-            Base general {anio} · escalas oficiales (a verificar)
+            {etiquetaBase} {anio} · escalas oficiales (a verificar)
           </div>
           <span className="lock">🔒 solo lectura</span>
         </div>

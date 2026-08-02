@@ -4,9 +4,11 @@
  * Sin defaults silenciosos de CCAA.
  */
 
-import type { TipoEvento } from "@/lib/types";
+import type { TipoEvento, UsoInmueble } from "@/lib/types";
 import { esRegimenForal } from "@/lib/types";
+import { limiteAportacionPlanIndividual } from "./base-liquidable";
 import {
+  cuotaGeneralIRPF,
   cuotaMarginalAhorro,
   cuotaMarginalGeneral,
   minimoPersonalPorEdad,
@@ -24,6 +26,17 @@ export type ResultadoFiscalMotor =
       nota: string;
       parametrosAVerificar: boolean;
       desglose?: string;
+      /**
+       * Cifra orientativa que NO sigue el método legal completo
+       * (p. ej. ratio único en lugar de FIFO art. 37.2).
+       * No válida para autoliquidación — temporal hasta lotes.
+       */
+      estimacionNoAutoliquidable?: boolean;
+      /**
+       * Cálculo real sobre un dato introducido por el asesor
+       * (p. ej. pensión estimada). No es «introducido» puro ni «parcial».
+       */
+      sobreDatoIntroducido?: string;
     }
   | {
       kind: "neutro";
@@ -31,6 +44,7 @@ export type ResultadoFiscalMotor =
       regla: string;
       nota: string;
       parametrosAVerificar: boolean;
+      sobreDatoIntroducido?: string;
     }
   | { kind: "sin_calculo"; nota: string }
   | { kind: "pendiente_is"; nota: string };
@@ -58,7 +72,23 @@ export interface ContextoFiscalEvento {
   reinvierte?: boolean;
   /** Fracción de derechos correspondiente a aportaciones ≤ 31/12/2006. Desconocido → undefined. */
   fraccionPre2007?: number;
+  /** Año de la contingencia (jubilación, etc.) · DT 12ª plazos. */
+  anioContingencia?: number;
+  /** Uso del inmueble · distingue art. 33.4.b) vs 38.3. */
+  usoInmueble?: UsoInmueble;
   impactoManual?: number;
+  /** Desglose legible bruto → liquidable (arts. 19/20) del titular principal. */
+  notaBaseLiquidable?: string;
+  /**
+   * Rendimiento neto del trabajo antes de art. 20 (tras cotiz. + art. 19.2.f).
+   * Sirve al límite % del art. 52 en aportaciones.
+   */
+  rendimientoNetoTrabajo?: number;
+  /**
+   * La base general incluye la pensión del evento «jubilarse»
+   * (dato introducido por el asesor · no del expediente).
+   */
+  baseSobrePensionEstimada?: boolean;
 }
 
 const CCAA_COBERTURA_GENERAL = "Comunitat Valenciana";
@@ -95,7 +125,7 @@ function ccaaSinCoberturaAbsoluta(ccaa: string): string | null {
 
 /** Eventos que liquidan sobre base general (necesitan CV). */
 function usaBaseGeneral(tipo: TipoEvento): boolean {
-  return tipo === "rescatar_plan";
+  return tipo === "rescatar_plan" || tipo === "aportar_plan";
 }
 
 /** Eventos que liquidan sobre base del ahorro (régimen común OK; forales no). */
@@ -107,6 +137,78 @@ function marcaAVerificar(flag: boolean): string {
   return flag ? " · parámetros (a verificar)" : "";
 }
 
+/** Marca firewall · cálculo sobre pensión estimada (no inventa estilo nuevo). */
+function marcaPensionEstimada(ctx: ContextoFiscalEvento): string {
+  return ctx.baseSobrePensionEstimada
+    ? " · calculado sobre una pensión estimada por el asesor"
+    : "";
+}
+
+function sobreDatoIntroducidoDe(
+  ctx: ContextoFiscalEvento,
+): string | undefined {
+  return ctx.baseSobrePensionEstimada
+    ? "pensión estimada por el asesor"
+    : undefined;
+}
+
+/**
+ * Plazos DT 12ª tras Ley 26/2014 — si el rescate cae fuera, no hay 40 %.
+ * - Contingencias ≥ 2015: ejercicio de la contingencia + 2
+ * - Contingencias 2011–2014: hasta el 8.º ejercicio siguiente
+ * - Contingencias ≤ 2010: plazo terminado el 31/12/2018
+ */
+export function reduccion40EnPlazo(
+  anioContingencia: number,
+  anioRescate: number,
+): { ok: boolean; motivo: string } {
+  if (!Number.isFinite(anioContingencia) || anioContingencia <= 0) {
+    return {
+      ok: false,
+      motivo:
+        "Falta el año de la contingencia · no se aplica la reducción 40 % (DT 12ª)",
+    };
+  }
+  if (anioContingencia <= 2010) {
+    return {
+      ok: false,
+      motivo:
+        "Reducción 40 % no aplicada: contingencias de 2010 o anteriores · plazo terminado el 31/12/2018 (DT 12ª)",
+    };
+  }
+  if (anioContingencia >= 2011 && anioContingencia <= 2014) {
+    const limite = anioContingencia + 8;
+    if (anioRescate > limite) {
+      return {
+        ok: false,
+        motivo: `Reducción 40 % no aplicada: contingencia ${anioContingencia} · plazo hasta el ejercicio ${limite} (DT 12ª · Ley 26/2014)`,
+      };
+    }
+    return {
+      ok: true,
+      motivo: `Contingencia ${anioContingencia} · dentro del plazo (hasta ${limite})`,
+    };
+  }
+  // ≥ 2015
+  const limite = anioContingencia + 2;
+  if (anioRescate > limite) {
+    return {
+      ok: false,
+      motivo: `Reducción 40 % no aplicada: contingencia ${anioContingencia} · plazo = contingencia + 2 ejercicios (hasta ${limite}; DT 12ª)`,
+    };
+  }
+  if (anioRescate < anioContingencia) {
+    return {
+      ok: false,
+      motivo: `Reducción 40 % no aplicada: el rescate (${anioRescate}) es anterior a la contingencia (${anioContingencia})`,
+    };
+  }
+  return {
+    ok: true,
+    motivo: `Contingencia ${anioContingencia} · dentro del plazo (hasta ${limite})`,
+  };
+}
+
 export function simularMotorEvento(
   tipo: TipoEvento,
   ctx: ContextoFiscalEvento,
@@ -114,6 +216,10 @@ export function simularMotorEvento(
   const anio = ctx.anio;
   const ccaa = ctx.ccaa;
   const paramsAV = algunParametroAVerificar();
+  const minSimplificado = PARAMETROS.minimoAutonomicoCVUsaEstatal.valor === true;
+  const notaMinAut = minSimplificado
+    ? " · gravamen autonómico con mínimo estatal (simplificación declarada)"
+    : "";
 
   if (usaBaseGeneral(tipo)) {
     const bloqueo = ccaaAusenteOSinCoberturaGeneral(ccaa);
@@ -141,9 +247,10 @@ export function simularMotorEvento(
       if (importe <= 0 || valor <= 0) {
         return {
           kind: "sin_calculo",
-          nota: "Faltan valor del fondo o importe del reembolso para estimar la plusvalía (FIFO).",
+          nota: "Faltan valor del fondo o importe del reembolso para estimar la plusvalía.",
         };
       }
+      // Temporal: ratio único ≠ FIFO art. 37.2. No válido para autoliquidación.
       const ratio = Math.min(1, Math.max(0, plusv / valor));
       const gananciaTotal = importe * ratio;
       const tits =
@@ -165,10 +272,11 @@ export function simularMotorEvento(
       return {
         kind: "calculado",
         importe: redondeada,
-        regla: "FIFO → base del ahorro",
-        nota: `Plusvalía estimada (FIFO, ratio ${(ratio * 100).toFixed(1)} %) → base del ahorro · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        regla: "Estimación ratio · no FIFO",
+        nota: `Estimación por ratio plusvalía/valor (${(ratio * 100).toFixed(1)} %) · NO es el FIFO del art. 37.2 LIRPF · no válida para autoliquidación · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
+        estimacionNoAutoliquidable: true,
       };
     }
 
@@ -216,10 +324,19 @@ export function simularMotorEvento(
       if (modalidad === "capital") {
         const soloCapital = PARAMETROS.reduccion40SoloFormaCapital.valor;
         const pct = PARAMETROS.reduccion40PlanesPre2007.valor;
-        if (soloCapital && ctx.fraccionPre2007 != null && ctx.fraccionPre2007 > 0) {
+        const plazo = reduccion40EnPlazo(
+          ctx.anioContingencia ?? 0,
+          anio,
+        );
+        if (!soloCapital) {
+          notaReduccion =
+            "Reducción 40 % no aplicada (configuración · solo forma de capital)";
+        } else if (!plazo.ok) {
+          notaReduccion = plazo.motivo;
+        } else if (ctx.fraccionPre2007 != null && ctx.fraccionPre2007 > 0) {
           const reducible = importe * Math.min(1, ctx.fraccionPre2007);
           baseImponible = importe - reducible * pct;
-          notaReduccion = `Reducción 40 % sobre ${(ctx.fraccionPre2007 * 100).toFixed(0)} % pre-2007 (DT 12ª · dato introducido)`;
+          notaReduccion = `Reducción 40 % sobre ${(ctx.fraccionPre2007 * 100).toFixed(0)} % pre-2007 (DT 12ª · ${plazo.motivo} · dato introducido)`;
         } else {
           notaReduccion =
             "Reducción 40 % no aplicada: falta la fracción de aportaciones ≤ 31/12/2006 (hueco · no se inventa)";
@@ -250,13 +367,19 @@ export function simularMotorEvento(
         );
       }
       const redondeada = Math.round(cuota);
+      const baseNota =
+        ctx.notaBaseLiquidable != null
+          ? `base liquidable (arts. 19/20) · ${ctx.notaBaseLiquidable}`
+          : "base liquidable (arts. 19/20)";
+      const sobre = sobreDatoIntroducidoDe(ctx);
       return {
         kind: "calculado",
         importe: redondeada,
         regla: "Base general",
-        nota: `Base general · se apila sobre los ingresos del año · ${notaReduccion} · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `${baseNota} · se apila el rescate · ${notaReduccion} · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
+        sobreDatoIntroducido: sobre,
       };
     }
 
@@ -267,13 +390,35 @@ export function simularMotorEvento(
       };
 
     case "vender_inmueble": {
-      if (ctx.reinvierte) {
-        const lim = PARAMETROS.exencionReinversionRentaVitaliciaLimite.valor;
+      const uso = ctx.usoInmueble;
+      const umbral65 = PARAMETROS.umbralEdadMas65.valor;
+      const lim38 = PARAMETROS.exencionReinversionRentaVitaliciaLimite.valor;
+
+      // Sin asumir: falta uso → no liquidar
+      if (!uso) {
         return {
           kind: "sin_calculo",
-          nota: `Regla ⑤ · exención por reinversión >65 (art. 38.3 · límite ${lim.toLocaleString("es-ES")} €) · a verificar · sin cifra inventada`,
+          nota: "Falta el uso del inmueble (vivienda habitual / segunda residencia / alquiler / local) · necesario para distinguir art. 33.4.b) y art. 38.3 · no se asume",
         };
       }
+
+      const tits = ctx.titularidades;
+      if (tits.length === 0) {
+        return {
+          kind: "sin_calculo",
+          nota: "Faltan titularidades del inmueble · no se liquida la plusvalía",
+        };
+      }
+      const sinEdad = tits.filter(
+        (t) => t.edad == null || !Number.isFinite(t.edad),
+      );
+      if (sinEdad.length > 0) {
+        return {
+          kind: "sin_calculo",
+          nota: "Falta la fecha de nacimiento de al menos un titular · no se puede comprobar la edad ≥65 (art. 33.4.b) · no se asume",
+        };
+      }
+
       const plusv = ctx.plusvaliaLatente ?? 0;
       if (plusv <= 0) {
         return {
@@ -281,13 +426,91 @@ export function simularMotorEvento(
           nota: "Sin plusvalía latente conocida · no se inventa la ganancia",
         };
       }
-      const cuota = Math.round(cuotaMarginalAhorro(0, plusv, anio));
+
+      /** Art. 33.4.b): vivienda habitual y edad ≥65 en el año de la venta. */
+      const es334b = (t: TitularFiscal) =>
+        uso === "vivienda_habitual" && (t.edad as number) >= umbral65;
+      /** Art. 38.3: ≥65 + reinversión, cuando no aplica 33.4.b). */
+      const es383 = (t: TitularFiscal) =>
+        !es334b(t) &&
+        (t.edad as number) >= umbral65 &&
+        Boolean(ctx.reinvierte);
+
+      const exentos334 = tits.filter(es334b);
+      const pendientes38 = tits.filter(es383);
+      const liquidables = tits.filter((t) => !es334b(t) && !es383(t));
+
+      // Si hay cuota pendiente de art. 38.3 → aviso, sin inventar cifra
+      if (pendientes38.length > 0) {
+        const quien = pendientes38
+          .map(
+            (t) =>
+              `${Math.round(t.pct * 100)} % (edad ${t.edad})`,
+          )
+          .join(" · ");
+        const exentoNota =
+          exentos334.length > 0
+            ? ` · ${exentos334.map((t) => `${Math.round(t.pct * 100)} %`).join(" · ")} exento(s) art. 33.4.b)`
+            : "";
+        return {
+          kind: "sin_calculo",
+          nota: `Art. 38.3 · reinversión en renta vitalicia (límite ${lim38.toLocaleString("es-ES")} €) · titulares afectados: ${quien}${exentoNota} · requisitos art. 42 RIRPF pendientes de recoger en el flujo · sin cifra inventada`,
+        };
+      }
+
+      // Todos exentos art. 33.4.b)
+      if (exentos334.length === tits.length) {
+        return {
+          kind: "neutro",
+          importe: 0,
+          regla: "Art. 33.4.b)",
+          nota: `Exención art. 33.4.b) LIRPF · vivienda habitual · todos los titulares ≥${umbral65} años en ${anio} · sin reinversión ni límite ${lim38.toLocaleString("es-ES")} € · cuota 0 € · orientativo${marcaAVerificar(paramsAV)}`,
+          parametrosAVerificar: paramsAV,
+        };
+      }
+
+      // Plusvalía gravable solo de titulares no exentos
+      let gananciaGravable = 0;
+      const partes: string[] = [];
+      for (const t of liquidables) {
+        const g = plusv * t.pct;
+        gananciaGravable += g;
+        const c = cuotaMarginalAhorro(0, g, anio);
+        partes.push(
+          `${Math.round(t.pct * 100)} % (edad ${t.edad}) → ganancia ${Math.round(g)} € → cuota ${Math.round(c)} €`,
+        );
+      }
+      for (const t of exentos334) {
+        partes.push(
+          `${Math.round(t.pct * 100)} % (edad ${t.edad}) → exento art. 33.4.b)`,
+        );
+      }
+
+      if (gananciaGravable <= 0) {
+        return {
+          kind: "neutro",
+          importe: 0,
+          regla: "Art. 33.4.b)",
+          nota: `Exención art. 33.4.b) · sin ganancia gravable · orientativo${marcaAVerificar(paramsAV)}`,
+          parametrosAVerificar: paramsAV,
+        };
+      }
+
+      const cuota = Math.round(cuotaMarginalAhorro(0, gananciaGravable, anio));
+      const mixtura =
+        exentos334.length > 0
+          ? ` · ${exentos334.map((t) => `${Math.round(t.pct * 100)} %`).join(" · ")} exento(s) art. 33.4.b)`
+          : "";
       return {
         kind: "calculado",
         importe: cuota,
-        regla: "Plusvalía → base del ahorro",
-        nota: `Plusvalía → base del ahorro · cuota ≈ ${cuota.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        regla:
+          exentos334.length > 0
+            ? "Plusvalía parcial · art. 33.4.b) mixto"
+            : "Plusvalía → base del ahorro",
+        nota: `Plusvalía gravable ${Math.round(gananciaGravable).toLocaleString("es-ES")} € → base del ahorro${mixtura} · cuota ≈ ${cuota.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
+        desglose: partes.join(" · "),
       };
     }
 
@@ -298,11 +521,68 @@ export function simularMotorEvento(
         nota: "Liquidador de Impuesto de Sociedades · pendiente de definir. No se inventan cifras.",
       };
 
-    case "aportar_plan":
+    case "aportar_plan": {
+      const aporte = ctx.importe ?? 0;
+      if (aporte <= 0) {
+        return {
+          kind: "sin_calculo",
+          nota: "Falta el importe de la aportación.",
+        };
+      }
+      const tits =
+        ctx.titularidades.length > 0
+          ? ctx.titularidades
+          : [
+              {
+                personaId: "titular",
+                pct: 1,
+                baseGeneral: ctx.baseGeneralTitular,
+              },
+            ];
+      // Plan individual: límite art. 52 = min(1.500 €, 30 % RNT). Sin incremento empresarial.
+      const rnt =
+        ctx.rendimientoNetoTrabajo ??
+        Math.max(0, ctx.baseGeneralTitular);
+      const lim = limiteAportacionPlanIndividual(rnt);
+      const aplicable = Math.min(aporte, lim.limite);
+      const exceso = Math.max(0, aporte - lim.limite);
+
+      let ahorro = 0;
+      const partes: string[] = [];
+      for (const t of tits) {
+        const base = t.baseGeneral;
+        const min = minimoPersonalPorEdad(t.edad);
+        const reduccionTit = aplicable * t.pct;
+        const baseTras = Math.max(0, base - reduccionTit);
+        const cAntes = cuotaGeneralIRPF(base, anio, ccaa, min).total;
+        const cDespues = cuotaGeneralIRPF(baseTras, anio, ccaa, min).total;
+        const delta = Math.max(0, cAntes - cDespues);
+        ahorro += delta;
+        partes.push(
+          `base ${Math.round(base)} € − ${Math.round(reduccionTit)} € → ahorro Δ ${Math.round(delta)} €`,
+        );
+      }
+      const redondeada = Math.round(ahorro);
+      const avisoExceso =
+        exceso > 0
+          ? ` · exceso ${Math.round(exceso).toLocaleString("es-ES")} € no reduce la base (límite art. 52 = ${Math.round(lim.limite).toLocaleString("es-ES")} €)`
+          : "";
+      const baseNota =
+        ctx.notaBaseLiquidable != null
+          ? ` · ${ctx.notaBaseLiquidable}`
+          : "";
+      const sobre = sobreDatoIntroducidoDe(ctx);
       return {
-        kind: "sin_calculo",
-        nota: "Fuera de las 5 reglas · genérico sin cálculo (candidata a regla ⑥ en V2)",
+        kind: "calculado",
+        // Ahorro fiscal = importe negativo en la fila (menos cuota)
+        importe: -redondeada,
+        regla: "Regla ⑥ · aportación plan",
+        nota: `Regla ⑥ · aportación ${Math.round(aplicable).toLocaleString("es-ES")} € reduce la base liquidable general (límite art. 52: min(1.500 €, 30 % RNT) = ${Math.round(lim.limite).toLocaleString("es-ES")} €)${avisoExceso}${baseNota} · ahorro de cuota ≈ ${redondeada.toLocaleString("es-ES")} € · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
+        parametrosAVerificar: paramsAV,
+        desglose: partes.join(" · "),
+        sobreDatoIntroducido: sobre,
       };
+    }
 
     case "jubilarse":
       return {
@@ -333,8 +613,8 @@ export function simularMotorEventoCampos(
     baseGeneralTitular: 0,
     titularidades: [],
     importe: Number(campos.importe) || 0,
-    modalidad: (campos.modalidad as "capital" | "renta" | "mixto") || "renta",
+    modalidad: campos.modalidad as "capital" | "renta" | "mixto" | undefined,
     reinvierte: Boolean(campos.reinvierte),
-    impactoManual: Number(campos.impactoManual) || 0,
+    anioContingencia: Number(campos.anioContingencia) || undefined,
   });
 }

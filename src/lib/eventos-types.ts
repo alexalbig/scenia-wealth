@@ -11,6 +11,12 @@ export interface EventoCreadoPayload {
   /** @deprecated alias de cuotaAnual para callers antiguos */
   impuestosPeriodo?: number;
   introducidoPorAsesor?: boolean;
+  /**
+   * Cálculo del motor sobre un dato introducido (p. ej. pensión estimada).
+   */
+  sobreDatoIntroducido?: string;
+  /** Año de la contingencia · DT 12ª (rescate capital). */
+  anioContingencia?: number;
   notas?: string;
   escenarioId?: string;
   targetId?: string;

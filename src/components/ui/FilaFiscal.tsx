@@ -11,6 +11,7 @@ export function FilaFiscal({
   cells,
   delta,
   parcial = false,
+  sobreDatoIntroducido = false,
   parametrosAVerificar = true,
   className: _ignored,
 }: {
@@ -20,6 +21,11 @@ export function FilaFiscal({
   delta?: number | null;
   /** Hay eventos sin liquidador excluidos del total */
   parcial?: boolean;
+  /**
+   * Alguna cuota usa base con dato introducido (pensión estimada).
+   * No implica parcial.
+   */
+  sobreDatoIntroducido?: boolean;
   parametrosAVerificar?: boolean;
   className?: string;
 }) {
@@ -48,9 +54,12 @@ export function FilaFiscal({
           ? "Cálculo parcial · hay eventos sin liquidador (no sumados) · "
           : "Cálculo "}
         orientativo
-        {parametrosAVerificar ? " · parámetros (a verificar)" : ""} · Scenia
-        muestra las cifras; la conclusión es del asesor. Solo el primer
-        ejercicio de cada evento (sin acumulación multi-año).
+        {parametrosAVerificar ? " · parámetros (a verificar)" : ""}
+        {sobreDatoIntroducido
+          ? " · calculado sobre una pensión estimada por el asesor"
+          : ""}{" "}
+        · Scenia muestra las cifras; la conclusión es del asesor. Solo el
+        primer ejercicio de cada evento (sin acumulación multi-año).
       </div>
     </div>
   );

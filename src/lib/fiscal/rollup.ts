@@ -56,6 +56,11 @@ export interface RollupFiscal {
   parcial: boolean;
   motivosParcial: string[];
   parametrosAVerificar: boolean;
+  /**
+   * Alguna cuota del rollup se calcula sobre un dato introducido
+   * (pensión estimada). No implica parcial.
+   */
+  sobreDatoIntroducido: boolean;
   desglose: Array<{
     eventoId: string;
     etiqueta: string;
@@ -63,6 +68,7 @@ export interface RollupFiscal {
     cuotaAnual: number;
     aportePeriodo: number;
     kind: ResultadoFiscalMotor["kind"] | "introducido";
+    sobreDatoIntroducido?: string;
   }>;
 }
 
@@ -74,39 +80,44 @@ export function rollupImpuestosEscenario(
   let parcial = false;
   const motivosParcial: string[] = [];
   let parametrosAVerificar = false;
+  let sobreDatoIntroducido = false;
   const desglose: RollupFiscal["desglose"] = [];
 
   for (const ev of eventos) {
-    if (!primerAnioEnHorizonte(ev)) continue;
+    const enHorizonte = primerAnioEnHorizonte(ev);
 
     // Jubilación ajusta la base: nunca marca parcial ni suma impacto tecleado
     if (ev.tipo === "jubilarse") {
       const ctx = ctxFor(ev);
       const motor = simularMotorEvento(ev.tipo, ctx);
-      desglose.push({
-        eventoId: ev.id,
-        etiqueta: ev.etiqueta,
-        anios: 1,
-        cuotaAnual: 0,
-        aportePeriodo: 0,
-        kind: motor.kind === "neutro" || motor.kind === "calculado" ? motor.kind : "neutro",
-      });
+      if (enHorizonte) {
+        desglose.push({
+          eventoId: ev.id,
+          etiqueta: ev.etiqueta,
+          anios: 1,
+          cuotaAnual: 0,
+          aportePeriodo: 0,
+          kind: motor.kind === "neutro" || motor.kind === "calculado" ? motor.kind : "neutro",
+        });
+      }
       continue;
     }
 
     if (ev.introducidoPorAsesor && (ev.cuotaAnual != null || ev.impuestosPeriodo != null)) {
-      parcial = true;
-      motivosParcial.push(
-        `${ev.etiqueta}: impacto introducido por el asesor (no entra en el total calculado)`,
-      );
-      desglose.push({
-        eventoId: ev.id,
-        etiqueta: ev.etiqueta,
-        anios: 1,
-        cuotaAnual: 0,
-        aportePeriodo: 0,
-        kind: "introducido",
-      });
+      if (enHorizonte) {
+        parcial = true;
+        motivosParcial.push(
+          `${ev.etiqueta}: impacto introducido por el asesor (no entra en el total calculado)`,
+        );
+        desglose.push({
+          eventoId: ev.id,
+          etiqueta: ev.etiqueta,
+          anios: 1,
+          cuotaAnual: 0,
+          aportePeriodo: 0,
+          kind: "introducido",
+        });
+      }
       continue;
     }
 
@@ -114,48 +125,55 @@ export function rollupImpuestosEscenario(
     const motor = simularMotorEvento(ev.tipo, ctx);
 
     if (motor.kind === "pendiente_is") {
-      parcial = true;
-      motivosParcial.push(
-        `${ev.etiqueta}: sin liquidador de IS — no se suma cifra`,
-      );
-      desglose.push({
-        eventoId: ev.id,
-        etiqueta: ev.etiqueta,
-        anios: 1,
-        cuotaAnual: 0,
-        aportePeriodo: 0,
-        kind: "pendiente_is",
-      });
+      if (enHorizonte) {
+        parcial = true;
+        motivosParcial.push(
+          `${ev.etiqueta}: sin liquidador de IS — no se suma cifra`,
+        );
+        desglose.push({
+          eventoId: ev.id,
+          etiqueta: ev.etiqueta,
+          anios: 1,
+          cuotaAnual: 0,
+          aportePeriodo: 0,
+          kind: "pendiente_is",
+        });
+      }
       continue;
     }
 
     if (motor.kind === "sin_calculo") {
-      parcial = true;
-      motivosParcial.push(`${ev.etiqueta}: ${motor.nota}`);
-      desglose.push({
-        eventoId: ev.id,
-        etiqueta: ev.etiqueta,
-        anios: 1,
-        cuotaAnual: 0,
-        aportePeriodo: 0,
-        kind: "sin_calculo",
-      });
+      if (enHorizonte) {
+        parcial = true;
+        motivosParcial.push(`${ev.etiqueta}: ${motor.nota}`);
+        desglose.push({
+          eventoId: ev.id,
+          etiqueta: ev.etiqueta,
+          anios: 1,
+          cuotaAnual: 0,
+          aportePeriodo: 0,
+          kind: "sin_calculo",
+        });
+      }
       continue;
     }
 
     if (motor.kind === "calculado" || motor.kind === "neutro") {
-      if (motor.parametrosAVerificar) parametrosAVerificar = true;
-      // Siempre motor fresco — no congelar cuotaAnual guardada.
-      const cuotaPrimerAnio = motor.importe;
-      total += cuotaPrimerAnio;
+      // Siempre refresca cuota del evento (también fuera del horizonte de la fila)
       desglose.push({
         eventoId: ev.id,
         etiqueta: ev.etiqueta,
         anios: 1,
-        cuotaAnual: cuotaPrimerAnio,
-        aportePeriodo: cuotaPrimerAnio,
+        cuotaAnual: motor.importe,
+        aportePeriodo: enHorizonte ? motor.importe : 0,
         kind: motor.kind,
+        sobreDatoIntroducido: motor.sobreDatoIntroducido,
       });
+      if (enHorizonte) {
+        if (motor.parametrosAVerificar) parametrosAVerificar = true;
+        if (motor.sobreDatoIntroducido) sobreDatoIntroducido = true;
+        total += motor.importe;
+      }
     }
   }
 
@@ -164,6 +182,7 @@ export function rollupImpuestosEscenario(
     parcial,
     motivosParcial,
     parametrosAVerificar,
+    sobreDatoIntroducido,
     desglose,
   };
 }

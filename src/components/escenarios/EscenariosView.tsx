@@ -117,6 +117,9 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
         )
       : null;
   const fiscalParcial = compareEscenarios.some((e) => e.impuestosParcial);
+  const fiscalSobreDato = compareEscenarios.some(
+    (e) => e.impuestosSobreDatoIntroducido,
+  );
 
   function flash(msg: string) {
     setToast(msg);
@@ -447,6 +450,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   cells={fiscalCells}
                   delta={delta}
                   parcial={fiscalParcial}
+                  sobreDatoIntroducido={fiscalSobreDato}
                   parametrosAVerificar
                 />
               </div>
@@ -715,6 +719,15 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                                 {formatEUR(ev.impuestosPeriodo)} · primer
                                 ejercicio · orientativo · parámetros (a
                                 verificar)
+                              </div>
+                            )}
+                          {ev.sobreDatoIntroducido &&
+                            !ev.introducidoPorAsesor && (
+                              <div
+                                className="intro-chip"
+                                style={{ marginTop: 4 }}
+                              >
+                                ✎ Calculado sobre una {ev.sobreDatoIntroducido}
                               </div>
                             )}
                           {ev.introducidoPorAsesor && (

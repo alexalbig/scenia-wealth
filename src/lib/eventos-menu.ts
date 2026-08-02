@@ -119,6 +119,11 @@ export function accionesParaElemento(
             label: "Rescatar plan",
             hint: "Base general · capital / renta / mixto",
           },
+          {
+            tipo: "aportar_plan",
+            label: "Aportar a plan",
+            hint: "Regla ⑥ · reduce base liquidable (art. 52)",
+          },
         ];
       }
       return [
@@ -241,6 +246,8 @@ export function defaultsParaEvento(tipo: TipoEvento): {
     case "repartir_dividendo":
     case "vender_participacion":
       return { importe: "20000", anio: "2026" };
+    case "aportar_plan":
+      return { importe: "1500", anio: "2026" };
     case "generico":
       return { importe: "10000", anio: "2026" };
     default:
@@ -263,7 +270,9 @@ export function chipPreviewEvento(tipo: TipoEvento, reinvierte = true): string {
     case "aportar_fondo":
       return "Sin consecuencia fiscal en el momento de la aportación";
     case "rescatar_plan":
-      return "Base general · se apila sobre los ingresos del año · cuota del motor · orientativo";
+      return "Base liquidable general (arts. 19/20) · se apila el rescate · cuota del motor · orientativo";
+    case "aportar_plan":
+      return "Regla ⑥ · reduce la base liquidable (límite art. 52) · ahorro de cuota · orientativo";
     case "vender_inmueble":
       return reinvierte
         ? "Exención por reinversión >65 · límite (a verificar) · sin cifra inventada · orientativo"

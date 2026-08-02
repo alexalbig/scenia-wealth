@@ -5,8 +5,12 @@
  */
 
 import { getCliente, getPersonasDeCliente } from "./seed";
-import { ingresosPorPersona } from "./patrimonio";
+import { getIngresos, ingresosPorPersona } from "./patrimonio";
 import type { CCAA } from "./types";
+import {
+  desgloseBaseLiquidable,
+  type DesgloseBaseLiquidable,
+} from "./fiscal/base-liquidable";
 import {
   getEscalaAhorroEstatal,
   getEscalaAutonomicaGeneral,
@@ -40,6 +44,7 @@ export interface LiquidacionEjercicioVista {
   parametrosAVerificar: boolean;
   estatalGeneral: number;
   autonomicaGeneral: number;
+  minimoAutonomicoSimplificado: boolean;
   /** true si no hay base del ahorro modelada (hueco, no 0 inventado). */
   baseAhorroHueco: boolean;
 }
@@ -127,7 +132,41 @@ export function baseGeneralPersona(
   clienteId: string,
   personaId: string,
 ): number {
+  return desgloseBaseLiquidablePersona(clienteId, personaId).baseLiquidable;
+}
+
+/** Brutos del expediente (lo tecleado) — no es la base del motor. */
+export function ingresosBrutosPersona(
+  clienteId: string,
+  personaId: string,
+): number {
   return ingresosPorPersona(clienteId, personaId);
+}
+
+/** Desglose arts. 19/20 para P4 y chips. */
+export function desgloseBaseLiquidablePersona(
+  clienteId: string,
+  personaId: string,
+): DesgloseBaseLiquidable {
+  const lineas = getIngresos(clienteId).filter((i) => i.personaId === personaId);
+  let trabajo = 0;
+  let otras = 0;
+  let cotiz: number | null = null;
+  for (const i of lineas) {
+    if (i.fuente === "trabajo" || i.fuente === "pension") {
+      trabajo += i.importeAnual;
+      if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
+        cotiz = (cotiz ?? 0) + i.cotizacionesSS;
+      }
+    } else {
+      otras += i.importeAnual;
+    }
+  }
+  return desgloseBaseLiquidable({
+    ingresosTrabajoBrutos: trabajo,
+    otrasRentasBrutas: otras,
+    cotizacionesSS: cotiz,
+  });
 }
 
 /**

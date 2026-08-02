@@ -13,6 +13,7 @@ import {
   elementosMenuFromBag,
   eventosDeEscenarioFromBag,
   ingresosPersonaFromBag,
+  baseLiquidablePersonaFromBag,
   newId,
   planBaseFromBag,
   recomputeFiscalBag,
@@ -48,7 +49,12 @@ interface ExpedienteContextValue {
   ahorro: ReturnType<typeof capacidadFromBag>;
   planBase: Escenario | undefined;
   menuElementos: ReturnType<typeof elementosMenuFromBag>;
+  /** Suma de importes brutos del expediente (lo tecleado). */
   ingresosPersona: (personaId: string) => number;
+  /** Desglose arts. 19/20 → base liquidable del motor. */
+  desgloseBasePersona: (
+    personaId: string,
+  ) => ReturnType<typeof baseLiquidablePersonaFromBag>;
   patrimonioAtribuido: (personaId: string) => number;
   eventosDeEscenario: (escenarioId: string) => Evento[];
   upsertPersona: (p: Persona) => void;
@@ -179,6 +185,8 @@ export function ExpedienteProvider({
       planBase: planBaseFromBag(bag),
       menuElementos: elementosMenuFromBag(bag),
       ingresosPersona: (personaId) => ingresosPersonaFromBag(bag, personaId),
+      desgloseBasePersona: (personaId) =>
+        baseLiquidablePersonaFromBag(bag, personaId),
       patrimonioAtribuido: (personaId) =>
         titularidadAgregadaFromBag(bag, personaId),
       eventosDeEscenario: (escenarioId) =>
@@ -249,6 +257,8 @@ export function ExpedienteProvider({
             cuotaAnual,
             impuestosPeriodo: cuotaAnual,
             introducidoPorAsesor: payload.introducidoPorAsesor,
+            sobreDatoIntroducido: payload.sobreDatoIntroducido,
+            anioContingencia: payload.anioContingencia,
             notas: payload.notas,
           };
           const next: ExpedienteBag = {
