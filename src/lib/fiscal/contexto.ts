@@ -13,11 +13,52 @@ import {
   type BasePersonaEnAnio,
   type DesgloseBaseLiquidable,
 } from "./base-liquidable";
+import { estadoFiscalPersona } from "./estado-persona";
 import type { ContextoFiscalEvento, TitularFiscal } from "./motor";
 import { hastaAnioEvento } from "./rollup";
 
 const FUENTES_TRABAJO: FuenteIngreso[] = ["trabajo", "pension"];
 const FUENTES_NO_CONTEMPLADAS: FuenteIngreso[] = ["actividad_economica"];
+
+/** Clasificador v14 sobre el slice del bag (ingresos tipados a la ligera). */
+function estadoTitularFromBag(
+  bag: BagFiscalSlice,
+  persona: Persona,
+): ReturnType<typeof estadoFiscalPersona> {
+  const ingresos = bag.ingresos
+    .filter((i) => i.personaId === persona.id)
+    .map((i) => ({
+      id: `tmp-${persona.id}`,
+      clienteId: "bag",
+      personaId: persona.id,
+      fuente: (i.fuente ?? "trabajo") as FuenteIngreso,
+      importeAnual: i.importeAnual,
+      cotizacionesSS: i.cotizacionesSS,
+    }));
+  return estadoFiscalPersona(persona, ingresos);
+}
+
+function titularFiscalFromPersona(
+  bag: BagFiscalSlice,
+  persona: Persona,
+  pct: number,
+  anio: number,
+  eventosEscenario: Evento[],
+): { titular: TitularFiscal; base: BasePersonaEnAnio } {
+  const base = basePersonaEnAnio(bag, persona.id, anio, eventosEscenario);
+  return {
+    base,
+    titular: {
+      personaId: persona.id,
+      pct,
+      baseGeneral: base.desglose.baseLiquidable,
+      edad: anio - persona.birthYear,
+      ccaa: persona.ccaa,
+      nombre: persona.nombre,
+      estado: estadoTitularFromBag(bag, persona),
+    },
+  };
+}
 
 /** Subconjunto del bag necesario para el motor (sin importar ExpedienteBag). */
 export interface BagFiscalSlice {
@@ -180,45 +221,36 @@ export function buildContextoFiscalFromBag(
 
   const titsSrc = inst?.titularidades ?? inm?.titularidades ?? [];
   const bases: BasePersonaEnAnio[] = [];
-  const titularidades: TitularFiscal[] = titsSrc
-    .filter((t) => t.owner.kind === "persona")
-    .map((t) => {
-      const personaId =
-        t.owner.kind === "persona" ? t.owner.personaId : "";
-      const persona = bag.personas.find((p) => p.id === personaId);
-      const edad = persona ? anio - persona.birthYear : undefined;
-      const base = basePersonaEnAnio(
-        bag,
-        personaId,
-        anio,
-        eventosEscenario,
-      );
-      bases.push(base);
-      return {
-        personaId,
-        pct: t.porcentaje,
-        baseGeneral: base.desglose.baseLiquidable,
-        edad,
-      };
-    });
+  const titularidades: TitularFiscal[] = [];
+  for (const t of titsSrc) {
+    if (t.owner.kind !== "persona") continue;
+    const personaId = t.owner.personaId;
+    const persona = bag.personas.find((p) => p.id === personaId);
+    if (!persona) continue;
+    const { titular, base } = titularFiscalFromPersona(
+      bag,
+      persona,
+      t.porcentaje,
+      anio,
+      eventosEscenario,
+    );
+    bases.push(base);
+    titularidades.push(titular);
+  }
 
   // Rescate / aportación / jubilación: titular = target persona o dueño del plan
   if (titularidades.length === 0 && ev.targetId) {
     const persona = bag.personas.find((p) => p.id === ev.targetId);
     if (persona) {
-      const base = basePersonaEnAnio(
+      const { titular, base } = titularFiscalFromPersona(
         bag,
-        persona.id,
+        persona,
+        1,
         anio,
         eventosEscenario,
       );
       bases.push(base);
-      titularidades.push({
-        personaId: persona.id,
-        pct: 1,
-        baseGeneral: base.desglose.baseLiquidable,
-        edad: anio - persona.birthYear,
-      });
+      titularidades.push(titular);
     }
   }
 

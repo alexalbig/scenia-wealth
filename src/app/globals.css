@@ -289,7 +289,7 @@ tfoot td{border-top:1px solid var(--line-2);border-bottom:none;font-weight:700;b
 .esc .active{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
 .esc .active .head{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3)}
 .esc .active .head b{font-size:14px;color:var(--ink)}
-.abar{height:22px;border:1px solid var(--line-2);border-radius:6px;background:var(--paper-2);position:relative;margin-top:10px;overflow:visible}
+.abar{height:22px;border:1px solid var(--line-2);border-radius:6px;background:var(--paper-2);position:relative;margin-top:24px;overflow:visible}
 .afill{position:absolute;top:0;bottom:0;left:0;background:#E7EBF3;border-radius:5px 0 0 5px}
 .amark{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink)}
 .amark i{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink);white-space:nowrap}

@@ -18,7 +18,6 @@ import {
   PARAMETROS,
 } from "./fiscal/parametros";
 import {
-  liquidacionEjercicio,
   minimoPersonalPorEdad,
 } from "./fiscal/escalas";
 
@@ -34,19 +33,6 @@ export interface EspacioTramo {
   tramoIndex: number;
   tramo: Tramo;
   espacio: number | null;
-}
-
-export interface LiquidacionEjercicioVista {
-  cuotaGeneral: number;
-  cuotaAhorro: number;
-  total: number;
-  ccaaSinCobertura: boolean;
-  parametrosAVerificar: boolean;
-  estatalGeneral: number;
-  autonomicaGeneral: number;
-  minimoAutonomicoSimplificado: boolean;
-  /** true si no hay base del ahorro modelada (hueco, no 0 inventado). */
-  baseAhorroHueco: boolean;
 }
 
 function oficialToTramos(
@@ -192,33 +178,6 @@ export function baseAhorroPersona(
   return null;
 }
 
-export function liquidacionEjercicioPersona(opts: {
-  clienteId: string;
-  personaId: string;
-  anio: number;
-  ccaa: CCAA;
-}): LiquidacionEjercicioVista | null {
-  const personas = getPersonasDeCliente(opts.clienteId);
-  const persona = personas.find((p) => p.id === opts.personaId);
-  if (!persona) return null;
-
-  const baseG = baseGeneralPersona(opts.clienteId, opts.personaId);
-  const baseA = baseAhorroPersona(opts.clienteId, opts.personaId);
-  const edad = opts.anio - persona.birthYear;
-  const liq = liquidacionEjercicio({
-    baseGeneral: baseG,
-    baseAhorro: baseA ?? 0,
-    anio: opts.anio,
-    ccaa: opts.ccaa,
-    edad,
-  });
-
-  return {
-    ...liq,
-    baseAhorroHueco: baseA == null,
-  };
-}
-
 export function aniosToolbarFiscal(): number[] {
   const desde = PARAMETROS.periodoFilaFiscalDesde.valor;
   const hasta = Math.min(PARAMETROS.periodoFilaFiscalHasta.valor, desde + 5);
@@ -255,7 +214,6 @@ export function minimoPersonalPersona(
 
 export {
   simularMotorEvento,
-  simularMotorEventoCampos,
   type ResultadoFiscalMotor,
   type ContextoFiscalEvento,
 } from "./fiscal/motor";

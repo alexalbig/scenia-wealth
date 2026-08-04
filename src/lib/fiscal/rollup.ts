@@ -172,6 +172,16 @@ export function rollupImpuestosEscenario(
       if (enHorizonte) {
         if (motor.parametrosAVerificar) parametrosAVerificar = true;
         if (motor.sobreDatoIntroducido) sobreDatoIntroducido = true;
+        if (
+          motor.kind === "calculado" &&
+          motor.parcialTitulares &&
+          motor.parcialTitulares.length > 0
+        ) {
+          parcial = true;
+          for (const t of motor.parcialTitulares) {
+            motivosParcial.push(`${ev.etiqueta}: ${t.motivo}`);
+          }
+        }
         total += motor.importe;
       }
     }

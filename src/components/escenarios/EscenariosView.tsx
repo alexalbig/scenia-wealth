@@ -118,6 +118,9 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
         )
       : null;
   const fiscalParcial = compareEscenarios.some((e) => e.impuestosParcial);
+  const fiscalMotivosParcial = compareEscenarios.flatMap(
+    (e) => e.impuestosMotivosParcial ?? [],
+  );
   const fiscalSobreDato = compareEscenarios.some(
     (e) => e.impuestosSobreDatoIntroducido,
   );
@@ -451,6 +454,11 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   cells={fiscalCells}
                   delta={delta}
                   parcial={fiscalParcial}
+                  motivosParcial={
+                    fiscalMotivosParcial.length > 0
+                      ? fiscalMotivosParcial
+                      : undefined
+                  }
                   sobreDatoIntroducido={fiscalSobreDato}
                   parametrosAVerificar
                 />

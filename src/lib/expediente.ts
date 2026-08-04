@@ -483,6 +483,10 @@ export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
       ...esc,
       impuestosPeriodo: rollup.impuestosPeriodo,
       impuestosParcial: rollup.parcial,
+      impuestosMotivosParcial:
+        rollup.motivosParcial.length > 0
+          ? rollup.motivosParcial
+          : undefined,
       impuestosSobreDatoIntroducido: rollup.sobreDatoIntroducido,
     };
   });

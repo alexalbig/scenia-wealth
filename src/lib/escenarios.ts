@@ -3,10 +3,7 @@ import type { TipoEvento } from "./types";
 import { periodoFilaFiscal } from "./fiscal/rollup";
 
 export type { ResultadoFiscalMotor } from "./fiscal/motor";
-export {
-  simularMotorEvento,
-  simularMotorEventoCampos,
-} from "./fiscal/motor";
+export { simularMotorEvento } from "./fiscal/motor";
 
 export type ComparadorMetrica = "patrimonio" | "liquidos" | "irpf_acumulado";
 

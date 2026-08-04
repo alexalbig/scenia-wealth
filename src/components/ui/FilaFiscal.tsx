@@ -11,6 +11,7 @@ export function FilaFiscal({
   cells,
   delta,
   parcial = false,
+  motivosParcial,
   sobreDatoIntroducido = false,
   parametrosAVerificar = true,
   className: _ignored,
@@ -21,6 +22,8 @@ export function FilaFiscal({
   delta?: number | null;
   /** Hay eventos sin liquidador excluidos del total */
   parcial?: boolean;
+  /** Qué titular / evento y por qué (v14). */
+  motivosParcial?: string[];
   /**
    * Alguna cuota usa base con dato introducido (pensión estimada).
    * No implica parcial.
@@ -31,6 +34,10 @@ export function FilaFiscal({
 }) {
   void _ignored;
   const lbl = label ?? "Impacto fiscal · primer año · orientativo";
+  const motivos =
+    motivosParcial && motivosParcial.length > 0
+      ? motivosParcial.join(" · ")
+      : null;
 
   return (
     <div className="fila-fiscal" data-firewall="neutral-only">
@@ -51,15 +58,16 @@ export function FilaFiscal({
       </div>
       <div className="ff-note">
         {parcial
-          ? "Cálculo parcial · hay eventos sin liquidador (no sumados) · "
+          ? "Cálculo parcial · hay partes sin liquidador (no sumadas) · "
           : "Cálculo "}
         orientativo
         {parametrosAVerificar ? " · parámetros (a verificar)" : ""}
         {sobreDatoIntroducido
           ? " · calculado sobre una pensión estimada por el asesor"
-          : ""}{" "}
-        · Scenia muestra las cifras; la conclusión es del asesor. Solo el
-        primer ejercicio de cada evento (sin acumulación multi-año).
+          : ""}
+        {motivos ? ` · ${motivos}` : ""} · Scenia muestra las cifras; la
+        conclusión es del asesor. Solo el primer ejercicio de cada evento (sin
+        acumulación multi-año).
       </div>
     </div>
   );

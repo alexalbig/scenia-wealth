@@ -280,6 +280,8 @@ export interface Escenario {
   impuestosPeriodo?: number;
   /** Hay eventos sin liquidador excluidos del total */
   impuestosParcial?: boolean;
+  /** Motivos del cálculo parcial (titular + causa). */
+  impuestosMotivosParcial?: string[];
   /**
    * Alguna cuota del rollup usa base con dato introducido (pensión estimada).
    * No implica parcial.

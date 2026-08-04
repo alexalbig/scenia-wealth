@@ -19,6 +19,28 @@ import {
   PARAMETROS,
 } from "./parametros";
 
+export interface TitularFiscal {
+  personaId: string;
+  pct: number;
+  baseGeneral: number;
+  edad?: number;
+  /** CCAA de la persona (cobertura por titular, no del expediente). */
+  ccaa?: string;
+  /** Nombre corto para notas de parcial / sin_calculo. */
+  nombre?: string;
+  /**
+   * Estado del clasificador v14. Si falta (ctx legado / tests),
+   * el motor no aplica la guarda por titular.
+   */
+  estado?: import("./estado-persona").EstadoFiscalPersona;
+}
+
+export interface TitularSinCalculo {
+  personaId: string;
+  nombre?: string;
+  motivo: string;
+}
+
 export type ResultadoFiscalMotor =
   | {
       kind: "calculado";
@@ -38,6 +60,11 @@ export type ResultadoFiscalMotor =
        * (p. ej. pensión estimada). No es «introducido» puro ni «parcial».
        */
       sobreDatoIntroducido?: string;
+      /**
+       * Titulares cuya parte no se liquidó (v14).
+       * La cuota solo suma las partes calculables; el rollup marca parcial.
+       */
+      parcialTitulares?: TitularSinCalculo[];
     }
   | {
       kind: "neutro";
@@ -49,13 +76,6 @@ export type ResultadoFiscalMotor =
     }
   | { kind: "sin_calculo"; nota: string }
   | { kind: "pendiente_is"; nota: string };
-
-export interface TitularFiscal {
-  personaId: string;
-  pct: number;
-  baseGeneral: number;
-  edad?: number;
-}
 
 export interface ContextoFiscalEvento {
   anio: number;
@@ -151,6 +171,39 @@ function sobreDatoIntroducidoDe(
   return ctx.baseSobrePensionEstimada
     ? "pensión estimada por el asesor"
     : undefined;
+}
+
+function etiquetaTitular(t: TitularFiscal): string {
+  return t.nombre?.trim() || t.personaId;
+}
+
+/**
+ * Partición v14: titulares calculables vs excluidos por el clasificador.
+ * Sin `estado` (ctx legado) → se trata como calculable.
+ */
+function particionPorEstado(tits: TitularFiscal[]): {
+  calculables: TitularFiscal[];
+  excluidos: TitularSinCalculo[];
+} {
+  const calculables: TitularFiscal[] = [];
+  const excluidos: TitularSinCalculo[] = [];
+  for (const t of tits) {
+    if (t.estado?.kind === "sin_calculo") {
+      excluidos.push({
+        personaId: t.personaId,
+        nombre: t.nombre,
+        motivo: `${etiquetaTitular(t)}: ${t.estado.aviso}`,
+      });
+    } else {
+      calculables.push(t);
+    }
+  }
+  return { calculables, excluidos };
+}
+
+function notaParcialTitulares(excluidos: TitularSinCalculo[]): string {
+  if (excluidos.length === 0) return "";
+  return ` · cálculo parcial · no liquidado: ${excluidos.map((e) => e.motivo).join(" · ")}`;
 }
 
 /**
@@ -259,25 +312,37 @@ export function simularMotorEvento(
           ? ctx.titularidades
           : [{ personaId: "?", pct: 1, baseGeneral: 0 }];
 
+      const { calculables, excluidos } = particionPorEstado(tits);
+      if (calculables.length === 0) {
+        return {
+          kind: "sin_calculo",
+          nota: `Reembolso sin titulares calculables · ${excluidos.map((e) => e.motivo).join(" · ")}`,
+        };
+      }
+
       let cuota = 0;
       const partes: string[] = [];
-      for (const t of tits) {
+      for (const t of calculables) {
         const g = gananciaTotal * t.pct;
         const c = cuotaMarginalAhorro(0, g, anio);
         cuota += c;
         partes.push(
-          `${Math.round(t.pct * 100)} % → ganancia ${formatIntegerES(Math.round(g))} € → cuota ${formatIntegerES(Math.round(c))} €`,
+          `${etiquetaTitular(t)} ${Math.round(t.pct * 100)} % → ganancia ${formatIntegerES(Math.round(g))} € → cuota ${formatIntegerES(Math.round(c))} €`,
         );
+      }
+      for (const e of excluidos) {
+        partes.push(`${e.motivo} · sin_calculo`);
       }
       const redondeada = Math.round(cuota);
       return {
         kind: "calculado",
         importe: redondeada,
         regla: "Estimación ratio · no FIFO",
-        nota: `Estimación por ratio plusvalía/valor (${(ratio * 100).toFixed(1)} %) · NO es el FIFO del art. 37.2 LIRPF · no válida para autoliquidación · cuota ≈ ${formatIntegerES(redondeada)} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Estimación por ratio plusvalía/valor (${(ratio * 100).toFixed(1)} %) · NO es el FIFO del art. 37.2 LIRPF · no válida para autoliquidación · cuota ≈ ${formatIntegerES(redondeada)} € · primer ejercicio · orientativo${notaParcialTitulares(excluidos)}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
         estimacionNoAutoliquidable: true,
+        parcialTitulares: excluidos.length > 0 ? excluidos : undefined,
       };
     }
 
@@ -355,17 +420,30 @@ export function simularMotorEvento(
               },
             ];
 
+      const { calculables, excluidos } = particionPorEstado(tits);
+      if (calculables.length === 0) {
+        return {
+          kind: "sin_calculo",
+          nota: `Rescate sin titulares calculables · ${excluidos.map((e) => e.motivo).join(" · ") || "sin titulares"}`,
+        };
+      }
+
       let cuota = 0;
       const partes: string[] = [];
-      for (const t of tits) {
+      for (const t of calculables) {
         const parte = baseImponible * t.pct;
         const base = t.baseGeneral;
         const min = minimoPersonalPorEdad(t.edad);
-        const c = cuotaMarginalGeneral(base, parte, anio, ccaa, min);
+        // Cobertura por persona: CCAA del titular, no del expediente.
+        const ccaaTitular = t.ccaa ?? ccaa;
+        const c = cuotaMarginalGeneral(base, parte, anio, ccaaTitular, min);
         cuota += c;
         partes.push(
-          `base ${formatIntegerES(Math.round(base))} € + ${formatIntegerES(Math.round(parte))} € → Δ ${formatIntegerES(Math.round(c))} €`,
+          `${etiquetaTitular(t)} · base ${formatIntegerES(Math.round(base))} € + ${formatIntegerES(Math.round(parte))} € → Δ ${formatIntegerES(Math.round(c))} €`,
         );
+      }
+      for (const e of excluidos) {
+        partes.push(`${e.motivo} · sin_calculo`);
       }
       const redondeada = Math.round(cuota);
       const baseNota =
@@ -377,10 +455,11 @@ export function simularMotorEvento(
         kind: "calculado",
         importe: redondeada,
         regla: "Base general",
-        nota: `${baseNota} · se apila el rescate · ${notaReduccion} · cuota ≈ ${formatIntegerES(redondeada)} € · primer ejercicio · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
+        nota: `${baseNota} · se apila el rescate · ${notaReduccion} · cuota ≈ ${formatIntegerES(redondeada)} € · primer ejercicio · orientativo${notaParcialTitulares(excluidos)}${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
         sobreDatoIntroducido: sobre,
+        parcialTitulares: excluidos.length > 0 ? excluidos : undefined,
       };
     }
 
@@ -410,13 +489,23 @@ export function simularMotorEvento(
           nota: "Faltan titularidades del inmueble · no se liquida la plusvalía",
         };
       }
-      const sinEdad = tits.filter(
+
+      const { calculables: titsOk, excluidos: excluidosEstado } =
+        particionPorEstado(tits);
+      if (titsOk.length === 0) {
+        return {
+          kind: "sin_calculo",
+          nota: `Venta sin titulares calculables · ${excluidosEstado.map((e) => e.motivo).join(" · ")}`,
+        };
+      }
+
+      const sinEdad = titsOk.filter(
         (t) => t.edad == null || !Number.isFinite(t.edad),
       );
       if (sinEdad.length > 0) {
         return {
           kind: "sin_calculo",
-          nota: "Falta la fecha de nacimiento de al menos un titular · no se puede comprobar la edad ≥65 (art. 33.4.b) · no se asume",
+          nota: "Falta la fecha de nacimiento de al menos un titular calculable · no se puede comprobar la edad ≥65 (art. 33.4.b) · no se asume",
         };
       }
 
@@ -437,9 +526,9 @@ export function simularMotorEvento(
         (t.edad as number) >= umbral65 &&
         Boolean(ctx.reinvierte);
 
-      const exentos334 = tits.filter(es334b);
-      const pendientes38 = tits.filter(es383);
-      const liquidables = tits.filter((t) => !es334b(t) && !es383(t));
+      const exentos334 = titsOk.filter(es334b);
+      const pendientes38 = titsOk.filter(es383);
+      const liquidables = titsOk.filter((t) => !es334b(t) && !es383(t));
 
       // Si hay cuota pendiente de art. 38.3 → aviso, sin inventar cifra
       if (pendientes38.length > 0) {
@@ -453,24 +542,25 @@ export function simularMotorEvento(
           exentos334.length > 0
             ? ` · ${exentos334.map((t) => `${Math.round(t.pct * 100)} %`).join(" · ")} exento(s) art. 33.4.b)`
             : "";
+        const parcialNota = notaParcialTitulares(excluidosEstado);
         return {
           kind: "sin_calculo",
-          nota: `Art. 38.3 · reinversión en renta vitalicia (límite ${formatIntegerES(lim38)} €) · titulares afectados: ${quien}${exentoNota} · requisitos art. 42 RIRPF pendientes de recoger en el flujo · sin cifra inventada`,
+          nota: `Art. 38.3 · reinversión en renta vitalicia (límite ${formatIntegerES(lim38)} €) · titulares afectados: ${quien}${exentoNota}${parcialNota} · requisitos art. 42 RIRPF pendientes de recoger en el flujo · sin cifra inventada`,
         };
       }
 
-      // Todos exentos art. 33.4.b)
-      if (exentos334.length === tits.length) {
+      // Todos los calculables exentos art. 33.4.b)
+      if (exentos334.length === titsOk.length) {
         return {
           kind: "neutro",
           importe: 0,
           regla: "Art. 33.4.b)",
-          nota: `Exención art. 33.4.b) LIRPF · vivienda habitual · todos los titulares ≥${umbral65} años en ${anio} · sin reinversión ni límite ${formatIntegerES(lim38)} € · cuota 0 € · orientativo${marcaAVerificar(paramsAV)}`,
+          nota: `Exención art. 33.4.b) LIRPF · vivienda habitual · todos los titulares calculables ≥${umbral65} años en ${anio} · sin reinversión ni límite ${formatIntegerES(lim38)} € · cuota 0 € · orientativo${notaParcialTitulares(excluidosEstado)}${marcaAVerificar(paramsAV)}`,
           parametrosAVerificar: paramsAV,
         };
       }
 
-      // Plusvalía gravable solo de titulares no exentos
+      // Plusvalía gravable solo de titulares no exentos (y calculables)
       let gananciaGravable = 0;
       const partes: string[] = [];
       for (const t of liquidables) {
@@ -478,13 +568,16 @@ export function simularMotorEvento(
         gananciaGravable += g;
         const c = cuotaMarginalAhorro(0, g, anio);
         partes.push(
-          `${Math.round(t.pct * 100)} % (edad ${t.edad}) → ganancia ${formatIntegerES(Math.round(g))} € → cuota ${formatIntegerES(Math.round(c))} €`,
+          `${etiquetaTitular(t)} ${Math.round(t.pct * 100)} % (edad ${t.edad}) → ganancia ${formatIntegerES(Math.round(g))} € → cuota ${formatIntegerES(Math.round(c))} €`,
         );
       }
       for (const t of exentos334) {
         partes.push(
-          `${Math.round(t.pct * 100)} % (edad ${t.edad}) → exento art. 33.4.b)`,
+          `${etiquetaTitular(t)} ${Math.round(t.pct * 100)} % (edad ${t.edad}) → exento art. 33.4.b)`,
         );
+      }
+      for (const e of excluidosEstado) {
+        partes.push(`${e.motivo} · sin_calculo`);
       }
 
       if (gananciaGravable <= 0) {
@@ -492,7 +585,7 @@ export function simularMotorEvento(
           kind: "neutro",
           importe: 0,
           regla: "Art. 33.4.b)",
-          nota: `Exención art. 33.4.b) · sin ganancia gravable · orientativo${marcaAVerificar(paramsAV)}`,
+          nota: `Exención art. 33.4.b) · sin ganancia gravable · orientativo${notaParcialTitulares(excluidosEstado)}${marcaAVerificar(paramsAV)}`,
           parametrosAVerificar: paramsAV,
         };
       }
@@ -509,9 +602,11 @@ export function simularMotorEvento(
           exentos334.length > 0
             ? "Plusvalía parcial · art. 33.4.b) mixto"
             : "Plusvalía → base del ahorro",
-        nota: `Plusvalía gravable ${formatIntegerES(Math.round(gananciaGravable))} € → base del ahorro${mixtura} · cuota ≈ ${formatIntegerES(cuota)} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Plusvalía gravable ${formatIntegerES(Math.round(gananciaGravable))} € → base del ahorro${mixtura} · cuota ≈ ${formatIntegerES(cuota)} € · primer ejercicio · orientativo${notaParcialTitulares(excluidosEstado)}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
+        parcialTitulares:
+          excluidosEstado.length > 0 ? excluidosEstado : undefined,
       };
     }
 
@@ -540,6 +635,15 @@ export function simularMotorEvento(
                 baseGeneral: ctx.baseGeneralTitular,
               },
             ];
+
+      const { calculables, excluidos } = particionPorEstado(tits);
+      if (calculables.length === 0) {
+        return {
+          kind: "sin_calculo",
+          nota: `Aportación sin titulares calculables · ${excluidos.map((e) => e.motivo).join(" · ") || "sin titulares"}`,
+        };
+      }
+
       // Plan individual: límite art. 52 = min(1.500 €, 30 % RNT). Sin incremento empresarial.
       const rnt =
         ctx.rendimientoNetoTrabajo ??
@@ -550,18 +654,22 @@ export function simularMotorEvento(
 
       let ahorro = 0;
       const partes: string[] = [];
-      for (const t of tits) {
+      for (const t of calculables) {
         const base = t.baseGeneral;
         const min = minimoPersonalPorEdad(t.edad);
+        const ccaaTitular = t.ccaa ?? ccaa;
         const reduccionTit = aplicable * t.pct;
         const baseTras = Math.max(0, base - reduccionTit);
-        const cAntes = cuotaGeneralIRPF(base, anio, ccaa, min).total;
-        const cDespues = cuotaGeneralIRPF(baseTras, anio, ccaa, min).total;
+        const cAntes = cuotaGeneralIRPF(base, anio, ccaaTitular, min).total;
+        const cDespues = cuotaGeneralIRPF(baseTras, anio, ccaaTitular, min).total;
         const delta = Math.max(0, cAntes - cDespues);
         ahorro += delta;
         partes.push(
-          `base ${formatIntegerES(Math.round(base))} € − ${formatIntegerES(Math.round(reduccionTit))} € → ahorro Δ ${formatIntegerES(Math.round(delta))} €`,
+          `${etiquetaTitular(t)} · base ${formatIntegerES(Math.round(base))} € − ${formatIntegerES(Math.round(reduccionTit))} € → ahorro Δ ${formatIntegerES(Math.round(delta))} €`,
         );
+      }
+      for (const e of excluidos) {
+        partes.push(`${e.motivo} · sin_calculo`);
       }
       const redondeada = Math.round(ahorro);
       const avisoExceso =
@@ -578,10 +686,11 @@ export function simularMotorEvento(
         // Ahorro fiscal = importe negativo en la fila (menos cuota)
         importe: -redondeada,
         regla: "Regla ⑥ · aportación plan",
-        nota: `Regla ⑥ · aportación ${formatIntegerES(Math.round(aplicable))} € reduce la base liquidable general (límite art. 52: min(1.500 €, 30 % RNT) = ${formatIntegerES(Math.round(lim.limite))} €)${avisoExceso}${baseNota} · ahorro de cuota ≈ ${formatIntegerES(redondeada)} € · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
+        nota: `Regla ⑥ · aportación ${formatIntegerES(Math.round(aplicable))} € reduce la base liquidable general (límite art. 52: min(1.500 €, 30 % RNT) = ${formatIntegerES(Math.round(lim.limite))} €)${avisoExceso}${baseNota} · ahorro de cuota ≈ ${formatIntegerES(redondeada)} € · orientativo${notaParcialTitulares(excluidos)}${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
         sobreDatoIntroducido: sobre,
+        parcialTitulares: excluidos.length > 0 ? excluidos : undefined,
       };
     }
 
@@ -601,21 +710,4 @@ export function simularMotorEvento(
         nota: "Sin cálculo fiscal del motor. Si hay impacto tecleado, queda marcado como introducido por el asesor.",
       };
   }
-}
-
-/** @deprecated Preferir simularMotorEvento(tipo, ctx). Compat Plantilla sin contexto rico. */
-export function simularMotorEventoCampos(
-  tipo: TipoEvento,
-  campos: Record<string, string | number | boolean>,
-): ResultadoFiscalMotor {
-  return simularMotorEvento(tipo, {
-    anio: Number(campos.anio) || 2026,
-    ccaa: String(campos.ccaa ?? ""),
-    baseGeneralTitular: 0,
-    titularidades: [],
-    importe: Number(campos.importe) || 0,
-    modalidad: campos.modalidad as "capital" | "renta" | "mixto" | undefined,
-    reinvierte: Boolean(campos.reinvierte),
-    anioContingencia: Number(campos.anioContingencia) || undefined,
-  });
 }

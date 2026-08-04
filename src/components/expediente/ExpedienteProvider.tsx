@@ -317,6 +317,7 @@ export function ExpedienteProvider({
             eventoIds: clonedEvents.map((e) => e.id),
             impuestosPeriodo: undefined,
             impuestosParcial: undefined,
+            impuestosMotivosParcial: undefined,
           };
           return recomputeFiscalBag({
             ...prev,

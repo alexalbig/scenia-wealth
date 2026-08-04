@@ -6,6 +6,7 @@ import { useExpedienteOptional } from "@/components/expediente/ExpedienteProvide
 import { formatEUR, formatIntegerES, ageFromBirthYear } from "@/lib/format";
 import { simularMotorEvento } from "@/lib/fiscal/motor";
 import { buildContextoFiscalFromBag } from "@/lib/fiscal/contexto";
+import { estadoFiscalPersona } from "@/lib/fiscal/estado-persona";
 import {
   accionesParaElemento,
   chipPreviewEvento,
@@ -16,6 +17,7 @@ import {
 } from "@/lib/eventos-menu";
 import {
   formatTitularidades,
+  getIngresos,
   getInmuebles,
   getInstrumentos,
   getOtrosActivos,
@@ -332,14 +334,21 @@ export function PlantillaEvento({
         eventosPreview,
       );
     }
-    // Fallback sin bag: sin CCAA inventada — el motor devolverá sin_calculo si hace falta
+    // Fallback sin bag: clasificador por persona del seed (sin inventar CCAA).
     const personas = clienteId ? getPersonasDeCliente(clienteId) : [];
-    const tits = personas.slice(0, 1).map((p) => ({
-      personaId: p.id,
-      pct: 1,
-      baseGeneral: 0,
-      edad: ageFromBirthYear(p.birthYear),
-    }));
+    const ingresosCliente = clienteId ? getIngresos(clienteId) : [];
+    const tits = personas.slice(0, 1).map((p) => {
+      const ingresos = ingresosCliente.filter((i) => i.personaId === p.id);
+      return {
+        personaId: p.id,
+        pct: 1,
+        baseGeneral: 0,
+        edad: ageFromBirthYear(p.birthYear),
+        ccaa: p.ccaa,
+        nombre: p.nombre,
+        estado: estadoFiscalPersona(p, ingresos),
+      };
+    });
     return {
       anio: year,
       ccaa: personas[0]?.ccaa ?? "",
