@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import { useExpedienteOptional } from "@/components/expediente/ExpedienteProvider";
-import { formatEUR, ageFromBirthYear } from "@/lib/format";
+import { formatEUR, formatIntegerES, ageFromBirthYear } from "@/lib/format";
 import { simularMotorEvento } from "@/lib/fiscal/motor";
 import { buildContextoFiscalFromBag } from "@/lib/fiscal/contexto";
 import {
@@ -98,6 +98,7 @@ export function PlantillaEvento({
     "capital",
   );
   const [anioContingencia, setAnioContingencia] = useState("2026");
+  const [formError, setFormError] = useState<string | null>(null);
   const [reinvierte, setReinvierte] = useState(false);
   const [conHipoteca, setConHipoteca] = useState(false);
   const [pension, setPension] = useState("");
@@ -145,8 +146,10 @@ export function PlantillaEvento({
       anioInicial != null && Number.isFinite(anioInicial)
         ? String(anioInicial)
         : (d.anio ?? "2026");
+    const yearN = Number(yearPref) || 2026;
+    const hastaDefault = Number(d.hastaAnio) || yearN + 7;
     setAnio(yearPref);
-    setHastaAnio(d.hastaAnio ?? "2031");
+    setHastaAnio(String(Math.max(hastaDefault, yearN)));
     setImporte(d.importe ?? "");
     setDestino(d.destino ?? "");
     setPension(d.pension ?? "");
@@ -164,9 +167,23 @@ export function PlantillaEvento({
     setEscenarioId(escenarioInicialId ?? "");
     setElemento(null);
     setTipo(null);
+    setAnio("2026");
+    setHastaAnio("2031");
+    setImporte("");
+    setDestino("");
+    setModalidad("capital");
+    setReinvierte(true);
+    setConHipoteca(false);
+    setPension("");
     setImpactoManual("");
     setTituloGenerico("");
     setTipoGenerico("ingreso");
+    setAnioContingencia(
+      anioInicial != null && Number.isFinite(anioInicial)
+        ? String(anioInicial)
+        : "2026",
+    );
+    setFormError(null);
 
     if (menuCompleto) {
       setStep("elemento");
@@ -206,6 +223,22 @@ export function PlantillaEvento({
     setTituloGenerico("");
     setTipoGenerico("ingreso");
     setEscenarioId(escenarioInicialId ?? "");
+    setFormError(null);
+  }
+
+  function setAnioClamped(next: string) {
+    setAnio(next);
+    setFormError(null);
+    const y = Number(next);
+    const h = Number(hastaAnio);
+    if (Number.isFinite(y) && Number.isFinite(h) && h < y) {
+      setHastaAnio(String(y));
+    }
+  }
+
+  function setHastaClamped(next: string) {
+    setHastaAnio(next);
+    setFormError(null);
   }
 
   function handleClose() {
@@ -277,8 +310,8 @@ export function PlantillaEvento({
         tipoEv === "jubilarse"
           ? {
               ...stub,
-              etiqueta: `pensión ${Number(pension) || 0} €/año`,
-              notas: `Pensión estimada ${Number(pension) || 0} €/año`,
+              etiqueta: `pensión ${formatIntegerES(Number(pension) || 0)} €/año`,
+              notas: `Pensión estimada ${formatIntegerES(Number(pension) || 0)} €/año`,
             }
           : stub;
       const eventosPreview =
@@ -326,6 +359,21 @@ export function PlantillaEvento({
     const year = Number(anio);
     if (!Number.isFinite(year)) return;
 
+    const hastaN = Number(hastaAnio);
+    const usaRango =
+      tipo === "reembolsar_fondo" || tipo === "rescatar_plan";
+    if (
+      usaRango &&
+      Number.isFinite(hastaN) &&
+      hastaAnio.trim() !== "" &&
+      hastaN < year
+    ) {
+      setFormError(
+        "«Hasta el año» no puede ser anterior al año del evento.",
+      );
+      return;
+    }
+
     if (tipo === "jubilarse") {
       const pensionAnual = Number(pension) || 0;
       onCreated?.({
@@ -333,7 +381,7 @@ export function PlantillaEvento({
         etiqueta: `Jubilación (${year}) · pensión ${formatEUR(pensionAnual)}/año`,
         anio: year,
         introducidoPorAsesor: true,
-        notas: `Pensión estimada ${Math.round(pensionAnual)} €/año · introducida por el asesor · no calculada (motor de pensión: V2)`,
+        notas: `Pensión estimada ${formatIntegerES(Math.round(pensionAnual))} €/año · introducida por el asesor · no calculada (motor de pensión: V2)`,
         escenarioId: escenarioId || undefined,
         targetId: elemento?.id ?? elementoIdProp,
       });
@@ -383,11 +431,10 @@ export function PlantillaEvento({
       etiqueta = tituloGenerico.trim() || "Evento genérico";
     }
 
-    const hastaN = Number(hastaAnio);
     const usaHasta =
       (tipo === "reembolsar_fondo" || tipo === "rescatar_plan") &&
       Number.isFinite(hastaN) &&
-      hastaN > year;
+      hastaN >= year;
 
     const notasExtra = usaHasta
       ? `${year}–${hastaN}`
@@ -419,10 +466,18 @@ export function PlantillaEvento({
   }
 
   const tipoLabel = tipo ? tituloFormEvento(tipo) : "Evento";
+  const destinoLive =
+    (escenarioId || escenarioInicialId
+      ? escenarios?.find((e) => e.id === (escenarioId || escenarioInicialId))
+          ?.nombre
+      : undefined) ??
+    (escenarioId || escenarioInicialId
+      ? exp?.bag.escenarios.find(
+          (e) => e.id === (escenarioId || escenarioInicialId),
+        )?.nombre
+      : undefined);
   const destinoEyebrow =
-    destinoNombre ??
-    escenarios?.find((e) => e.id === escenarioId)?.nombre ??
-    "plan base (situación actual)";
+    destinoLive ?? destinoNombre ?? "plan base (situación actual)";
 
   const eyebrow = `Nuevo evento · destino: ${destinoEyebrow}`;
   const titulo =
@@ -495,6 +550,11 @@ export function PlantillaEvento({
         )
       }
     >
+      {formError && (
+        <div className="err-msg on" style={{ marginBottom: 10 }}>
+          {formError}
+        </div>
+      )}
       {showEscenarioSelect && (
         <div className="field">
           <label className="lbl">Escenario destino</label>
@@ -568,7 +628,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -578,7 +638,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={hastaAnio}
-                onChange={(e) => setHastaAnio(e.target.value)}
+                onChange={(e) => setHastaClamped(e.target.value)}
               />
             </div>
             <div />
@@ -603,7 +663,7 @@ export function PlantillaEvento({
             <input
               type="number"
               value={anio}
-              onChange={(e) => setAnio(e.target.value)}
+              onChange={(e) => setAnioClamped(e.target.value)}
             />
           </div>
           {showTitLinea && <TitLinea texto={titLinea!} />}
@@ -626,7 +686,7 @@ export function PlantillaEvento({
             <input
               type="number"
               value={anio}
-              onChange={(e) => setAnio(e.target.value)}
+              onChange={(e) => setAnioClamped(e.target.value)}
             />
           </div>
           <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
@@ -649,7 +709,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -665,7 +725,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
             <div className="field">
@@ -703,7 +763,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -745,7 +805,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -769,7 +829,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -811,7 +871,7 @@ export function PlantillaEvento({
                 <input
                   type="number"
                   value={anio}
-                  onChange={(e) => setAnio(e.target.value)}
+                  onChange={(e) => setAnioClamped(e.target.value)}
                 />
               </div>
             </div>
@@ -886,7 +946,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -945,7 +1005,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>
@@ -968,7 +1028,7 @@ export function PlantillaEvento({
             <input
               type="number"
               value={hastaAnio}
-              onChange={(e) => setHastaAnio(e.target.value)}
+              onChange={(e) => setHastaClamped(e.target.value)}
             />
           </div>
           <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
@@ -991,7 +1051,7 @@ export function PlantillaEvento({
               <input
                 type="number"
                 value={anio}
-                onChange={(e) => setAnio(e.target.value)}
+                onChange={(e) => setAnioClamped(e.target.value)}
               />
             </div>
           </div>

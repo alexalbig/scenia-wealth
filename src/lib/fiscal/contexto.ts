@@ -17,6 +17,7 @@ import type { ContextoFiscalEvento, TitularFiscal } from "./motor";
 import { hastaAnioEvento } from "./rollup";
 
 const FUENTES_TRABAJO: FuenteIngreso[] = ["trabajo", "pension"];
+const FUENTES_NO_CONTEMPLADAS: FuenteIngreso[] = ["actividad_economica"];
 
 /** Subconjunto del bag necesario para el motor (sin importar ExpedienteBag). */
 export interface BagFiscalSlice {
@@ -87,34 +88,43 @@ export function basePersonaEnAnio(
   const lineas = bag.ingresos.filter((i) => i.personaId === personaId);
 
   let trabajoBruto = 0;
+  let pensionBruta = 0;
   let otrasRentas = 0;
   let cotizaciones: number | null = null;
+  const fuentesNoContempladas: FuenteIngreso[] = [];
   const sobrePensionEstimada = jubilaciones.length > 0;
 
   if (!sobrePensionEstimada) {
     for (const i of lineas) {
       const f = (i.fuente ?? "trabajo") as FuenteIngreso;
-      if (FUENTES_TRABAJO.includes(f)) {
+      if (FUENTES_NO_CONTEMPLADAS.includes(f)) {
+        if (!fuentesNoContempladas.includes(f)) fuentesNoContempladas.push(f);
+        continue;
+      }
+      if (f === "trabajo") {
         trabajoBruto += i.importeAnual;
         if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
           cotizaciones = (cotizaciones ?? 0) + i.cotizacionesSS;
         }
+      } else if (f === "pension") {
+        pensionBruta += i.importeAnual;
       } else {
         otrasRentas += i.importeAnual;
       }
     }
   } else {
-    const pension = parsePensionJubilacion(jubilaciones[0]!) ?? 0;
-    trabajoBruto = pension;
+    // Jubilación: sustituye trabajo por pensión estimada del asesor.
+    pensionBruta = parsePensionJubilacion(jubilaciones[0]!) ?? 0;
     for (const i of lineas) {
       const f = (i.fuente ?? "trabajo") as FuenteIngreso;
+      if (FUENTES_NO_CONTEMPLADAS.includes(f)) {
+        if (!fuentesNoContempladas.includes(f)) fuentesNoContempladas.push(f);
+        continue;
+      }
       if (f === "trabajo") continue; // sustituido por pensión
-      if (FUENTES_TRABAJO.includes(f)) {
-        trabajoBruto += i.importeAnual;
-        if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
-          cotizaciones = (cotizaciones ?? 0) + i.cotizacionesSS;
-        }
-      } else {
+      if (f === "pension") {
+        pensionBruta += i.importeAnual;
+      } else if (!FUENTES_TRABAJO.includes(f)) {
         otrasRentas += i.importeAnual;
       }
     }
@@ -122,9 +132,11 @@ export function basePersonaEnAnio(
 
   return {
     desglose: desgloseBaseLiquidable({
-      ingresosTrabajoBrutos: trabajoBruto,
+      trabajoBruto,
+      pensionBruta,
       otrasRentasBrutas: otrasRentas,
       cotizacionesSS: cotizaciones,
+      fuentesNoContempladas,
     }),
     sobrePensionEstimada,
   };

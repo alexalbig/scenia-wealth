@@ -230,6 +230,13 @@ export function PatrimonioView() {
               otros: bag.otrosActivos.map((a) => a.nombre).join(" · ") || "—",
             }}
             sociedadId={bag.sociedades[0]?.id}
+            fotoLigera={
+              !cliente.completo &&
+              totales.bruto === 0 &&
+              totales.pasivos === 0
+                ? { patrimonioNeto: cliente.patrimonioNeto }
+                : undefined
+            }
           />
         )}
 

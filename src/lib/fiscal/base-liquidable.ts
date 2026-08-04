@@ -4,13 +4,27 @@
  *
  * Nota art. 20: la cuantía se calcula sobre el RNT previo a la letra f) del art. 19.2
  * (cotizaciones a–e), y luego se aplica sobre el rendimiento neto (con letra f).
+ *
+ * v14: los conceptos del desglose se adaptan a la fuente. Un pensionista no ve
+ * "− Cotizaciones SS: 0 €" — el concepto no aplica y no aparece.
  */
 
+import { formatIntegerES } from "@/lib/format";
+import type { FuenteIngreso } from "@/lib/types";
 import { PARAMETROS } from "./parametros";
+
+export interface ConceptoDesglose {
+  etiqueta: string;
+  importe: number;
+}
 
 export interface DesgloseBaseLiquidable {
   /** Suma de ingresos brutos de trabajo / pensión del año. */
   bruto: number;
+  /** Bruto solo de fuente «trabajo» (asalariado). */
+  trabajoBruto: number;
+  /** Bruto solo de fuente «pensión». */
+  pensionBruta: number;
   /** Otras rentas brutas (alquiler, etc.) — se suman sin arts. 19/20. */
   otrasRentas: number;
   cotizacionesSS: number;
@@ -29,6 +43,11 @@ export interface DesgloseBaseLiquidable {
   baseLiquidable: number;
   /** true = ya neteada de arts. 19/20. */
   esLiquidable: boolean;
+  /** Conceptos para UI — omiten lo que no aplica (p. ej. cotizaciones en pensionista). */
+  conceptos: ConceptoDesglose[];
+  /** Fuentes presentes que el motor no modela. */
+  fuentesNoContempladas: FuenteIngreso[];
+  /** Resumen textual (compat / motor notes). */
   nota: string;
 }
 
@@ -73,19 +92,45 @@ export function cuantiaReduccionArt20(
 /**
  * Calcula base liquidable aproximada.
  * `cotizacionesSS` solo se resta si viene informada; si no, 0 (hueco · no se estima).
+ * Cotizaciones solo aparecen como concepto si hay rendimientos de trabajo asalariado.
  */
 export function desgloseBaseLiquidable(opts: {
-  ingresosTrabajoBrutos: number;
+  /** Rendimientos brutos de fuente «trabajo» (asalariado). */
+  trabajoBruto?: number;
+  /** Rendimientos brutos de fuente «pensión». */
+  pensionBruta?: number;
+  /**
+   * Compat: suma trabajo+pensión. Si se pasa junto a trabajo/pensión,
+   * gana trabajoBruto+pensionBruta.
+   */
+  ingresosTrabajoBrutos?: number;
   otrasRentasBrutas?: number;
   cotizacionesSS?: number | null;
+  fuentesNoContempladas?: FuenteIngreso[];
 }): DesgloseBaseLiquidable {
-  const bruto = Math.max(0, opts.ingresosTrabajoBrutos);
+  const fuentesNoContempladas = opts.fuentesNoContempladas ?? [];
+  let trabajoBruto = Math.max(0, opts.trabajoBruto ?? 0);
+  let pensionBruta = Math.max(0, opts.pensionBruta ?? 0);
+
+  if (
+    opts.ingresosTrabajoBrutos != null &&
+    opts.trabajoBruto == null &&
+    opts.pensionBruta == null
+  ) {
+    // Compat: callers antiguos pasan todo junto como «trabajo».
+    trabajoBruto = Math.max(0, opts.ingresosTrabajoBrutos);
+  }
+
+  const bruto = trabajoBruto + pensionBruta;
   const otrasRentas = Math.max(0, opts.otrasRentasBrutas ?? 0);
+  const tieneTrabajoAsalariado = trabajoBruto > 0;
   const informadas =
     opts.cotizacionesSS != null && Number.isFinite(opts.cotizacionesSS);
-  const cotizacionesSS = informadas
-    ? Math.max(0, Math.min(opts.cotizacionesSS!, bruto))
-    : 0;
+  // Cotizaciones solo restan si hay trabajo asalariado y están informadas.
+  const cotizacionesSS =
+    tieneTrabajoAsalariado && informadas
+      ? Math.max(0, Math.min(opts.cotizacionesSS!, bruto))
+      : 0;
 
   const rntParaArt20 = Math.max(0, bruto - cotizacionesSS);
   const gastoOtrosMax = PARAMETROS.gastoOtrosTrabajoArt19.valor;
@@ -105,39 +150,76 @@ export function desgloseBaseLiquidable(opts: {
   );
   const baseLiquidable = rtoNetoReducido + otrasRentas;
 
-  const partes: string[] = [];
-  if (bruto > 0) {
-    partes.push(`bruto trabajo ${Math.round(bruto)} €`);
+  const conceptos: ConceptoDesglose[] = [];
+  if (trabajoBruto > 0) {
+    conceptos.push({
+      etiqueta: "bruto trabajo",
+      importe: Math.round(trabajoBruto),
+    });
+  }
+  if (pensionBruta > 0) {
+    conceptos.push({
+      etiqueta: "bruto pensión",
+      importe: Math.round(pensionBruta),
+    });
+  }
+  // Cotizaciones: solo si hay trabajo asalariado. No aparecen en pensionista.
+  if (tieneTrabajoAsalariado) {
     if (informadas) {
-      partes.push(
-        `− cotizaciones SS ${Math.round(cotizacionesSS)} € (informadas)`,
-      );
-    } else {
-      partes.push("− cotizaciones SS 0 € (no informadas · no estimadas)");
+      conceptos.push({
+        etiqueta: "− cotizaciones SS (informadas)",
+        importe: -Math.round(cotizacionesSS),
+      });
     }
-    partes.push(`− art. 19.2.f) ${Math.round(gastosOtrosArt19)} €`);
+    // Si no informadas: el concepto no se inventa como 0 — hueco, no se muestra.
+  }
+  if (bruto > 0) {
+    conceptos.push({
+      etiqueta: "− art. 19.2.f)",
+      importe: -Math.round(gastosOtrosArt19),
+    });
     if (reduccionArt20 > 0) {
-      partes.push(`− art. 20 ${Math.round(reduccionArt20)} €`);
-    } else if (bruto > 0) {
-      partes.push("− art. 20 0 € (RNT ≥ tope o no aplica)");
+      conceptos.push({
+        etiqueta: "− art. 20",
+        importe: -Math.round(reduccionArt20),
+      });
     }
   }
   if (otrasRentas > 0) {
-    partes.push(`+ otras rentas ${Math.round(otrasRentas)} €`);
+    conceptos.push({
+      etiqueta: "+ otras rentas",
+      importe: Math.round(otrasRentas),
+    });
   }
+
+  const nota =
+    conceptos
+      .map((c) => {
+        const abs = formatIntegerES(Math.abs(c.importe));
+        if (c.importe < 0) return `${c.etiqueta} ${abs} €`;
+        if (c.etiqueta.startsWith("+") || c.etiqueta.startsWith("−")) {
+          return `${c.etiqueta} ${abs} €`;
+        }
+        return `${c.etiqueta} ${abs} €`;
+      })
+      .join(" · ") || "sin ingresos";
 
   return {
     bruto,
+    trabajoBruto,
+    pensionBruta,
     otrasRentas,
     cotizacionesSS,
-    cotizacionesInformadas: informadas,
+    cotizacionesInformadas: tieneTrabajoAsalariado && informadas,
     gastosOtrosArt19,
     rntParaArt20,
     rendimientoNetoAntesArt20,
     reduccionArt20,
     baseLiquidable,
     esLiquidable: true,
-    nota: partes.join(" · ") || "sin ingresos",
+    conceptos,
+    fuentesNoContempladas,
+    nota,
   };
 }
 

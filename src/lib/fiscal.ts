@@ -150,22 +150,34 @@ export function desgloseBaseLiquidablePersona(
 ): DesgloseBaseLiquidable {
   const lineas = getIngresos(clienteId).filter((i) => i.personaId === personaId);
   let trabajo = 0;
+  let pension = 0;
   let otras = 0;
   let cotiz: number | null = null;
+  const fuentesNoContempladas: import("./types").FuenteIngreso[] = [];
   for (const i of lineas) {
-    if (i.fuente === "trabajo" || i.fuente === "pension") {
+    if (i.fuente === "actividad_economica") {
+      if (!fuentesNoContempladas.includes(i.fuente)) {
+        fuentesNoContempladas.push(i.fuente);
+      }
+      continue;
+    }
+    if (i.fuente === "trabajo") {
       trabajo += i.importeAnual;
       if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
         cotiz = (cotiz ?? 0) + i.cotizacionesSS;
       }
+    } else if (i.fuente === "pension") {
+      pension += i.importeAnual;
     } else {
       otras += i.importeAnual;
     }
   }
   return desgloseBaseLiquidable({
-    ingresosTrabajoBrutos: trabajo,
+    trabajoBruto: trabajo,
+    pensionBruta: pension,
     otrasRentasBrutas: otras,
     cotizacionesSS: cotiz,
+    fuentesNoContempladas,
   });
 }
 
@@ -249,7 +261,14 @@ export {
 } from "./fiscal/motor";
 export { rollupImpuestosEscenario, periodoFilaFiscal } from "./fiscal/rollup";
 export { PARAMETROS, algunParametroAVerificar } from "./fiscal/parametros";
-export { liquidacionEjercicio } from "./fiscal/escalas";
+export { liquidacionEjercicio, margenSiguienteSaltoGeneral } from "./fiscal/escalas";
+export {
+  estadoFiscalPersona,
+  esFuenteNoContemplada,
+  type EstadoFiscalPersona,
+  type MotivoSinCalculo,
+  type PerfilRenta,
+} from "./fiscal/estado-persona";
 
 /** Cliente de referencia del seed (compat pantallas). */
 export { getCliente } from "./seed";

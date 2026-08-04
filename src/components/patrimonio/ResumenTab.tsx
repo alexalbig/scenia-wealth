@@ -34,6 +34,11 @@ interface ResumenTabProps {
     otros?: string;
   };
   sociedadId?: string;
+  /**
+   * Cliente de cartera sin desglose: muestra el neto agregado del seed
+   * en lugar de ceros contradictorios.
+   */
+  fotoLigera?: { patrimonioNeto: number };
 }
 
 /**
@@ -50,9 +55,61 @@ export function ResumenTab({
   ahorroDetalle,
   labels = {},
   sociedadId,
+  fotoLigera,
 }: ResumenTabProps) {
   const router = useRouter();
   const a = ahorroDetalle;
+
+  if (fotoLigera) {
+    return (
+      <div className="grid3">
+        <div>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              marginBottom: 10,
+            }}
+          >
+            <div>
+              <div className="lbl">Foto del patrimonio</div>
+              <div className="h2">Foto ligera · sin detalle cargado</div>
+            </div>
+            <Button variant="primary" onClick={onInforme}>
+              Generar informe
+            </Button>
+          </div>
+          <div
+            className="chartbox"
+            style={{
+              padding: "22px 18px",
+              display: "flex",
+              flexDirection: "column",
+              gap: 10,
+            }}
+          >
+            <div className="lbl">Patrimonio neto (agregado)</div>
+            <div
+              style={{
+                fontSize: 22,
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
+              }}
+              className="num"
+            >
+              {formatEUR(fotoLigera.patrimonioNeto)}
+            </div>
+            <p className="tiny" style={{ margin: 0, maxWidth: 420 }}>
+              Este expediente solo tiene el total de cartera. No hay activos,
+              pasivos ni flujos desglosados — por eso no se muestra un treemap
+              a 0 €. El desglose editable está en un expediente completo.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="grid3">

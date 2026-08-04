@@ -9,8 +9,8 @@ import {
 import type { Cliente, Persona, Segmento, CCAA } from "@/lib/types";
 import { CCAA_CON_COBERTURA_FISCAL } from "@/lib/types";
 
-const KEY_PREFIX = "scenia-expediente-v1:";
-const KEY_INDEX = "scenia-expediente-index-v1";
+const KEY_PREFIX = "scenia-expediente-v2:";
+const KEY_INDEX = "scenia-expediente-index-v2";
 
 function canUseStorage() {
   return typeof window !== "undefined" && !!window.sessionStorage;

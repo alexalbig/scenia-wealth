@@ -225,9 +225,10 @@ export const PARAMETROS = {
   /**
    * Horizonte de referencia del comparador (producto).
    * La fila fiscal ya no acumula el periodo — solo el primer ejercicio.
+   * Hasta 2036 para que la demo D · Venta Jávea 2036 entre en la fila.
    */
   periodoFilaFiscalDesde: p(2026, "Spec producto CT2 · horizonte de referencia"),
-  periodoFilaFiscalHasta: p(2033, "Spec producto CT2 · horizonte de referencia"),
+  periodoFilaFiscalHasta: p(2036, "Spec producto CT2 · horizonte de referencia · demo art. 33.4.b)"),
 } as const;
 
 export type ParametroKey = keyof typeof PARAMETROS;

@@ -4,6 +4,7 @@
  * Sin defaults silenciosos de CCAA.
  */
 
+import { formatIntegerES } from "@/lib/format";
 import type { TipoEvento, UsoInmueble } from "@/lib/types";
 import { esRegimenForal } from "@/lib/types";
 import { limiteAportacionPlanIndividual } from "./base-liquidable";
@@ -265,7 +266,7 @@ export function simularMotorEvento(
         const c = cuotaMarginalAhorro(0, g, anio);
         cuota += c;
         partes.push(
-          `${Math.round(t.pct * 100)} % → ganancia ${Math.round(g)} € → cuota ${Math.round(c)} €`,
+          `${Math.round(t.pct * 100)} % → ganancia ${formatIntegerES(Math.round(g))} € → cuota ${formatIntegerES(Math.round(c))} €`,
         );
       }
       const redondeada = Math.round(cuota);
@@ -273,7 +274,7 @@ export function simularMotorEvento(
         kind: "calculado",
         importe: redondeada,
         regla: "Estimación ratio · no FIFO",
-        nota: `Estimación por ratio plusvalía/valor (${(ratio * 100).toFixed(1)} %) · NO es el FIFO del art. 37.2 LIRPF · no válida para autoliquidación · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Estimación por ratio plusvalía/valor (${(ratio * 100).toFixed(1)} %) · NO es el FIFO del art. 37.2 LIRPF · no válida para autoliquidación · cuota ≈ ${formatIntegerES(redondeada)} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
         estimacionNoAutoliquidable: true,
@@ -363,7 +364,7 @@ export function simularMotorEvento(
         const c = cuotaMarginalGeneral(base, parte, anio, ccaa, min);
         cuota += c;
         partes.push(
-          `base ${Math.round(base)} € + ${Math.round(parte)} € → Δ ${Math.round(c)} €`,
+          `base ${formatIntegerES(Math.round(base))} € + ${formatIntegerES(Math.round(parte))} € → Δ ${formatIntegerES(Math.round(c))} €`,
         );
       }
       const redondeada = Math.round(cuota);
@@ -376,7 +377,7 @@ export function simularMotorEvento(
         kind: "calculado",
         importe: redondeada,
         regla: "Base general",
-        nota: `${baseNota} · se apila el rescate · ${notaReduccion} · cuota ≈ ${redondeada.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
+        nota: `${baseNota} · se apila el rescate · ${notaReduccion} · cuota ≈ ${formatIntegerES(redondeada)} € · primer ejercicio · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
         sobreDatoIntroducido: sobre,
@@ -454,7 +455,7 @@ export function simularMotorEvento(
             : "";
         return {
           kind: "sin_calculo",
-          nota: `Art. 38.3 · reinversión en renta vitalicia (límite ${lim38.toLocaleString("es-ES")} €) · titulares afectados: ${quien}${exentoNota} · requisitos art. 42 RIRPF pendientes de recoger en el flujo · sin cifra inventada`,
+          nota: `Art. 38.3 · reinversión en renta vitalicia (límite ${formatIntegerES(lim38)} €) · titulares afectados: ${quien}${exentoNota} · requisitos art. 42 RIRPF pendientes de recoger en el flujo · sin cifra inventada`,
         };
       }
 
@@ -464,7 +465,7 @@ export function simularMotorEvento(
           kind: "neutro",
           importe: 0,
           regla: "Art. 33.4.b)",
-          nota: `Exención art. 33.4.b) LIRPF · vivienda habitual · todos los titulares ≥${umbral65} años en ${anio} · sin reinversión ni límite ${lim38.toLocaleString("es-ES")} € · cuota 0 € · orientativo${marcaAVerificar(paramsAV)}`,
+          nota: `Exención art. 33.4.b) LIRPF · vivienda habitual · todos los titulares ≥${umbral65} años en ${anio} · sin reinversión ni límite ${formatIntegerES(lim38)} € · cuota 0 € · orientativo${marcaAVerificar(paramsAV)}`,
           parametrosAVerificar: paramsAV,
         };
       }
@@ -477,7 +478,7 @@ export function simularMotorEvento(
         gananciaGravable += g;
         const c = cuotaMarginalAhorro(0, g, anio);
         partes.push(
-          `${Math.round(t.pct * 100)} % (edad ${t.edad}) → ganancia ${Math.round(g)} € → cuota ${Math.round(c)} €`,
+          `${Math.round(t.pct * 100)} % (edad ${t.edad}) → ganancia ${formatIntegerES(Math.round(g))} € → cuota ${formatIntegerES(Math.round(c))} €`,
         );
       }
       for (const t of exentos334) {
@@ -508,7 +509,7 @@ export function simularMotorEvento(
           exentos334.length > 0
             ? "Plusvalía parcial · art. 33.4.b) mixto"
             : "Plusvalía → base del ahorro",
-        nota: `Plusvalía gravable ${Math.round(gananciaGravable).toLocaleString("es-ES")} € → base del ahorro${mixtura} · cuota ≈ ${cuota.toLocaleString("es-ES")} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
+        nota: `Plusvalía gravable ${formatIntegerES(Math.round(gananciaGravable))} € → base del ahorro${mixtura} · cuota ≈ ${formatIntegerES(cuota)} € · primer ejercicio · orientativo${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
       };
@@ -559,13 +560,13 @@ export function simularMotorEvento(
         const delta = Math.max(0, cAntes - cDespues);
         ahorro += delta;
         partes.push(
-          `base ${Math.round(base)} € − ${Math.round(reduccionTit)} € → ahorro Δ ${Math.round(delta)} €`,
+          `base ${formatIntegerES(Math.round(base))} € − ${formatIntegerES(Math.round(reduccionTit))} € → ahorro Δ ${formatIntegerES(Math.round(delta))} €`,
         );
       }
       const redondeada = Math.round(ahorro);
       const avisoExceso =
         exceso > 0
-          ? ` · exceso ${Math.round(exceso).toLocaleString("es-ES")} € no reduce la base (límite art. 52 = ${Math.round(lim.limite).toLocaleString("es-ES")} €)`
+          ? ` · exceso ${formatIntegerES(Math.round(exceso))} € no reduce la base (límite art. 52 = ${formatIntegerES(Math.round(lim.limite))} €)`
           : "";
       const baseNota =
         ctx.notaBaseLiquidable != null
@@ -577,7 +578,7 @@ export function simularMotorEvento(
         // Ahorro fiscal = importe negativo en la fila (menos cuota)
         importe: -redondeada,
         regla: "Regla ⑥ · aportación plan",
-        nota: `Regla ⑥ · aportación ${Math.round(aplicable).toLocaleString("es-ES")} € reduce la base liquidable general (límite art. 52: min(1.500 €, 30 % RNT) = ${Math.round(lim.limite).toLocaleString("es-ES")} €)${avisoExceso}${baseNota} · ahorro de cuota ≈ ${redondeada.toLocaleString("es-ES")} € · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
+        nota: `Regla ⑥ · aportación ${formatIntegerES(Math.round(aplicable))} € reduce la base liquidable general (límite art. 52: min(1.500 €, 30 % RNT) = ${formatIntegerES(Math.round(lim.limite))} €)${avisoExceso}${baseNota} · ahorro de cuota ≈ ${formatIntegerES(redondeada)} € · orientativo${marcaPensionEstimada(ctx)}${notaMinAut}${marcaAVerificar(paramsAV)}`,
         parametrosAVerificar: paramsAV,
         desglose: partes.join(" · "),
         sobreDatoIntroducido: sobre,

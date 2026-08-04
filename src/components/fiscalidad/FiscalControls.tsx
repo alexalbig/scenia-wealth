@@ -2,13 +2,16 @@
 
 import { cn } from "@/lib/cn";
 import type { Persona } from "@/lib/types";
+import type { EstadoFiscalPersona } from "@/lib/fiscal";
 
 /**
- * Controles P4 — persona y año del ejercicio.
- * Sin € hoy / € futuro (factor inventado retirado).
+ * Controles P4 — persona y año.
+ * Muestra todas las personas; las no calculables llevan etiqueta «sin cálculo».
+ * Con un solo titular, el selector de persona desaparece.
  */
 export function FiscalControls({
   personas,
+  estados,
   personaId,
   onPersona,
   anios,
@@ -16,6 +19,7 @@ export function FiscalControls({
   onAnio,
 }: {
   personas: Persona[];
+  estados: Record<string, EstadoFiscalPersona>;
   personaId: string;
   onPersona: (id: string) => void;
   anios: number[];
@@ -26,34 +30,36 @@ export function FiscalControls({
     ? anios
     : [...anios, anio].sort((a, b) => a - b);
 
+  const showPersonaSeg = personas.length > 1;
+
   return (
-    <div className="toolbar">
-      <div className="seg" role="group" aria-label="Persona">
-        {personas.map((p) => (
-          <button
-            key={p.id}
-            type="button"
-            className={cn(p.id === personaId && "on")}
-            aria-pressed={p.id === personaId}
-            onClick={() => onPersona(p.id)}
-          >
-            {p.nombre}
-          </button>
-        ))}
-      </div>
+    <div className="controls">
+      {showPersonaSeg && (
+        <div className="seg" role="group" aria-label="Persona">
+          {personas.map((p) => {
+            const est = estados[p.id];
+            const sinCalculo = est?.kind === "sin_calculo";
+            return (
+              <button
+                key={p.id}
+                type="button"
+                className={cn(p.id === personaId && "on")}
+                aria-pressed={p.id === personaId}
+                onClick={() => onPersona(p.id)}
+                title={sinCalculo ? "Sin cálculo" : undefined}
+              >
+                {p.nombre}
+                {sinCalculo ? " · sin cálculo" : ""}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <select
         value={anio}
-        aria-label="Año"
+        aria-label="Ejercicio"
         onChange={(e) => onAnio(Number(e.target.value))}
-        style={{
-          border: "1px solid var(--line-2)",
-          borderRadius: 8,
-          padding: "6px 9px",
-          fontSize: 12,
-          background: "#fff",
-          color: "var(--ink)",
-        }}
       >
         {options.map((y) => (
           <option key={y} value={y}>

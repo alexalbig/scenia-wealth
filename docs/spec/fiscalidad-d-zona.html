@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fiscalidad · D · La zona activa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#0C1424; --ink-2:#1A2438; --ink-3:#3A4660;
+  --slate:#6E7A92; --mute:#8A95A8; --faint:#9AA4B6; --faintest:#B8C0CE;
+  --paper:#FBFCFE; --paper-2:#F4F6FA; --line:#EEF1F6; --line-2:#E2E6EE;
+  --blue:#3A5BC8; --coral:#FF6B5A; --coral-deep:#D14A38;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html{background:var(--ink)}
+body{font-family:'DM Sans',sans-serif;background:var(--ink);color:var(--ink);padding:28px 20px 60px}
+.sheet{max-width:1180px;margin:0 auto;background:var(--paper);border-radius:12px;padding:26px 30px 34px}
+.num{font-variant-numeric:tabular-nums}
+.lbl{font-size:10.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--mute)}
+.tag{font-size:10.5px;font-weight:500;letter-spacing:.04em;color:var(--slate);border:1px solid var(--line-2);border-radius:99px;padding:3px 9px}
+.top{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+h1{font-size:21px;font-weight:700;letter-spacing:-.02em;margin-top:5px}
+.controls{display:flex;gap:8px;align-items:center}
+.seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:var(--paper);color:var(--slate);font:600 12px 'DM Sans';padding:7px 14px;cursor:pointer}
+.seg button.on{background:var(--ink);color:var(--paper)}
+select{font:600 12px 'DM Sans';color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:7px 10px;background:var(--paper)}
+
+/* fila resumen */
+.idrow{display:flex;border:1px solid var(--line-2);border-radius:12px;overflow:hidden;margin-bottom:14px}
+.idcell{flex:1;padding:12px 18px}
+.idcell+.idcell{border-left:1px solid var(--line)}
+.idcell .v{font-size:20px;font-weight:700;letter-spacing:-.01em;margin-top:3px}
+.idcell .s{font-size:11.5px;color:var(--slate);margin-top:1px}
+
+/* dos escalas en columnas */
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.esc{border:1px solid var(--line-2);border-radius:12px;overflow:hidden}
+.esc-head{display:flex;justify-content:space-between;align-items:center;padding:11px 16px;background:var(--paper-2);border-bottom:1px solid var(--line)}
+/* filas de tramo */
+.trow{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;border-bottom:1px solid var(--line);font-size:12px;color:var(--faint)}
+.trow .r{font-weight:600}
+.trow.grp{cursor:pointer;background:var(--paper);color:var(--slate)}
+.trow.grp:hover{background:var(--paper-2)}
+.trow.grp .cue{font-size:10px;margin-right:6px}
+.trow.dim{color:var(--faintest)}
+.hidden{display:none}
+/* tramo activo expandido */
+.active{padding:14px 16px;border-bottom:1px solid var(--line);background:var(--paper)}
+.active .head{display:flex;justify-content:space-between;font-size:12px;color:var(--ink-3)}
+.active .head b{font-size:14px;color:var(--ink)}
+.abar{height:22px;border:1px solid var(--line-2);border-radius:6px;background:var(--paper-2);position:relative;margin-top:10px;overflow:visible}
+.afill{position:absolute;top:0;bottom:0;left:0;background:#E7EBF3;border-radius:5px 0 0 5px}
+.amark{position:absolute;top:-5px;bottom:-5px;width:2px;background:var(--ink)}
+.amark i{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-style:normal;font-size:10.5px;font-weight:700;color:var(--ink);white-space:nowrap}
+.ainfo{display:flex;justify-content:space-between;margin-top:18px;font-size:12px;color:var(--slate)}
+.aquedan{font-size:16px;font-weight:700;color:var(--ink)}
+.aquedan small{font-size:11px;font-weight:500;color:var(--slate)}
+.esc-foot{padding:9px 16px;font-size:11px;color:var(--mute)}
+
+.notes{border:1px solid var(--line-2);border-radius:12px;overflow:hidden}
+.nrow{display:grid;grid-template-columns:170px 1fr;gap:14px;padding:10px 18px;border-bottom:1px solid var(--line);font-size:12.5px;color:var(--ink-3)}
+.nrow:last-child{border-bottom:0}
+@media(max-width:860px){.cols{grid-template-columns:1fr}.idrow{flex-direction:column}.idcell+.idcell{border-left:0;border-top:1px solid var(--line)}}
+</style>
+</head>
+<body>
+<div class="sheet">
+  <div class="top">
+    <div>
+      <div class="lbl">Fiscalidad · Foto del plan base</div>
+      <h1>Dónde está, y cuánto le queda</h1>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Persona">
+        <button class="on" data-p="carlos">Carlos</button>
+        <button data-p="marta">Marta</button>
+      </div>
+      <select aria-label="Ejercicio"><option>2026</option></select>
+    </div>
+  </div>
+
+  <div class="idrow num">
+    <div class="idcell"><div class="lbl">Cuota del ejercicio 2026 · <span id="nom">Carlos</span></div><div class="v" id="cuota">31.210 €</div><div class="s" id="cuotaS">estatal 14.937 € · autonómica 16.272 €</div></div>
+    <div class="idcell"><div class="lbl">Base liquidable · arts. 19/20</div><div class="v" id="base">88.950 €</div><div class="s" id="baseS">de 95.000 € brutos · SS y gastos restados</div></div>
+    <div class="idcell"><div class="lbl">Estado</div><div class="v" style="font-size:14px;margin-top:6px">orientativo</div><div class="s">parámetros (a verificar) · 🔒 escalas de solo lectura</div></div>
+  </div>
+
+  <div class="cols">
+    <section class="esc" id="escAuto"></section>
+    <section class="esc" id="escEst"></section>
+  </div>
+
+  <section class="notes">
+    <div class="nrow"><span class="lbl">Cómo leerlo</span><span>Los tramos ya superados y los lejanos vienen plegados: pincha para desplegarlos. La zona donde está la persona se muestra abierta con su posición exacta.</span></div>
+    <div class="nrow"><span class="lbl">Base del ahorro</span><span>Sin rentas del ahorro en el expediente — hueco. Las plusvalías latentes no tributan hasta que un evento las realice.</span></div>
+    <div class="nrow"><span class="lbl">Simplificación declarada</span><span>Gravamen autonómico con mínimo estatal · cálculo individual.</span></div>
+  </section>
+</div>
+
+<script>
+const fmt=n=>new Intl.NumberFormat('es-ES').format(Math.round(n))+' €';
+const pct=n=>String(n).replace('.',',')+' %';
+const EST={nombre:'Escala estatal · art. 63.1',tr:[[0,12450,9.5],[12450,20200,12],[20200,35200,15],[35200,60000,18.5],[60000,300000,22.5],[300000,Infinity,24.5]]};
+const AUT={nombre:'Escala autonómica CV · Ley 13/1997',tr:[[0,12000,9],[12000,22000,12],[22000,32000,15],[32000,42000,17.5],[42000,52000,20],[52000,62000,22.5],[62000,72000,25],[72000,100000,26.5],[100000,150000,27.5],[150000,200000,28.5],[200000,Infinity,29.5]]};
+const P={
+ carlos:{nombre:'Carlos',base:88950,cuota:'31.210 €',cuotaS:'estatal 14.937 € · autonómica 16.272 €',baseS:'de 95.000 € brutos · SS y gastos restados'},
+ marta:{nombre:'Marta',base:27920,cuota:'5.412 €',cuotaS:'estatal + autonómica CV',baseS:'de 32.000 € brutos · SS y gastos restados'}
+};
+function render(el,esc,base){
+  const idx=esc.tr.findIndex(([lo,hi])=>base<hi);
+  const inf=esc.tr.slice(0,idx), act=esc.tr[idx], nxt=esc.tr[idx+1], sup=esc.tr.slice(idx+2);
+  let h=`<div class="esc-head"><span class="lbl">${esc.nombre}</span><span class="tag">🔒 solo lectura</span></div>`;
+  if(inf.length) h+=`<div class="trow grp num" data-grp="inf"><span><span class="cue">▸</span>${inf.length} tramos superados · ${fmt(inf[0][0])} – ${fmt(inf[inf.length-1][1])}</span><span class="r">${pct(inf[0][2])} – ${pct(inf[inf.length-1][2])}</span></div>`;
+  h+=inf.map(([lo,hi,t])=>`<div class="trow hidden num" data-of="inf"><span>${fmt(lo)} – ${fmt(hi)}</span><span class="r">${pct(t)}</span></div>`).join('');
+  // tramo activo
+  const w=isFinite(act[1])?((base-act[0])/(act[1]-act[0])*100):50;
+  const quedan=isFinite(act[1])?act[1]-base:null;
+  h+=`<div class="active num">
+    <div class="head"><span>Tramo actual · <b>${pct(act[2])}</b></span><span>${fmt(act[0])} – ${isFinite(act[1])?fmt(act[1]):'∞'}</span></div>
+    <div class="abar"><div class="afill" style="width:${w}%"></div><div class="amark" style="left:${w}%"><i>${fmt(base)}</i></div></div>
+    <div class="ainfo">
+      <span>lo que exceda tributa aquí al ${pct(act[2])}</span>
+      <span class="aquedan">${quedan!==null?fmt(quedan):'—'} <small>hasta el ${nxt?pct(nxt[2]):'—'}</small></span>
+    </div>
+  </div>`;
+  if(nxt) h+=`<div class="trow dim num"><span>siguiente · ${fmt(nxt[0])} – ${isFinite(nxt[1])?fmt(nxt[1]):'∞'}</span><span class="r">${pct(nxt[2])}</span></div>`;
+  if(sup.length) h+=`<div class="trow grp num" data-grp="sup"><span><span class="cue">▸</span>${sup.length} tramos superiores</span><span class="r">hasta ${pct(sup[sup.length-1][2])}</span></div>`;
+  h+=sup.map(([lo,hi,t])=>`<div class="trow hidden num" data-of="sup"><span>${fmt(lo)} – ${isFinite(hi)?fmt(hi):'∞'}</span><span class="r">${pct(t)}</span></div>`).join('');
+  h+=`<div class="esc-foot">parámetros (a verificar) · fuente en la tabla del motor</div>`;
+  el.innerHTML=h;
+  el.querySelectorAll('.grp').forEach(g=>g.addEventListener('click',()=>{
+    const open=g.querySelector('.cue').textContent==='▾';
+    g.querySelector('.cue').textContent=open?'▸':'▾';
+    el.querySelectorAll(`[data-of="${g.dataset.grp}"]`).forEach(r=>r.classList.toggle('hidden',open));
+  }));
+}
+function paint(key){
+  const p=P[key];
+  document.getElementById('nom').textContent=p.nombre;
+  document.getElementById('cuota').textContent=p.cuota;
+  document.getElementById('cuotaS').textContent=p.cuotaS;
+  document.getElementById('base').textContent=fmt(p.base);
+  document.getElementById('baseS').textContent=p.baseS;
+  render(document.getElementById('escAuto'),AUT,p.base);
+  render(document.getElementById('escEst'),EST,p.base);
+}
+document.querySelectorAll('.seg button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.seg button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); paint(b.dataset.p);
+}));
+paint('carlos');
+</script>
+</body>
+</html>

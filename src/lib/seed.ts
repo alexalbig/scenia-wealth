@@ -4,14 +4,24 @@ import type { HistorialInforme, SeedData } from "./types";
  * Seed ANEXO F — un asesor/EAF con seis clientes.
  * García-Llorente es el único completo; el resto solo pobla la Cartera.
  *
- * impuestosPeriodo de escenarios A/B: rollup del motor (primer ejercicio),
- * no cifras fijas.
+ * impuestosPeriodo: rollup del motor (primer ejercicio), no cifras fijas.
+ *
+ * Escenarios GL (pares comparables):
+ *   A vs B — misma liquidez ≈35k · reembolso vs pignoración
+ *   C vs D — misma venta Jávea · 2033 vs 2036 (art. 33.4.b)
+ *   E — rescate capital Marta con DT 12ª (anioContingencia 2026)
  */
 
 const CUENTA_ID = "cuenta-eaf-1";
 const CLIENTE_GL = "cliente-garcia-llorente";
+const CLIENTE_REQUENA = "cliente-requena";
+const CLIENTE_TORMO = "cliente-tormo";
 const PERSONA_CARLOS = "persona-carlos";
 const PERSONA_MARTA = "persona-marta";
+const PERSONA_LUCIA = "persona-lucia";
+const PERSONA_HUGO = "persona-hugo";
+const PERSONA_AMPARO = "persona-amparo";
+const PERSONA_VICENT = "persona-vicent";
 const SOCIEDAD_GC = "sociedad-garcia-consulting";
 const FONDO_A = "inst-fondo-a";
 const PLAN_CARLOS = "inst-plan-carlos";
@@ -21,7 +31,10 @@ const PASIVO_HIPOTECA = "pasivo-hipoteca-javea";
 const OTRO_AUDI = "otro-audi-q8";
 const ESC_BASE = "esc-gl-base";
 const ESC_A = "esc-gl-a-reembolso";
-const ESC_B = "esc-gl-b-traspaso";
+const ESC_B = "esc-gl-b-pignoracion";
+const ESC_C = "esc-gl-c-javea-2033";
+const ESC_D = "esc-gl-d-javea-2036";
+const ESC_E = "esc-gl-e-rescate-marta";
 
 export const seed: SeedData = {
   cuenta: {
@@ -44,6 +57,40 @@ export const seed: SeedData = {
       birthYear: 1971,
       ccaa: "Comunitat Valenciana",
     },
+    // Lucía · sin ingresos · demo estado P4 «sin ingresos informados».
+    // SIN titularidad sobre activos hasta que las guardas v14 estén en motor.ts/CT1.
+    {
+      id: PERSONA_LUCIA,
+      nombre: "Lucía",
+      apellidos: "García Llorente",
+      birthYear: 2004,
+      ccaa: "Comunitat Valenciana",
+    },
+    // Hugo · Madrid · demo cobertura por persona (firewall §8).
+    // SIN titularidad — liquidar su parte con escalas CV sería un fallo grave.
+    {
+      id: PERSONA_HUGO,
+      nombre: "Hugo",
+      apellidos: "García Llorente",
+      birthYear: 2001,
+      ccaa: "Comunidad de Madrid",
+    },
+    // Amparo · Tormo · pensionista · titular único. Sin titularidad.
+    {
+      id: PERSONA_AMPARO,
+      nombre: "Amparo",
+      apellidos: "Tormo Gisbert",
+      birthYear: 1958,
+      ccaa: "Comunitat Valenciana",
+    },
+    // Vicent · Requena · actividad económica · sin cálculo. Sin titularidad.
+    {
+      id: PERSONA_VICENT,
+      nombre: "Vicent",
+      apellidos: "Requena Poveda",
+      birthYear: 1980,
+      ccaa: "Comunitat Valenciana",
+    },
   ],
 
   clientes: [
@@ -53,7 +100,7 @@ export const seed: SeedData = {
       nombre: "Familia García-Llorente",
       segmento: "Pre-jubilado",
       ccaa: "Comunitat Valenciana",
-      personaIds: [PERSONA_CARLOS, PERSONA_MARTA],
+      personaIds: [PERSONA_CARLOS, PERSONA_MARTA, PERSONA_LUCIA, PERSONA_HUGO],
       sociedadIds: [SOCIEDAD_GC],
       // 970.000 activos − 180.000 hipoteca = 790.000
       patrimonioNeto: 790_000,
@@ -93,7 +140,8 @@ export const seed: SeedData = {
       cuentaId: CUENTA_ID,
       nombre: "Familia Navarro Sanchís",
       segmento: "Jubilado",
-      ccaa: "Comunitat Valenciana",
+      // Demo firewall §7 · aviso de cobertura (resto de ligeros = CV)
+      ccaa: "Comunidad de Madrid",
       personaIds: [],
       sociedadIds: [],
       patrimonioNeto: 1_150_000,
@@ -108,12 +156,12 @@ export const seed: SeedData = {
       datosAFecha: "2026-02-20",
     },
     {
-      id: "cliente-requena",
+      id: CLIENTE_REQUENA,
       cuentaId: CUENTA_ID,
       nombre: "Familia Requena Poveda",
       segmento: "Alto ingreso",
       ccaa: "Comunitat Valenciana",
-      personaIds: [],
+      personaIds: [PERSONA_VICENT],
       sociedadIds: [],
       patrimonioNeto: 610_000,
       composicion: {
@@ -146,12 +194,12 @@ export const seed: SeedData = {
       datosAFecha: "2025-11-10",
     },
     {
-      id: "cliente-tormo",
+      id: CLIENTE_TORMO,
       cuentaId: CUENTA_ID,
       nombre: "Familia Tormo Gisbert",
       segmento: "Pre-jubilado",
       ccaa: "Comunitat Valenciana",
-      personaIds: [],
+      personaIds: [PERSONA_AMPARO],
       sociedadIds: [],
       patrimonioNeto: 875_000,
       composicion: {
@@ -304,6 +352,31 @@ export const seed: SeedData = {
        */
       cotizacionesSS: 2_080,
     },
+    {
+      id: "ing-hugo-trabajo",
+      clienteId: CLIENTE_GL,
+      personaId: PERSONA_HUGO,
+      fuente: "trabajo",
+      importeAnual: 24_000,
+      descripcion: "Trabajo",
+      cotizacionesSS: 1_560,
+    },
+    {
+      id: "ing-amparo-pension",
+      clienteId: CLIENTE_TORMO,
+      personaId: PERSONA_AMPARO,
+      fuente: "pension",
+      importeAnual: 26_000,
+      descripcion: "Pensión",
+    },
+    {
+      id: "ing-vicent-aaee",
+      clienteId: CLIENTE_REQUENA,
+      personaId: PERSONA_VICENT,
+      fuente: "actividad_economica",
+      importeAnual: 68_000,
+      descripcion: "Actividad económica",
+    },
   ],
 
   gastos: [
@@ -383,15 +456,53 @@ export const seed: SeedData = {
     {
       id: ESC_B,
       clienteId: CLIENTE_GL,
-      nombre: "B · Traspaso + rescate",
+      nombre: "B · Pignoración",
       esPlanBase: false,
       rentabilidadEsperada: 0.04,
       inflacion: 0.02,
       eventoIds: [
         "evt-b-jubilacion-carlos",
         "evt-b-jubilacion-marta",
-        "evt-b-traspaso",
-        "evt-b-rescate",
+        "evt-b-pignoracion",
+      ],
+    },
+    {
+      id: ESC_C,
+      clienteId: CLIENTE_GL,
+      nombre: "C · Venta Jávea 2033",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-c-jubilacion-carlos",
+        "evt-c-jubilacion-marta",
+        "evt-c-venta-javea",
+      ],
+    },
+    {
+      id: ESC_D,
+      clienteId: CLIENTE_GL,
+      nombre: "D · Venta Jávea 2036",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-d-jubilacion-carlos",
+        "evt-d-jubilacion-marta",
+        "evt-d-venta-javea",
+      ],
+    },
+    {
+      id: ESC_E,
+      clienteId: CLIENTE_GL,
+      nombre: "E · Rescate capital Marta",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-e-jubilacion-carlos",
+        "evt-e-jubilacion-marta",
+        "evt-e-rescate-capital",
       ],
     },
     // Clientes ligeros — stubs solo para la columna Escenarios de P1 (ANEXO F)
@@ -497,22 +608,102 @@ export const seed: SeedData = {
       notas: "Pensión estimada 14.500 €/año · introducida por el asesor",
     },
     {
-      id: "evt-b-traspaso",
+      id: "evt-b-pignoracion",
       escenarioId: ESC_B,
-      tipo: "traspasar_fondo",
+      tipo: "pignorar",
       anio: 2026,
-      etiqueta: "Traspasar Fondo A → Fondo B (Art. 94)",
+      etiqueta: "Pignorar Fondo A · 35.000 €",
       targetId: FONDO_A,
+      notas: "Misma liquidez que A · sin realizar plusvalía",
     },
     {
-      id: "evt-b-rescate",
-      escenarioId: ESC_B,
+      id: "evt-c-jubilacion-carlos",
+      escenarioId: ESC_C,
+      tipo: "jubilarse",
+      anio: 2033,
+      etiqueta: "Jubilación de Carlos (65)",
+      targetId: PERSONA_CARLOS,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 32.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-c-jubilacion-marta",
+      escenarioId: ESC_C,
+      tipo: "jubilarse",
+      anio: 2036,
+      etiqueta: "Jubilación de Marta (65)",
+      targetId: PERSONA_MARTA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 14.500 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-c-venta-javea",
+      escenarioId: ESC_C,
+      tipo: "vender_inmueble",
+      anio: 2033,
+      etiqueta: "Vender Vivienda · Jávea · 420.000 €",
+      targetId: INMUEBLE_JAVEA,
+      notas: "Carlos 65 · Marta 62 · art. 33.4.b) parcial",
+    },
+    {
+      id: "evt-d-jubilacion-carlos",
+      escenarioId: ESC_D,
+      tipo: "jubilarse",
+      anio: 2033,
+      etiqueta: "Jubilación de Carlos (65)",
+      targetId: PERSONA_CARLOS,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 32.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-d-jubilacion-marta",
+      escenarioId: ESC_D,
+      tipo: "jubilarse",
+      anio: 2036,
+      etiqueta: "Jubilación de Marta (65)",
+      targetId: PERSONA_MARTA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 14.500 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-d-venta-javea",
+      escenarioId: ESC_D,
+      tipo: "vender_inmueble",
+      anio: 2036,
+      etiqueta: "Vender Vivienda · Jávea · 420.000 €",
+      targetId: INMUEBLE_JAVEA,
+      notas: "Carlos 68 · Marta 65 · art. 33.4.b) pleno",
+    },
+    {
+      id: "evt-e-jubilacion-carlos",
+      escenarioId: ESC_E,
+      tipo: "jubilarse",
+      anio: 2033,
+      etiqueta: "Jubilación de Carlos (65)",
+      targetId: PERSONA_CARLOS,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 32.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-e-jubilacion-marta",
+      escenarioId: ESC_E,
+      tipo: "jubilarse",
+      anio: 2036,
+      etiqueta: "Jubilación de Marta (65)",
+      targetId: PERSONA_MARTA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 14.500 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-e-rescate-capital",
+      escenarioId: ESC_E,
       tipo: "rescatar_plan",
       anio: 2026,
-      hastaAnio: 2033,
-      etiqueta: "Rescatar plan · renta · 15.000 €/año",
-      targetId: PLAN_CARLOS,
-      notas: "2026–2033",
+      etiqueta: "Rescatar plan · capital · 15.000 €",
+      targetId: PLAN_MARTA,
+      // Contingencia en 2026 → plazo DT 12ª hasta 2028 · reducción 40 % aplicable
+      anioContingencia: 2026,
+      notas: "DT 12ª · fraccionPre2007 55 % · contingencia 2026",
     },
   ],
 };
@@ -521,8 +712,14 @@ export const seed: SeedData = {
 export const ids = {
   cuenta: CUENTA_ID,
   clienteGarciaLlorente: CLIENTE_GL,
+  clienteRequena: CLIENTE_REQUENA,
+  clienteTormo: CLIENTE_TORMO,
   personaCarlos: PERSONA_CARLOS,
   personaMarta: PERSONA_MARTA,
+  personaLucia: PERSONA_LUCIA,
+  personaHugo: PERSONA_HUGO,
+  personaAmparo: PERSONA_AMPARO,
+  personaVicent: PERSONA_VICENT,
   sociedadGarciaConsulting: SOCIEDAD_GC,
   fondoA: FONDO_A,
   planCarlos: PLAN_CARLOS,
@@ -533,6 +730,9 @@ export const ids = {
   escBase: ESC_BASE,
   escA: ESC_A,
   escB: ESC_B,
+  escC: ESC_C,
+  escD: ESC_D,
+  escE: ESC_E,
 } as const;
 
 /** P7 · Informes emitidos (solo García-Llorente tiene historial en el seed). */
@@ -555,7 +755,7 @@ export const historialInformes: HistorialInforme[] = [
     id: "hist-gl-2",
     clienteId: CLIENTE_GL,
     fecha: "2026-06-20",
-    titulo: "Comparación · A Reembolso vs B Traspaso + rescate",
+    titulo: "Comparación · A Reembolso vs B Pignoración",
     tipo: "Comparación de escenarios",
   },
 ];

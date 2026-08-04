@@ -3,6 +3,7 @@ const currency = new Intl.NumberFormat("es-ES", {
   currency: "EUR",
   minimumFractionDigits: 0,
   maximumFractionDigits: 0,
+  useGrouping: true,
 });
 
 const currencyExact = new Intl.NumberFormat("es-ES", {
@@ -10,7 +11,18 @@ const currencyExact = new Intl.NumberFormat("es-ES", {
   currency: "EUR",
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
+  useGrouping: true,
 });
+
+/** Entero con separador de miles es-ES (sin símbolo €). */
+const integerES = new Intl.NumberFormat("es-ES", {
+  useGrouping: true,
+  maximumFractionDigits: 0,
+});
+
+export function formatIntegerES(value: number): string {
+  return integerES.format(value);
+}
 
 const percent = new Intl.NumberFormat("es-ES", {
   style: "percent",
@@ -23,6 +35,16 @@ export function formatEUR(value: number, exact = false): string {
 
 export function formatPercent(value: number): string {
   return percent.format(value);
+}
+
+/** Tipo marginal de escala (fracción → «22,5 %»). Un decimal; no redondea a entero. */
+export function formatTipo(tipo: number): string {
+  return (
+    new Intl.NumberFormat("es-ES", {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 0,
+    }).format(tipo * 100) + " %"
+  );
 }
 
 export function formatDeltaEUR(value: number, exact = false): string {

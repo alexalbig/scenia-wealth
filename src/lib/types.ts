@@ -77,6 +77,7 @@ export type FuenteIngreso =
   | "alquiler"
   | "dividendo"
   | "pension"
+  | "actividad_economica"
   | "otros";
 
 export type TipoEvento =

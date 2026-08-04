@@ -59,6 +59,7 @@ export const FUENTE_INGRESO_OPTIONS: Array<{
   { value: "alquiler", label: "Alquiler" },
   { value: "dividendo", label: "Dividendo" },
   { value: "pension", label: "Pensión" },
+  { value: "actividad_economica", label: "Actividad económica" },
   { value: "otros", label: "Otros" },
 ];
 

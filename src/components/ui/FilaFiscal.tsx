@@ -16,7 +16,7 @@ export function FilaFiscal({
   className: _ignored,
 }: {
   label?: string;
-  cells: Array<{ name: string; amount: number }>;
+  cells: Array<{ name: string; amount: number; id?: string }>;
   /** Δ absoluta entre alternativas (sin signo de “ganador”). */
   delta?: number | null;
   /** Hay eventos sin liquidador excluidos del total */
@@ -36,8 +36,8 @@ export function FilaFiscal({
     <div className="fila-fiscal" data-firewall="neutral-only">
       <div className="ff-lbl">{lbl}</div>
       <div className="ff-cells">
-        {cells.map((c) => (
-          <div key={c.name} className="ff-cell">
+        {cells.map((c, i) => (
+          <div key={c.id ?? `${c.name}-${i}`} className="ff-cell">
             <div className="ff-name">{c.name}</div>
             <div className="ff-val">{formatEUR(c.amount)}</div>
           </div>

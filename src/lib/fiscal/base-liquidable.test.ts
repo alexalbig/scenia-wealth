@@ -31,7 +31,7 @@ describe("base liquidable arts. 19/20", () => {
       importe: 15_000,
       modalidad: "renta" as const,
       notaBaseLiquidable:
-        "bruto trabajo 95000 € · − cotizaciones SS 0 € (no informadas · no estimadas) · − art. 19.2.f) 2000 € · − art. 20 0 € (RNT ≥ tope o no aplica)",
+        "bruto trabajo 95.000 € · − cotizaciones SS 0 € (no informadas · no estimadas) · − art. 19.2.f) 2.000 € · − art. 20 0 € (RNT ≥ tope o no aplica)",
     };
     const r93 = simularMotorEvento("rescatar_plan", ctxBase);
     const r95 = simularMotorEvento("rescatar_plan", {

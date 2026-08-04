@@ -1,6 +1,6 @@
-# Scenia Wealth — Funcionalidades (documento maestro · v12)
+# Scenia Wealth — Funcionalidades (documento maestro · v14)
 
-> **Documento único de funcionalidades (v13).** Sustituye por completo a cualquier versión anterior. Organizado por pantalla; cada funcionalidad lleva su fase.
+> **Documento único de funcionalidades (v14).** Sustituye por completo a cualquier versión anterior. Organizado por pantalla; cada funcionalidad lleva su fase.
 >
 > **Las fases:**
 > - **CORE** — el espinazo. Define el producto; sin esto no hay Scenia. Va dentro del MVP.
@@ -14,9 +14,28 @@
 > **Estado de las validaciones:**
 > - ✅ **Foto-primero validado** — Dani (design partner, Mediolanum) confirma que entrar por la foto del patrimonio le convence.
 > - ⏳ **Motor fiscal en validación con fiscalista** — prerrequisito para enseñar cifras a cualquier asesor. Todo parámetro va marcado `(a verificar)` hasta entonces.
-> - ⚙️ **Estado del motor (v13):** liquidación de **un ejercicio** funcionando (escalas oficiales estatal + CV, base general apilada, base del ahorro). La **acumulación de periodo** (FIFO multi-año, interacción entre eventos) no está construida: los eventos multi-año liquidan solo el primer ejercicio.
+> - ⚙️ **Estado del motor (v14):** liquidación de **un ejercicio** funcionando (escalas oficiales estatal + CV, base general apilada, base del ahorro). La **acumulación de periodo** (FIFO multi-año, interacción entre eventos) no está construida: los eventos multi-año liquidan solo el primer ejercicio.
 >
 > **Principio rector:** el asesor entra por la foto, actúa desde donde mira, y el motor calcula la fiscalidad de una decisión antes de tomarla — sin recomendar nunca.
+
+---
+
+## Cambios de la v14
+
+Revisión centrada en **la composición del expediente**: hasta ahora todo se había diseñado asumiendo dos titulares con nómina en la Comunitat Valenciana. Al probar otras composiciones aparecieron seis huecos, dos de ellos de firewall.
+
+| # | Cambio | Por qué |
+|---|---|---|
+| 1 | **El motor no liquida base general sin ingresos informados** | Sin líneas de ingreso, la aplicación no puede distinguir "no tiene renta" de "no la han cargado". Apilar sobre base 0 daba una cuota bajísima **presentada como cálculo**. Ahora: `sin_calculo` + fila parcial |
+| 2 | **La cobertura por CCAA se comprueba por persona, no por expediente** | El modelo permite titulares en comunidades distintas, pero el bloqueo miraba la comunidad del cliente. Un titular de Madrid en un expediente valenciano liquidaba con escalas valencianas sin avisar |
+| 3 | **Guarda de titular sin renta calculable en ganancias patrimoniales** | Mismo caso que el 1, aplicado a ventas: la parte de un titular sin datos va a `sin_calculo` en lugar de liquidarse sobre base 0 |
+| 4 | **Fuente de renta "actividad económica" declarada como no contemplada** | Un autónomo cargado como "trabajo" hacía que el motor restara cotizaciones de asalariado y la base saliera mal en silencio |
+| 5 | **El desglose de base liquidable adapta sus etiquetas a la fuente** | En un pensionista, "− Cotizaciones SS: 0 €" parecía un dato que faltaba, no un concepto que no aplica |
+| 6 | **P4 admite titulares en estados mixtos** | Con una persona calculable y otra sin datos, la pantalla muestra a cada una en su estado en lugar de bloquear todo o calcular todo |
+
+**Composiciones de expediente ahora soportadas:** un titular · dos titulares · tres o más · titular sin ingresos informados · titular jubilado (pensión) · titular autónomo (declarado, no calculado) · titulares en comunidades distintas · persona menor titular de un activo.
+
+**Principio que se consolida:** toda persona del expediente queda **o calculada o declarada**. Nunca una cuota que parezca resultado cuando en realidad falta el dato.
 
 ---
 
@@ -170,7 +189,8 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Lista de personas del expediente | Nombre · edad · CCAA · ingresos del año · titularidad agregada | CORE·MVP |
 | Pinchar abre F1 · Persona | Drill-down a la ficha | CORE·MVP |
 | **Alta de persona** | Botón «+ Añadir» al expediente ya creado: nombre · fecha de nacimiento · CCAA | CORE·MVP |
-| Rol en el expediente | Titular · cónyuge · hijo | V2 |
+| **Estado de cálculo por persona** | Cada persona se marca como *con renta calculable* (tiene ingresos informados y comunidad con cobertura) o *sin cálculo*, con el motivo. Es lo que alimenta el selector de P4 y las guardas del motor | CORE·MVP |
+| Rol en el expediente | Titular · cónyuge · hijo. Hoy se suple con el estado de cálculo | V2 |
 
 ## 3.3 · Pestaña Activos
 
@@ -204,6 +224,9 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 |---|---|---|
 | Desglose por Persona y fuente | Trabajo · alquiler · dividendo · pensión · otros | CORE·MVP |
 | **Alimenta el motor fiscal** | El total por persona es el input del liquidador de base general (regla ②) | CORE·MVP |
+| **Etiquetas según la fuente** | El desglose de base liquidable adapta sus conceptos: un pensionista no tiene cotizaciones de trabajador, así que no se muestra "− Cotizaciones SS: 0 €" como si faltara el dato | MVP |
+| **Fuente "actividad económica" declarada** | Los autónomos tienen otra forma de llegar a la base (RETA, gastos propios) que el motor **no modela**. La fuente existe en el desplegable y devuelve `sin_calculo` con su aviso, en lugar de tratarse como trabajo y dar una base incorrecta en silencio | CORE·MVP |
+| Rendimientos de actividades económicas calculados | Requiere modelar RETA y gastos deducibles propios | V2 |
 | **Alta de línea de ingreso** | Botón «+ Añadir»: persona · fuente · importe anual. **Crítico**: es lo que alimenta el liquidador de base general | CORE·MVP |
 | Eventos genéricos desde la pestaña | Cambios de flujo futuros ("en 2028 entra un ingreso extraordinario"). Sin cálculo fiscal | MVP |
 
@@ -249,6 +272,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **Ingresos del año** | Calculado desde la pestaña Ingresos. Es el input del motor para el rescate | CORE·MVP |
 | Jubilación prevista | Año/edad estimados, introducidos por el asesor | MVP |
 | Titularidad agregada | Qué parte del patrimonio le corresponde | MVP |
+| **CCAA por persona, con efecto real** | La comunidad vive en la persona, no en el expediente. Un expediente puede tener titulares en comunidades distintas, y **la cobertura fiscal se comprueba al liquidar cada uno** | CORE·MVP |
 | Identidad única entre expedientes | La misma Persona puede estar en varios Clientes | MVP (modelo) |
 | Motor de pensión público | Base reguladora · tasa de reemplazo · años cotizados · slider de edad que recalcula | V2 |
 | Vida laboral · relaciones mercantiles · calendario vital | Requieren captación automática | V2/Futura |
@@ -307,11 +331,15 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **Cuota del ejercicio** | Liquidación del año seleccionado con las escalas oficiales. Es lo que el motor calcula hoy | CORE·MVP |
 | KPIs de por vida (IRPF total + ETR) | Requieren acumulación de periodo, que no está construida | V2 |
 | **Visor de tramos** | Escala estatal + autonómica (CV), con marca de en qué tramo cae cada renta y **cuánto espacio queda hasta el siguiente**. Es la conversación de valor con el cliente | CORE·MVP |
-| **Base general vs base del ahorro separadas** | Son dos escalas distintas; mezclarlas sería un error de fondo | CORE·MVP |
+| **Base general vs base del ahorro separadas** | Son dos escalas distintas; mezclarlas sería un error de fondo. **Hoy** la rejilla de P4 muestra estatal + autonómica de la base general, y el ahorro va como nota al pie (el modelo no tiene rentas del ahorro). Cuando las haya, la rejilla necesitará una tercera columna o una segunda fila — no dejar que se descubra tarde | CORE·MVP |
 | Serie de IRPF año a año | Requiere acumulación de periodo | V2 |
 | Controles | Selector de Persona · selector de año | MVP |
 | Toggle €hoy/€futuro en P4 | Sin serie temporal no tiene consumidor | V2 |
 | **Parámetros no editables por el asesor** | Los tramos y tipos viven en la tabla verificada del motor. Si el asesor pudiera tocarlos, el "orientativo" perdería sentido. **Es firewall** | CORE·MVP |
+| **Titulares en estados mixtos** | Con una persona calculable y otra sin datos o de otra comunidad, la pantalla muestra **a cada una en su estado**: ni bloquea todo ni calcula todo | CORE·MVP |
+| **Estado "sin ingresos informados"** | Un titular sin líneas de ingreso no tiene cuota 0 €: tiene un hueco con su motivo. La aplicación no puede distinguir "no tiene renta" de "no la han cargado" | CORE·MVP |
+| **Expediente de un solo titular** | El selector de persona se reduce o desaparece; la pantalla no deja huecos de una comparación que no existe | MVP |
+| Vista comparada de titulares | Ver a dos o más personas en paralelo. **Capa opcional que aparece solo cuando hay dos o más titulares calculables**, nunca el fundamento de la pantalla | V2 |
 | Sello y descargo | "Orientativo" siempre presente | CORE·MVP |
 | Botón de informe desde esta pantalla | — | V2 |
 | Explorador de estrategias / optimizador | Ordena por la métrica que el asesor declara; **nunca corona un ganador** | V2 |
@@ -354,7 +382,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **Menú de eventos completo dentro del escenario** | De cualquier activo, no solo del que se entró. Es el cambio clave de la arquitectura | CORE·MVP |
 | Lanzar evento desde la ficha de un activo | Atajo contextual: se elige a qué escenario va | MVP |
 | Supuestos por escenario | Rentabilidad esperada e inflación (campos numéricos) | MVP |
-| **Comparador: superponer escenarios** | Un gráfico + selector de métrica (patrimonio · líquidos · impacto fiscal de los eventos). Soporta N escenarios. La métrica fiscal es el impacto de los eventos del escenario, no el IRPF total del cliente (nombre provisional hasta proyección real de IRPF) | CORE·MVP |
+| **Comparador: superponer escenarios** | Un gráfico + selector de métrica (patrimonio · líquidos · IRPF acumulado). Soporta N escenarios | CORE·MVP |
 | **Fila fiscal neutra (CT2)** | `Impacto fiscal · primer año · A · B · Δ · orientativo`. **La pieza central del producto.** Los eventos multi-año liquidan solo el primer ejercicio hasta que exista la acumulación de periodo | CORE·MVP |
 | Eventos de cada escenario en paralelo | Para ver qué los diferencia | MVP |
 | Clic-en-año + toggle €hoy/€futuro | — | MVP |
@@ -394,13 +422,16 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **Comprar inmueble** | Precio · año · ¿hipoteca? | **Sin fiscalidad** (comprar no tributa en IRPF) pero crea el activo y descuenta liquidez. Guiado por ser un caso muy común | MVP |
 | **Jubilarse** | Año/edad · **pensión estimada introducida a mano** | Sin motor de pensión en MVP: cambia los ingresos de la persona al importe que indique el asesor, marcado como introducido | MVP |
 | **Repartir dividendo / vender participación** | Importe · año | ⚠️ **Sin cálculo — el liquidador de IS no existe.** El hueco se marca visiblemente | MVP (registro) · V2 (cálculo) |
-| **Aportar a plan de pensiones** | Importe · año | **Regla ⑥** — reduce la base liquidable general hasta el límite art. 52 (min. 1.500 € / 30 % RNT · plan individual). Exceso avisado, no aplicado en silencio. Ahorro = Δ cuota | CORE·MVP |
+| **Aportar a plan de pensiones** | Importe · año | Tiene fiscalidad real (reducción en base general con límite) pero **no está entre las 5 reglas** → va como genérico sin cálculo. Candidata a **regla ⑥ en V2** | MVP (genérico) · V2 (regla) |
 | **Evento genérico** | Ingreso / gasto / movimiento libre | **Sin cálculo fiscal.** Si el asesor teclea un impacto, se marca "introducido por el asesor, no calculado". Disponible también desde Ingresos y Gastos | MVP |
 
 | Funcionalidad del modal | Detalle | Fase |
 |---|---|---|
 | Menú contextual por tipo de activo | Solo ofrece los eventos posibles para ese elemento | CORE·MVP |
 | Reparto de titularidad en el evento | Si el activo tiene varios titulares, por defecto actúa en proporción a su % | MVP |
+| **Guarda de titular sin ingresos informados** | Un rescate sobre una persona sin líneas de ingreso **no se liquida**: apilar sobre base 0 daría una cuota bajísima presentada como cálculo. `sin_calculo` con su motivo, y la fila marca parcial. **Es regla de oro** | CORE·MVP |
+| **Guarda de titular sin renta calculable en ganancias** | En una venta con varios titulares, la parte de quien no tiene datos o está fuera de cobertura va a `sin_calculo`, no se liquida sobre base 0 | CORE·MVP |
+| **Cobertura comprobada por titular** | El motor verifica la comunidad **de la persona que liquida**, no la del expediente | CORE·MVP |
 | Distinción visual calculado vs introducido | Una cifra del motor nunca tiene el mismo aspecto que una tecleada por el asesor. **Es firewall** | CORE·MVP |
 
 ## CT2 · Fila fiscal neutra
@@ -445,18 +476,23 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 - **Liquidación de ejercicio** *(construida)* — base, escala progresiva, cuota de un año. Es lo que responde a las preguntas frecuentes del asesor: rescate en capital/renta/mixto, pignorar vs rescatar, reembolso.
 - **Acumulación de periodo** *(V2)* — FIFO real a través de reembolsos sucesivos, interacción entre eventos del mismo año, herencia patrimonial del traspaso, y suma año a año con bases que cambian.
 
-**Base del motor:** liquidable aproximada (arts. 19/20 LIRPF) — no brutos. Cotizaciones SS solo si las informa el asesor (no se estiman). La UI etiqueta explícitamente «base liquidable».
+**Guardas de entrada (v14).** Antes de liquidar, el motor comprueba que existan los datos necesarios y se niega a calcular si no:
+- Sin **ingresos informados** del titular → `sin_calculo`. No se apila sobre base 0.
+- Titular en **comunidad sin cobertura** → `sin_calculo`, comprobado por persona y no por expediente.
+- Fuente de renta **no contemplada** (actividad económica) → `sin_calculo` con aviso.
+
+En los tres casos la fila fiscal marca cálculo parcial. **Un hueco declarado es correcto; una cuota sobre datos que faltan es un fallo grave**, porque tiene el mismo aspecto que un cálculo bueno.
 
 | Pieza | Detalle | Fase |
 |---|---|---|
 | Clasificador + liquidadores | Función pura, sin efectos secundarios | CORE·MVP |
 | Tabla de parámetros por (año, CCAA) | Arranca en **Comunitat Valenciana** | CORE·MVP |
 | **① Traspaso vs reembolso** | Traspaso Art. 94 sin peaje, el destino hereda valor y fecha; reembolso realiza plusvalía → base del ahorro. FIFO básico | CORE·MVP |
-| **② Rescate del plan** | Capital / renta / mixto → base general liquidable, apilado sobre arts. 19/20 | CORE·MVP |
+| **② Rescate del plan** | Capital / renta / mixto → base general, apilado sobre ingresos del año | CORE·MVP |
 | **③ Amortizar hipoteca vs invertir** | ⚠️ **Hoy es un stub**: no calcula interés ahorrado ni coste de oportunidad. El evento se registra sin cifra | V2 |
 | **④ Pignorar** | No realiza plusvalía → cuota 0 | CORE·MVP |
-| **⑤ Venta de inmueble >65** | **Art. 33.4.b)** vivienda habitual + titular ≥65 → exento (por titular). **Art. 38.3** reinversión renta vitalicia → aviso sin liquidar (art. 42 RIRPF). Resto → plusvalía al ahorro. Campo `uso` del inmueble obligatorio | MVP (33.4.b sí · 38.3 aviso) · V2 (38.3 completa) |
-| **⑥ Aportación a plan de pensiones** | Reduce base liquidable · límite art. 52 (1.500 € / 30 % RNT · sin incremento empresarial en MVP) · exceso avisado | CORE·MVP |
+| **⑤ Venta de inmueble >65** | Parcial: sin reinversión liquida la plusvalía; con reinversión avisa pero **no liquida la exención**. No comprueba edad ≥65, ni plazo, ni uso del inmueble | MVP (parcial) · V2 (completa) |
+| ⑥ Aportación a plan de pensiones | Reducción en base general con límite | V2 |
 | Impuesto de Sociedades | Prerrequisito para que F4 calcule | V2 |
 | ISD por CCAA (sucesiones y donaciones) | Motor nuevo | V2 |
 | Patrimonio + ISGF | Alerta de cruce de umbral, con deducción cruzada | V2 |
@@ -470,7 +506,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Pieza | Detalle | Fase |
 |---|---|---|
 | **Cuenta** | Dueño abstracto del expediente. Hoy siempre un asesor/EAF; diseñada para que un particular pueda serlo (B2C) sin reconstruir. Invisible en el MVP | MVP (esquema) |
-| **Persona** | Identidad única en todo el sistema. Compartible entre expedientes | CORE·MVP |
+| **Persona** | Identidad única en todo el sistema. Compartible entre expedientes. **Lleva su propia CCAA**, que es la que determina su cobertura fiscal | CORE·MVP |
 | **Cliente (expediente)** | Agrupa N Personas + opcionalmente Sociedades. La unidad de trabajo del asesor | CORE·MVP |
 | **Sociedad** | Persona jurídica dentro de un Cliente, ligada a Personas por % de participación | MVP |
 | **Instrumento** | Con valor, fecha de adquisición y tipo fiscal | CORE·MVP |
@@ -528,36 +564,40 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 ## F.1 · Cliente completo — Familia García-Llorente
 
-- **Segmento:** Pre-jubilado · **CCAA:** Comunitat Valenciana
-- **Personas:** Carlos (58, nacido 1968) · Marta (55, nacida 1971)
+- **Segmento:** Pre-jubilado · **CCAA del expediente:** Comunitat Valenciana
+- **Personas:**
+  - Carlos (58, nacido 1968) · CV · trabajo 95.000 €
+  - Marta (55, nacida 1971) · CV · trabajo 32.000 €
+  - Lucía (nacida 2004) · CV · **sin ingresos** (demo estado P4 «sin ingresos informados»)
+  - Hugo (nacido 2001) · **Comunidad de Madrid** · trabajo 24.000 € (demo cobertura **por persona**)
+- **Importante:** Lucía y Hugo **no tienen titularidad** sobre ningún activo ni eventos. Hasta que las guardas v14 estén en `motor.ts`/CT1, darles titularidad haría que el motor liquidara con escalas incorrectas.
 - **Fondo A:** 300.000 €, adquirido en 2014, **Carlos 60 % / Marta 40 %**, plusvalía latente +120.000 €
-- **Plan de pensiones de Carlos:** 120.000 €, desde 2009, 100 % suyo (sin `fraccionPre2007` — aportaciones posteriores a 2006)
-- **Plan de pensiones de Marta:** 85.000 €, desde 2003, 100 % suyo, `fraccionPre2007` = 55 % (demo DT 12ª en rescate capital)
+- **Plan de pensiones de Carlos:** 120.000 €, desde 2009, 100 % suyo
 - **Vivienda en Jávea:** 420.000 €, **50/50**, hipoteca de 180.000 € (~950 €/mes)
 - **Otros activos:** Audi Q8, 45.000 €, Carlos 100 %
-- **Sociedad:** García Consulting SL, Carlos 100 %, **sin valorar** (el treemap muestra «no valorada», nunca 0 €)
-- **Ingresos:** Carlos 95.000 €/año (trabajo) · Marta 32.000 €/año (trabajo)
+- **Sociedad:** García Consulting SL, Carlos 100 % (sin cálculo fiscal — ver F4)
+- **Ingresos:** Carlos 95.000 €/año (trabajo) · Marta 32.000 €/año (trabajo) · Hugo 24.000 €/año (trabajo) · Lucía sin líneas
 - **Escenarios:** "Situación actual" (plan base) · "A · Reembolso" (35.000 €/año, 2026–2031) · "B · Traspaso + rescate" (traspaso del Fondo A + rescate en renta de 15.000 €/año).
   > **Las cifras fiscales se calculan con el motor**, no están escritas en el seed. Dependen de los parámetros vigentes, así que cambiarán cuando el fiscalista los valide o cuando entre la reforma autonómica. Las cifras ilustrativas antiguas (14.200 / 9.800) **ya no aplican**: no procedían de este liquidador.
-  > El evento **jubilarse** sustituye los ingresos de trabajo por la pensión estimada (introducida por el asesor) a partir del año indicado; no marca la fila fiscal como parcial.
 
 ## F.2 · Clientes ligeros (solo para poblar la Cartera)
 
-| Cliente | Segmento | Patrimonio | Composición (barra) | Escenarios | Última revisión |
-|---|---|---|---|---|---|
-| **Familia Beltrán Ortiz** | Empresario | 2.840.000 € | Empresarial 62 % · financiero 21 % · inmobiliario 15 % · otros 2 % | 1 | hace 2 meses |
-| **Familia Navarro Sanchís** | Jubilado | 1.150.000 € | Inmobiliario 58 % · financiero 39 % · otros 3 % | 0 | hace 5 meses |
-| **Familia Requena Poveda** | Alto ingreso | 610.000 € | Financiero 71 % · inmobiliario 26 % · otros 3 % | 2 | hace 3 semanas |
-| **Familia Server Alcaraz** | Herencia en curso | 1.930.000 € | Inmobiliario 64 % · financiero 28 % · empresarial 8 % | 1 | hace 8 meses |
-| **Familia Tormo Gisbert** | Pre-jubilado | 875.000 € | Financiero 46 % · inmobiliario 44 % · otros 10 % | 0 | hace 1 mes |
+| Cliente | Segmento | Patrimonio | Composición (barra) | Personas (demo P4) | Escenarios | Última revisión |
+|---|---|---|---|---|---|---|
+| **Familia Beltrán Ortiz** | Empresario | 2.840.000 € | Empresarial 62 % · financiero 21 % · inmobiliario 15 % · otros 2 % | — | 1 | hace 2 meses |
+| **Familia Navarro Sanchís** | Jubilado | 1.150.000 € | Inmobiliario 58 % · financiero 39 % · otros 3 % | — (expediente Madrid · aviso cobertura) | 0 | hace 5 meses |
+| **Familia Requena Poveda** | Alto ingreso | 610.000 € | Financiero 71 % · inmobiliario 26 % · otros 3 % | Vicent (1980, CV, **actividad económica** 68.000 € · sin cálculo) | 2 | hace 3 semanas |
+| **Familia Server Alcaraz** | Herencia en curso | 1.930.000 € | Inmobiliario 64 % · financiero 28 % · empresarial 8 % | — | 1 | hace 8 meses |
+| **Familia Tormo Gisbert** | Pre-jubilado | 875.000 € | Financiero 46 % · inmobiliario 44 % · otros 10 % | Amparo (1958, CV, **pensión** 26.000 € · titular único) | 0 | hace 1 mes |
 
 **Notas para el mockup:**
-- **La columna Patrimonio de P1 es patrimonio NETO** (activos − pasivos). Para García-Llorente: 970.000 € de activos − 180.000 € de hipoteca = **790.000 €**. Las cifras de la tabla de arriba ya son netas.
-- **Total de la cartera:** 6 clientes · **8.195.000 €** seguidos (fila de totales al pie de P1).
-- Todos con CCAA **Comunitat Valenciana** en el seed (única con cobertura de base general). País Vasco y Navarra son **forales**: sin cobertura de general ni del ahorro. El resto de régimen común liquida el ahorro; solo el rescate (base general) exige CV.
+- **La columna Patrimonio de P1 es patrimonio NETO** (activos − pasivos). Para García-Llorente: 885.000 € de activos − 180.000 € de hipoteca = **705.000 €**. Las cifras de la tabla de arriba ya son netas.
+- **Total de la cartera:** 6 clientes · **8.110.000 €** seguidos (fila de totales al pie de P1).
+- **CCAA:** la mayoría Comunitat Valenciana. Excepciones deliberadas: **Navarro Sanchís → Comunidad de Madrid** (aviso de cobertura a nivel expediente, sin personas); **Hugo García Llorente → Comunidad de Madrid** (aviso de cobertura **por persona** dentro de un expediente CV). País Vasco y Navarra son **forales**: sin cobertura de general ni del ahorro. El resto de régimen común liquida el ahorro; solo el rescate (base general) exige CV.
+- Las personas de demo en Tormo/Requena **no tienen titularidad ni eventos** — misma condición frágil que Lucía/Hugo hasta que las guardas estén en el motor.
 - Los apellidos son de la Comunitat Valenciana a propósito: coherente con el mercado objetivo y con el segmento de EAF valenciano.
 - Las cifras de "última revisión" deben calcularse **relativas a la fecha actual** (restando meses a `new Date()`), no hardcodearse como fechas fijas, para que la tabla no envejezca.
-- García-Llorente es el más pequeño de la cartera en patrimonio: es lo correcto, porque es el que tiene el caso fiscal interesante, no el más rico.
+- García-Llorente es el más pequeño de la cartera en patrimonio: es lo correcto, porque es el que tiene el caso fiscal interesante, no el más rico. No cambiar sus cifras — están calibradas con el ejemplo del motor.
 
 ---
 

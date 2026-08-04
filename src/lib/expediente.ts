@@ -278,22 +278,34 @@ export function baseLiquidablePersonaFromBag(
 ) {
   const lineas = bag.ingresos.filter((i) => i.personaId === personaId);
   let trabajo = 0;
+  let pension = 0;
   let otras = 0;
   let cotiz: number | null = null;
+  const fuentesNoContempladas: import("@/lib/types").FuenteIngreso[] = [];
   for (const i of lineas) {
-    if (i.fuente === "trabajo" || i.fuente === "pension") {
+    if (i.fuente === "actividad_economica") {
+      if (!fuentesNoContempladas.includes(i.fuente)) {
+        fuentesNoContempladas.push(i.fuente);
+      }
+      continue;
+    }
+    if (i.fuente === "trabajo") {
       trabajo += i.importeAnual;
       if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
         cotiz = (cotiz ?? 0) + i.cotizacionesSS;
       }
+    } else if (i.fuente === "pension") {
+      pension += i.importeAnual;
     } else {
       otras += i.importeAnual;
     }
   }
   return desgloseBaseLiquidable({
-    ingresosTrabajoBrutos: trabajo,
+    trabajoBruto: trabajo,
+    pensionBruta: pension,
     otrasRentasBrutas: otras,
     cotizacionesSS: cotiz,
+    fuentesNoContempladas,
   });
 }
 

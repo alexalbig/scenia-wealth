@@ -210,6 +210,96 @@ export function minimoPersonalPorEdad(edad?: number): number {
   return m;
 }
 
+/**
+ * Posición en una escala {hasta, tipo} → tramo actual + margen hasta el tope.
+ * `hasta: null` = resto abierto (margen null).
+ */
+function posicionEnEscala(
+  base: number,
+  tramos: TramoEscala[],
+): { tipo: number; hasta: number | null; margen: number | null; indice: number } | null {
+  if (tramos.length === 0) return null;
+  for (let i = 0; i < tramos.length; i++) {
+    const t = tramos[i]!;
+    const hasta = t.hasta;
+    if (hasta == null || base < hasta) {
+      return {
+        tipo: t.tipo,
+        hasta,
+        margen: hasta == null ? null : Math.max(0, hasta - base),
+        indice: i,
+      };
+    }
+  }
+  const last = tramos[tramos.length - 1]!;
+  return {
+    tipo: last.tipo,
+    hasta: last.hasta,
+    margen: null,
+    indice: tramos.length - 1,
+  };
+}
+
+/**
+ * Margen hasta el siguiente salto de tipo combinado (estatal + autonómico).
+ * Salta la escala cuyo tope llega antes. Alimenta la frase de lectura de P4.
+ * null si CCAA sin cobertura o sin tramos.
+ */
+export function margenSiguienteSaltoGeneral(
+  base: number,
+  anio: number,
+  ccaa: string,
+): {
+  tipoCombinado: number;
+  tipoCombinadoTrasSalto: number;
+  margen: number;
+  escalaQueSalta: "estatal" | "autonomica";
+} | null {
+  if (ccaa !== "Comunitat Valenciana") return null;
+  const est = getEscalaEstatalGeneral(anio).valor;
+  const aut = getEscalaAutonomicaGeneral(anio, ccaa)?.valor;
+  if (!aut || est.length === 0) return null;
+
+  const posEst = posicionEnEscala(base, est);
+  const posAut = posicionEnEscala(base, aut);
+  if (!posEst || !posAut) return null;
+
+  const tipoCombinado = posEst.tipo + posAut.tipo;
+
+  const candidatos: Array<{
+    escala: "estatal" | "autonomica";
+    margen: number;
+    tipoTras: number;
+  }> = [];
+
+  if (posEst.margen != null && posEst.indice + 1 < est.length) {
+    const siguiente = est[posEst.indice + 1]!;
+    candidatos.push({
+      escala: "estatal",
+      margen: posEst.margen,
+      tipoTras: siguiente.tipo + posAut.tipo,
+    });
+  }
+  if (posAut.margen != null && posAut.indice + 1 < aut.length) {
+    const siguiente = aut[posAut.indice + 1]!;
+    candidatos.push({
+      escala: "autonomica",
+      margen: posAut.margen,
+      tipoTras: posEst.tipo + siguiente.tipo,
+    });
+  }
+  if (candidatos.length === 0) return null;
+
+  candidatos.sort((a, b) => a.margen - b.margen);
+  const primero = candidatos[0]!;
+  return {
+    tipoCombinado,
+    tipoCombinadoTrasSalto: primero.tipoTras,
+    margen: primero.margen,
+    escalaQueSalta: primero.escala,
+  };
+}
+
 /** Liquidación de un ejercicio: cuota general + cuota del ahorro. */
 export function liquidacionEjercicio(opts: {
   baseGeneral: number;

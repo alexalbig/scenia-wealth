@@ -98,19 +98,17 @@ function buildRows(): CarteraRow[] {
     const sociedades =
       bag?.sociedades ??
       seed.sociedades.filter((s) => c.sociedadIds.includes(s.id));
-    return rowFromCliente(
-      cliente,
-      personas,
-      sociedades,
-      getEscenariosDeCliente(c.id).length || 1,
-    );
+    const nEscenarios =
+      (bag?.escenarios?.length ?? getEscenariosDeCliente(c.id).length) || 1;
+    return rowFromCliente(cliente, personas, sociedades, nEscenarios);
   });
 
   const customRows = listCustomClientes()
     .filter((c) => !seedIds.has(c.id))
     .map((c) => {
       const bag = readExpediente(c.id);
-      return rowFromCliente(c, bag?.personas ?? [], bag?.sociedades ?? [], 1);
+      const nEscenarios = bag?.escenarios?.length || 1;
+      return rowFromCliente(c, bag?.personas ?? [], bag?.sociedades ?? [], nEscenarios);
     });
 
   return [...seedRows, ...customRows];
@@ -178,6 +176,16 @@ export default function CarteraPage() {
 
   useEffect(() => {
     setSessionReady(true);
+    const bump = () => setSessionTick((t) => t + 1);
+    const onVis = () => {
+      if (document.visibilityState === "visible") bump();
+    };
+    window.addEventListener("focus", bump);
+    document.addEventListener("visibilitychange", onVis);
+    return () => {
+      window.removeEventListener("focus", bump);
+      document.removeEventListener("visibilitychange", onVis);
+    };
   }, []);
 
   const baseRows = useMemo(() => {

@@ -105,6 +105,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
   }));
 
   const fiscalCells = compareEscenarios.map((e) => ({
+    id: e.id,
     name: e.nombre,
     amount: e.impuestosPeriodo ?? 0,
   }));
@@ -260,8 +261,8 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                       value={renameDraft}
                       onClick={(ev) => ev.stopPropagation()}
                       onChange={(ev) => setRenameDraft(ev.target.value)}
-                      onBlur={() => {
-                        const n = renameDraft.trim();
+                      onBlur={(ev) => {
+                        const n = (ev.target as HTMLInputElement).value.trim();
                         if (n && n !== e.nombre) {
                           patchEscenario(e.id, { nombre: n });
                           flash("Escenario renombrado");
@@ -453,6 +454,11 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   sobreDatoIntroducido={fiscalSobreDato}
                   parametrosAVerificar
                 />
+                <p className="tiny" style={{ marginTop: 6 }}>
+                  € hoy / € futuro aplica al gráfico (patrimonio, líquidos e
+                  impacto en serie). La fila fiscal es la cuota del primer
+                  ejercicio en euros de ese año — no se deflacta.
+                </p>
               </div>
 
               <div className="lbl" style={{ margin: "16px 0 6px" }}>
@@ -558,8 +564,10 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                           autoFocus
                           value={renameDraft}
                           onChange={(ev) => setRenameDraft(ev.target.value)}
-                          onBlur={() => {
-                            const n = renameDraft.trim();
+                          onBlur={(ev) => {
+                            const n = (
+                              ev.target as HTMLInputElement
+                            ).value.trim();
                             if (n && n !== selected.nombre) {
                               patchEscenario(selected.id, { nombre: n });
                               flash("Escenario renombrado");
@@ -785,6 +793,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
         elementoNombre={selected.nombre}
         destinoNombre={selected.nombre}
         escenarioInicialId={selected.id}
+        escenarios={escenarios.map((e) => ({ id: e.id, nombre: e.nombre }))}
         elementosOverride={menuElementos}
         onCreated={onEventoCreado}
       />
