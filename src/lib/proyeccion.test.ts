@@ -126,4 +126,44 @@ describe("buildProyeccionSeriesFromBag", () => {
     // Sí hay más líquidos brutos (prestamo + fondos), pero neto igual
     assert.ok(p40.liquidos > b40.liquidos);
   });
+
+  it("A · Reembolso: impuestoAcumulado suma un escalón por cada año activo", () => {
+    const bag0 = cloneExpedienteFromSeed(ids.clienteGarciaLlorente)!;
+    const bag = recomputeFiscalBag(bag0);
+    const aEv = bag.eventos.filter((e) => e.escenarioId === ids.escA);
+    const reemb = aEv.find((e) => e.tipo === "reembolsar_fondo")!;
+    const cuota = reemb.cuotaAnual ?? 0;
+    assert.ok(cuota > 0);
+    const desde = reemb.anio;
+    const hasta = reemb.hastaAnio ?? reemb.anio;
+    const nAnios = hasta - desde + 1;
+
+    const a = buildProyeccionSeriesFromBag(bag, aEv, { rentabilidad: 0.04 });
+    const pAntes = a.find((p) => p.year === desde - 1);
+    if (pAntes) assert.equal(pAntes.impuestoAcumulado, 0);
+
+    const pPrimer = a.find((p) => p.year === desde)!;
+    assert.equal(pPrimer.impuestoAnual, Math.round(cuota));
+    assert.equal(pPrimer.impuestoAcumulado, Math.round(cuota));
+
+    const pUltimo = a.find((p) => p.year === hasta)!;
+    assert.equal(pUltimo.impuestoAcumulado, Math.round(cuota) * nAnios);
+
+    const pDespues = a.find((p) => p.year === hasta + 1)!;
+    assert.equal(pDespues.impuestoAnual, 0);
+    assert.equal(pDespues.impuestoAcumulado, Math.round(cuota) * nAnios);
+  });
+
+  it("liquidosBrutos puede divergir de liquidos cuando hay déficit", () => {
+    const bag = cloneExpedienteFromSeed(ids.clienteGarciaLlorente)!;
+    const baseEv = bag.eventos.filter((e) => e.escenarioId === ids.escBase);
+    const points = buildProyeccionSeriesFromBag(bag, baseEv, {
+      rentabilidad: 0.04,
+    });
+    for (const p of points) {
+      assert.ok(p.liquidos >= 0);
+      assert.equal(p.liquidos, Math.max(0, p.liquidosBrutos));
+      assert.equal(p.irpf, p.impuestoAcumulado);
+    }
+  });
 });

@@ -14,6 +14,7 @@ export function InformeModal({
   tituloInformeDefault,
   datosAFecha,
   tipoInforme = "Foto del patrimonio",
+  notaInicial,
   onGenerated,
 }: {
   open: boolean;
@@ -24,6 +25,8 @@ export function InformeModal({
   datosAFecha: string;
   /** Tipo de informe registrado en el Historial (P7) */
   tipoInforme?: string;
+  /** Nota precargada (p. ej. la del comparador P6). */
+  notaInicial?: string;
   /** Se llama al generar con éxito, antes del toast — para registrar en Historial */
   onGenerated?: (info: { titulo: string; tipo: string }) => void;
 }) {
@@ -38,9 +41,9 @@ export function InformeModal({
       tituloInformeDefault ??
         `Foto patrimonial · ${datosAFecha}`,
     );
-    setNota("");
+    setNota(notaInicial ?? "");
     setSubmitted(false);
-  }, [open, tituloInformeDefault, datosAFecha]);
+  }, [open, tituloInformeDefault, datosAFecha, notaInicial]);
 
   function handleClose() {
     setNota("");

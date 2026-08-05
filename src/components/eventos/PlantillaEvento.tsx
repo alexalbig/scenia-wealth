@@ -41,6 +41,9 @@ export type EventoContexto =
 
 type Step = "elemento" | "menu" | "form";
 
+/** Recuerda el último elemento usado en el menú completo (sesión). */
+let lastElementIdRemembered: string | null = null;
+
 interface PlantillaEventoProps {
   open: boolean;
   onClose: () => void;
@@ -178,7 +181,6 @@ export function PlantillaEvento({
   useEffect(() => {
     if (!open) return;
     setEscenarioId(escenarioInicialId ?? "");
-    setElemento(null);
     setTipo(null);
     setAnio("2026");
     setHastaAnio("2031");
@@ -199,10 +201,31 @@ export function PlantillaEvento({
     setFormError(null);
 
     if (menuCompleto) {
-      setStep("elemento");
+      const remembered =
+        lastElementIdRemembered != null
+          ? elementos.find((el) => el.id === lastElementIdRemembered)
+          : undefined;
+      if (remembered) {
+        setElemento(remembered);
+        const acs = accionesParaElemento(
+          remembered.contexto,
+          remembered.tipoFiscal,
+        );
+        if (acs.length === 1) {
+          setTipo(acs[0]!.tipo);
+          applyDefaults(acs[0]!.tipo);
+          setStep("form");
+        } else {
+          setStep("menu");
+        }
+      } else {
+        setElemento(null);
+        setStep("elemento");
+      }
       return;
     }
 
+    setElemento(null);
     const ctx =
       contexto === "instrumento"
         ? "instrumento"
@@ -211,14 +234,14 @@ export function PlantillaEvento({
           : contexto;
     const ops = accionesParaElemento(ctx, tipoFiscal);
     if (ops.length === 1) {
-      setTipo(ops[0].tipo);
-      applyDefaults(ops[0].tipo);
+      setTipo(ops[0]!.tipo);
+      applyDefaults(ops[0]!.tipo);
       setStep("form");
     } else {
       setStep("menu");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- solo al abrir
-  }, [open, contexto, menuCompleto, escenarioInicialId, tipoFiscal, anioInicial]);
+  }, [open, contexto, menuCompleto, escenarioInicialId, tipoFiscal, anioInicial, elementos]);
 
   function reset() {
     setStep(menuCompleto ? "elemento" : "menu");
@@ -261,10 +284,11 @@ export function PlantillaEvento({
 
   function pickElemento(el: ElementoMenuItem) {
     setElemento(el);
+    lastElementIdRemembered = el.id;
     const acs = accionesParaElemento(el.contexto, el.tipoFiscal);
     if (acs.length === 1) {
-      setTipo(acs[0].tipo);
-      applyDefaults(acs[0].tipo);
+      setTipo(acs[0]!.tipo);
+      applyDefaults(acs[0]!.tipo);
       setStep("form");
     } else {
       setTipo(null);
@@ -628,6 +652,33 @@ export function PlantillaEvento({
         <>
           <div className="tiny" style={{ marginBottom: 2 }}>
             Elemento: <b>{nombreEl}</b>
+            {menuCompleto ? (
+              <span style={{ color: "var(--mute)" }}>
+                {" "}
+                ·{" "}
+                <button
+                  type="button"
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "var(--blue)",
+                    fontSize: 11,
+                    fontWeight: 600,
+                    cursor: "pointer",
+                    padding: 0,
+                    fontFamily: "inherit",
+                    textDecoration: "underline",
+                  }}
+                  onClick={() => {
+                    setElemento(null);
+                    setTipo(null);
+                    setStep("elemento");
+                  }}
+                >
+                  cambiar
+                </button>
+              </span>
+            ) : null}
           </div>
           <div className="opt-grid">
             {opciones.map((ev) => (

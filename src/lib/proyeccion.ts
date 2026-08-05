@@ -37,10 +37,22 @@ export interface YearPoint {
   patrimonio: number;
   flujos: number;
   ahorro: number;
+  /** Activos líquidos recortados a ≥ 0 — serie del gráfico. */
   liquidos: number;
   /**
-   * Reservado para arrastre del comparador.
-   * Sin liquidador multi-año: siempre 0 (hueco · no inventado).
+   * Activos líquidos sin recortar. Puede ser negativo: sirve para detectar
+   * agotamiento (la serie del gráfico aplana en 0 y lo ocultaría).
+   */
+  liquidosBrutos: number;
+  /**
+   * Suma de cuotas fiscales descontadas del efectivo en este año
+   * (cuota del primer ejercicio repetida en cada año activo del evento).
+   */
+  impuestoAnual: number;
+  /** Corriente acumulada de impuestoAnual desde el inicio del horizonte. */
+  impuestoAcumulado: number;
+  /**
+   * @deprecated Alias de impuestoAcumulado — mantenido para compat.
    */
   irpf: number;
 }
@@ -136,10 +148,15 @@ interface ProjState {
   pasivoByInmueble: Map<string, string>;
 }
 
-function liquidosOf(s: ProjState): number {
+/** Líquidos sin recortar — puede ser negativo. */
+function liquidosBrutosOf(s: ProjState): number {
   let fondos = 0;
   for (const v of s.fondos.values()) fondos += v;
-  return Math.max(0, s.efectivo + s.liquidezPignorada + fondos);
+  return s.efectivo + s.liquidezPignorada + fondos;
+}
+
+function liquidosOf(s: ProjState): number {
+  return Math.max(0, liquidosBrutosOf(s));
 }
 
 function activosOf(s: ProjState): number {
@@ -149,7 +166,8 @@ function activosOf(s: ProjState): number {
   for (const v of s.inmuebles.values()) inm += v;
   let otros = 0;
   for (const v of s.otros.values()) otros += v;
-  return liquidosOf(s) + planes + inm + otros;
+  // Patrimonio usa el bruto: un déficit de liquidez no se esconde en el neto.
+  return liquidosBrutosOf(s) + planes + inm + otros;
 }
 
 function pasivosOf(s: ProjState): number {
@@ -183,15 +201,19 @@ function cuotaFiscalEvento(ev: Evento): number {
   return c > 0 ? c : 0;
 }
 
-function applyEvent(s: ProjState, ev: Evento, year: number): void {
-  if (!eventActiveInYear(ev, year)) return;
+/**
+ * Aplica el evento al estado y devuelve la cuota fiscal descontada este año
+ * (0 si el evento no está activo o no tiene cuota).
+ */
+function applyEvent(s: ProjState, ev: Evento, year: number): number {
+  if (!eventActiveInYear(ev, year)) return 0;
   const importe = importeEvento(ev);
 
   switch (ev.tipo) {
     case "vender_inmueble": {
-      if (year !== ev.anio) return;
+      if (year !== ev.anio) return 0;
       const id = ev.targetId;
-      if (!id || s.vendidos.has(id)) return;
+      if (!id || s.vendidos.has(id)) return 0;
       const venta = importe ?? s.inmuebles.get(id) ?? 0;
       s.inmuebles.delete(id);
       s.vendidos.add(id);
@@ -214,7 +236,7 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
     case "reembolsar_fondo": {
       const id = ev.targetId;
       const amount = importe ?? 0;
-      if (!id || amount <= 0) return;
+      if (!id || amount <= 0) return 0;
       const cur = s.fondos.get(id) ?? 0;
       const take = Math.min(cur, amount);
       s.fondos.set(id, cur - take);
@@ -222,9 +244,9 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
       break;
     }
     case "pignorar": {
-      if (year !== ev.anio) return;
+      if (year !== ev.anio) return 0;
       const amount = importe ?? 0;
-      if (amount <= 0) return;
+      if (amount <= 0) return 0;
       // Liquidez prestada (no capitaliza) + pasivo espejo → patrimonio neto 0.
       s.liquidezPignorada += amount;
       const pid = `pignoracion-${ev.id}`;
@@ -234,7 +256,7 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
     case "rescatar_plan": {
       const id = ev.targetId;
       const amount = importe ?? 0;
-      if (!id || amount <= 0) return;
+      if (!id || amount <= 0) return 0;
       const cur = s.planes.get(id) ?? 0;
       const take = Math.min(cur, amount);
       s.planes.set(id, cur - take);
@@ -242,14 +264,14 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
       break;
     }
     case "amortizar_hipoteca": {
-      if (year !== ev.anio) return;
+      if (year !== ev.anio) return 0;
       const amount = importe ?? 0;
-      if (amount <= 0) return;
+      if (amount <= 0) return 0;
       const target =
         (ev.targetId && s.pasivos.has(ev.targetId)
           ? ev.targetId
           : [...s.pasivos.keys()][0]) ?? null;
-      if (!target) return;
+      if (!target) return 0;
       const cur = s.pasivos.get(target) ?? 0;
       const pay = Math.min(cur, amount, Math.max(0, s.efectivo));
       s.pasivos.set(target, cur - pay);
@@ -258,11 +280,11 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
       break;
     }
     case "jubilarse": {
-      if (year !== ev.anio) return;
+      if (year !== ev.anio) return 0;
       const personaId = ev.targetId;
-      if (!personaId) return;
+      if (!personaId) return 0;
       const pension = parsePensionJubilacion(ev);
-      if (pension == null) return;
+      if (pension == null) return 0;
       s.jubilados.add(personaId);
       s.pensionByPersona.set(personaId, pension);
       break;
@@ -270,7 +292,7 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
     case "aportar_fondo": {
       const id = ev.targetId;
       const amount = importe ?? 0;
-      if (!id || amount <= 0) return;
+      if (!id || amount <= 0) return 0;
       const pay = Math.min(amount, Math.max(0, s.efectivo));
       s.efectivo -= pay;
       s.fondos.set(id, (s.fondos.get(id) ?? 0) + pay);
@@ -279,16 +301,16 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
     case "aportar_plan": {
       const id = ev.targetId;
       const amount = importe ?? 0;
-      if (!id || amount <= 0) return;
+      if (!id || amount <= 0) return 0;
       const pay = Math.min(amount, Math.max(0, s.efectivo));
       s.efectivo -= pay;
       s.planes.set(id, (s.planes.get(id) ?? 0) + pay);
       break;
     }
     case "comprar_inmueble": {
-      if (year !== ev.anio) return;
+      if (year !== ev.anio) return 0;
       const amount = importe ?? 0;
-      if (amount <= 0) return;
+      if (amount <= 0) return 0;
       const pay = Math.min(amount, Math.max(0, s.efectivo));
       s.efectivo -= pay;
       const nid = ev.targetId ?? `compra-${ev.id}`;
@@ -297,9 +319,9 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
     }
     case "generico": {
       // Cajón sin regla fiscal: ingreso / gasto / movimiento libre → efectivo.
-      if (year !== ev.anio) return;
+      if (year !== ev.anio) return 0;
       const amount = importe ?? 0;
-      if (amount <= 0) return;
+      if (amount <= 0) return 0;
       const kind = parseGenericoKind(ev);
       if (kind === "gasto") s.efectivo -= amount;
       else s.efectivo += amount; // ingreso y movimiento libre
@@ -315,6 +337,7 @@ function applyEvent(s: ProjState, ev: Evento, year: number): void {
   // hasta que exista acumulación de periodo.
   const cuota = cuotaFiscalEvento(ev);
   if (cuota > 0) s.efectivo -= cuota;
+  return cuota > 0 ? cuota : 0;
 }
 
 function growFinancial(s: ProjState, r: number): void {
@@ -402,7 +425,7 @@ export interface BuildProyeccionOpts {
  * - La liquidez pignorada no capitaliza (pasivo espejo; sin coste de entidad modelado).
  * - La cuota fiscal del evento (motor o tecleada) sale del efectivo cada año activo.
  * - Jubilarse sustituye ingresos de trabajo por la pensión estimada.
- * - Serie de IRPF acumulado = hueco (0); la fila CT2 cubre el primer ejercicio.
+ * - impuestoAcumulado refleja lo descontado de verdad (un escalón por año activo).
  */
 export function buildProyeccionSeriesFromBag(
   bag: ExpedienteBag,
@@ -413,9 +436,12 @@ export function buildProyeccionSeriesFromBag(
   const { state: s, cuotaByPasivo } = initState(bag);
   const sorted = [...eventos].sort((a, b) => a.anio - b.anio || a.id.localeCompare(b.id));
   const points: YearPoint[] = [];
+  let impuestoAcumulado = 0;
 
   for (let year = PROYECCION_START_YEAR; year <= PROYECCION_END_YEAR; year++) {
-    for (const ev of sorted) applyEvent(s, ev, year);
+    let impuestoAnual = 0;
+    for (const ev of sorted) impuestoAnual += applyEvent(s, ev, year);
+    impuestoAcumulado += impuestoAnual;
 
     const ingresos = ingresosAnuales(bag, s);
     const gastos = s.gastosAnuales;
@@ -445,14 +471,19 @@ export function buildProyeccionSeriesFromBag(
     s.efectivo += aEfectivo;
 
     const capacidad = flujoNeto + amort; // = ingresos − gastos + amort
+    const brutos = liquidosBrutosOf(s);
+    const acum = Math.round(impuestoAcumulado);
 
     points.push({
       year,
       patrimonio: Math.round(patrimonioOf(s)),
-      liquidos: Math.round(liquidosOf(s)),
+      liquidos: Math.round(Math.max(0, brutos)),
+      liquidosBrutos: Math.round(brutos),
       ahorro: Math.round(capacidad),
       flujos: Math.round(capacidad),
-      irpf: 0,
+      impuestoAnual: Math.round(impuestoAnual),
+      impuestoAcumulado: acum,
+      irpf: acum,
     });
 
     growFinancial(s, r);
@@ -491,8 +522,11 @@ export function buildSeriesFromNeto(
       year,
       patrimonio: Math.round(p),
       liquidos: Math.round(l),
+      liquidosBrutos: Math.round(l),
       ahorro: Math.round(ahorroAnual),
       flujos: Math.round(ahorroAnual),
+      impuestoAnual: 0,
+      impuestoAcumulado: 0,
       irpf: 0,
     });
     p = p * 1.03 + ahorroAnual;

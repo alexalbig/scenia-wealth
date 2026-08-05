@@ -757,40 +757,44 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Funcionalidad | Nº | Detalle | Fase |
 |---|---|---|---|
 | Lista de escenarios del cliente | 213 | El plan base es el primero de la lista | CORE |
-| Clonar un escenario | 214 | Punto de partida de cualquier alternativa. **Hereda los eventos del origen** | CORE |
+| Clonar un escenario | 214 | Punto de partida de cualquier alternativa. **Hereda los eventos del origen**. Duplicar cualquier escenario (no solo el plan base) pide el nombre en el mismo gesto | CORE |
 | Escenarios con nombre | 215 | "A · Reembolso", "C · Venta en 2033". El nombre llega a todas partes, incluida la fila fiscal | CORE |
 | Renombrar y eliminar | 216 | Gestión básica del ciclo de vida | MVP |
-| **Menú de eventos completo** | 217 | Dentro de un escenario se puede añadir un evento de **cualquier** activo. Es el cambio clave de la arquitectura | CORE |
+| **Menú de eventos completo** | 217 | Dentro de un escenario se puede añadir un evento de **cualquier** activo. Es el cambio clave de la arquitectura. Recuerda el último elemento usado | CORE |
 | Lanzar evento desde una ficha | 218 | Atajo contextual: se elige a qué escenario va | MVP |
 | Supuestos por escenario | 219 | Rentabilidad esperada e inflación, declarados por el asesor | MVP |
-| Selección de escenarios a comparar | 220 | Checkbox por escenario; soporta N | CORE |
-| Gráfico superpuesto | 221 | Un gráfico con las curvas de todos los seleccionados | CORE |
-| Selector de métrica | 222 | Patrimonio · líquidos. *(Impacto fiscal en serie retirado hasta acumulación de periodo — la fila CT2 cubre el primer ejercicio.)* | CORE |
-| **Fila fiscal neutra (CT2)** | 223 | `Impacto fiscal · primer año · A · B · Δ · orientativo`. **La pieza central del producto** | CORE |
-| Eventos en paralelo | 224 | Columna por escenario con sus eventos, para ver qué los diferencia | MVP |
-| Clic-en-año | 225 | Fija un ejercicio y muestra el valor de cada escenario | MVP |
-| Toggle € hoy / € futuro | 226 | Coherente con el resto del producto | MVP |
+| Selección de escenarios a comparar | 220 | Checkbox por escenario; **máximo tres a la vez, incluido el plan base** (siempre marcado como referencia) | CORE |
+| Gráfico superpuesto | 221 | Un gráfico con las curvas de todos los seleccionados. Hitos sobre el eje (jubilaciones, ventas, agotamiento). Lectura hasta 2050 | CORE |
+| Selector de métrica | 222 | Líquidos (por defecto) · Impuesto acumulado · Patrimonio. El impuesto acumulado es línea escalonada: un escalón por cada año activo del evento, repitiendo la cuota del primer ejercicio (simplificación declarada · no marca parcial). Toggle € hoy / € futuro junto al selector | CORE |
+| **Fila fiscal neutra (CT2)** | 223 | En P6 se renderiza como **columna de la tabla de hechos** (`variant="celda"`), no como tira suelta. Misma etiqueta `Impacto fiscal · primer año · orientativo`, mismo firewall (ignora className, sin props de tono). Pie `variant="nota"` con Δ, parcial y avisos. **La pieza central del producto** | CORE |
+| Eventos en paralelo | 224 | Cumplido en sustancia: los eventos aparecen como chips dentro de la celda «Camino» de la tabla de hechos (fila a fila). Distinción calculado / introducido en el chip (sólido / borde discontinuo). Editar y borrar siguen en la vista de detalle | MVP |
+| Clic-en-año | 225 | Fija el ejercicio de la columna «Líquidos en AAAA» de la tabla. Por defecto: primer año con hecho relevante en los caminos marcados | MVP |
+| Toggle € hoy / € futuro | 226 | Junto al selector de métrica. Afecta al gráfico y a la columna de líquidos; **no** a la cuota del primer ejercicio | MVP |
 | Etiqueta de régimen (IRPF / IS) | 227 | Si un escenario mezcla titulares Persona y Sociedad | MVP |
-| Botón de informe | 228 | Genera el PDF con la comparación y la fila fiscal | MVP |
+| Botón de informe | 228 | Genera el PDF con la comparación. Nota del asesor obligatoria (mín. 20 caracteres) inline antes del modal | MVP |
+| Tabla de hechos | 228b | Orden del bloque de resultados: (1) tabla · (2) curva · (3) lectura en hechos · (4) nota. Columnas: camino · impacto fiscal · líquidos en año fijado · ¿se sostiene? · patrimonio en 2050. Plan base siempre presente | CORE |
+| Columna «¿se sostiene?» | 228c | Hechos objetivos derivados de la serie: año en que la capacidad se vuelve negativa · agotamiento de líquidos · aguanta el horizonte. Sin semáforo ni valoración («plan sólido», «en riesgo») | CORE |
+| Lectura en hechos | 228d | Compuesta automáticamente. Las dos caras siempre. Nunca «B es mejor» | CORE |
 | Catálogo de escenarios frecuentes | 229 | Propuestas de qué comparar ("¿y si me jubilo dos años antes?"). **No rompe el firewall: propone qué mirar, no qué hacer** | V2 |
 | Modo presentación | 230 | Limpia navegación y agranda tipografía para la reunión | V2 |
-| Acumulación de periodo | 231 | Sumar la cuota año a año con bases que cambian. Hoy la fila muestra solo el primer ejercicio | V2 |
+| Acumulación de periodo | 231 | Sumar la cuota año a año con bases que cambian. Hoy: (a) la columna fiscal muestra solo el primer ejercicio; (b) el gráfico de impuesto acumulado repite esa cuota en cada año activo (simplificación declarada · orientativo · no parcial) | V2 |
 | What-if en vivo / Modo Explorar | 232 | El asesor no recalcula delante del cliente: una pregunta imprevista se anota y se resuelve en frío | Descartado |
 | Flujo guiado ①②③④ | 233 | Preparar → Presentar → Entregar. Guiaba demasiado | Descartado |
 
 ## Variables
 
-- **Métrica del comparador:** patrimonio · activos líquidos *(impacto fiscal en serie → V2, con acumulación de periodo)*
+- **Métrica del comparador:** activos líquidos (por defecto) · impuesto acumulado (escalonado · simplificación declarada) · patrimonio
+- **Horizonte de lectura:** 2026 → 2050 *(el motor proyecta hasta 2060; la tabla y el gráfico se leen hasta 2050)*
 - **Supuestos por escenario:** rentabilidad esperada (%) · inflación (%)
 - **Régimen:** IRPF · IS · mixto
 - **Naturaleza del escenario:** plan base · alternativo
-- **Nº de escenarios comparados:** 2 o más
+- **Nº de escenarios comparados:** máximo 3, incluido el plan base
 
 ## Cómo la usa el asesor
 
 **Flujo 1 · Explorar en frío (antes de la reunión).** Monta dos o tres caminos y ve a dónde llevan. Es donde el producto sustituye al Excel. **Exige que montar un escenario cueste menos de dos minutos**: si tarda más, nadie monta tres alternativas y el comparador queda de decorado.
 
-**Flujo 2 · Enseñarlo en la reunión.** Superpone las curvas y llega a la fila fiscal. **Y aquí empieza el asesor:** la pantalla pone las cifras y se calla; él explica lo que no se ve —que pignorar no paga impuestos pero paga intereses, que un traspaso aplaza y no elimina—. Ese hueco entre lo que la herramienta enseña y lo que el asesor concluye **es el producto**.
+**Flujo 2 · Enseñarlo en la reunión.** Superpone las curvas y llega a la tabla de hechos (columna fiscal CT2). **Y aquí empieza el asesor:** la pantalla pone las cifras y se calla; él explica lo que no se ve —que pignorar no paga impuestos pero paga intereses, que un traspaso aplaza y no elimina—. Ese hueco entre lo que la herramienta enseña y lo que el asesor concluye **es el producto**.
 
 **Flujo 3 · Cerrar con un entregable.** Genera el informe con su conclusión firmada.
 
@@ -877,20 +881,20 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 ## Overview
 
-**Qué es.** La fila del comparador que enseña el impacto fiscal de cada escenario. **La pieza central del producto** en términos legales, y la más pequeña en código.
+**Qué es.** El componente que enseña el impacto fiscal de cada escenario. **La pieza central del producto** en términos legales, y la más pequeña en código. En P6 se renderiza como **columna de la tabla de hechos** (`variant="celda"` + pie `variant="nota"`), no como tira suelta; el firewall es el mismo.
 
 ## Funcionalidades
 
 | Funcionalidad | Nº | Detalle | Fase |
 |---|---|---|---|
-| Fila del comparador | 264 | `Impacto fiscal · primer año · A · B · Δ · orientativo` | CORE |
-| Celdas por escenario | 265 | Una columna por escenario comparado, separadas por línea vertical | CORE |
-| Celda de diferencia (Δ) | 266 | Valor absoluto, sin signo que sugiera dirección | CORE |
-| **Tinta neutra obligatoria** | 267 | Nunca verde/rojo/ámbar para comparar opciones. El componente hace **imposible** pintarla de otro modo | CORE |
+| Columna / tira del comparador | 264 | `Impacto fiscal · primer año · orientativo`. En P6: celda por camino + pie con Δ y avisos | CORE |
+| Celdas por escenario | 265 | Una celda por camino comparado (en la tabla de hechos) | CORE |
+| Celda de diferencia (Δ) | 266 | Valor absoluto en el pie, sin signo que sugiera dirección | CORE |
+| **Tinta neutra obligatoria** | 267 | Nunca verde/rojo/ámbar para comparar opciones. El componente hace **imposible** pintarla de otro modo (`.fila-fiscal *{color:var(--ink) !important}` + ignora `className`) | CORE |
 | Sin coronación de ganador | 268 | Sin destacado, sin negrita diferencial, sin orden que sugiera preferencia | CORE |
 | Sin props de tono | 269 | El componente no acepta `className` externo ni parámetros de color | CORE |
 | Nota "orientativo" | 270 | Siempre presente, junto a la marca de parámetros (a verificar) | CORE |
-| **Marca de cálculo parcial** | 271 | Si el escenario contiene eventos sin liquidador, la fila lo indica. **Nunca sumar en silencio lo que no se calcula** | CORE |
+| **Marca de cálculo parcial** | 271 | Si el escenario contiene eventos sin liquidador, la celda y el pie lo indican. **Nunca sumar en silencio lo que no se calcula** | CORE |
 | Etiqueta honesta del periodo | 272 | Dice "primer año" mientras no exista la acumulación: no promete precisión que no tiene | CORE |
 | Test automático de neutralidad | 273 | Que el build falle si la fila renderiza un color fuera de la escala de tintas | MVP |
 

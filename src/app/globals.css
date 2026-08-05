@@ -305,3 +305,72 @@ tfoot td{border-top:1px solid var(--line-2);border-bottom:none;font-weight:700;b
 @media(max-width:860px){.cols{grid-template-columns:1fr}.idrow{flex-direction:column}.idcell+.idcell{border-left:0;border-top:1px solid var(--line)}.nrow{grid-template-columns:1fr}}
 
 .lock{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;color:var(--slate)}
+
+/* ── P6 Escenarios · comparador (porte de comparador-B-escenarios.html) ── */
+/* Prefijo .cmp: evita colisión con P4 (.esc, .legend, .seg) y tipografía global. */
+.cmp .orient{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--faint)}
+.cmp .hueco{display:inline-block;border:1px dashed var(--faintest);color:var(--slate);font-size:11px;line-height:1.3;padding:2px 8px;border-radius:6px;background:var(--paper-2)}
+.cmp .chip{display:inline-block;background:var(--paper-2);border:1px solid var(--line-2);border-radius:6px;font-size:11px;color:var(--ink-3);padding:1px 7px;margin:1px 2px 1px 0;white-space:nowrap}
+.cmp .chip.intro{background:#fff;border-style:dashed;border-color:var(--faintest)}
+.cmp .layout{display:grid;grid-template-columns:270px 1fr;gap:14px;align-items:start}
+@media (max-width:980px){.cmp .layout{grid-template-columns:1fr}.cmp .aside{position:static}.cmp .legend{margin-left:0}}
+.cmp .aside{border:1px solid var(--line-2);border-radius:8px;background:#FFFFFF;padding:10px 10px 12px;position:sticky;top:12px}
+.cmp .aside .top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.cmp .btn2{background:var(--paper-2);border:1px solid var(--line-2);border-radius:8px;color:var(--ink-3);font-size:11px;font-weight:600;padding:5px 9px;cursor:pointer;font-family:inherit;margin-left:auto}
+.cmp .btn2:hover{border-color:var(--faintest)}
+.cmp .esc{display:flex;gap:8px;align-items:flex-start;padding:7px 6px;border-radius:8px;border:1px solid transparent;cursor:pointer;margin-bottom:2px}
+.cmp .esc:hover{background:var(--paper-2)}
+.cmp .esc.on{border-color:var(--line-2);background:var(--paper-2)}
+.cmp .esc input{margin-top:2px;accent-color:var(--blue)}
+.cmp .esc .t{font-size:12.5px;font-weight:600;color:var(--ink-2);line-height:1.3}
+.cmp .esc .m{font-size:11px;color:var(--mute);margin-top:1px}
+.cmp .esc .m .num{color:var(--ink-3);font-weight:600}
+.cmp .esc.base{border-color:var(--line-2);background:var(--paper)}
+.cmp .esc .ref{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);border:1px solid var(--line-2);border-radius:5px;padding:0 5px;margin-left:6px}
+.cmp .ref{font-size:9.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--blue);border:1px solid var(--line-2);border-radius:5px;padding:0 5px;margin-left:6px}
+.cmp .aside .hint{font-size:11px;color:var(--slate);padding:6px 6px 0;line-height:1.45}
+.cmp .sect{margin-bottom:16px}
+.cmp .sect > .lbl{display:block;margin-bottom:7px}
+.cmp table.facts{width:100%;border-collapse:collapse;background:#FFFFFF;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.cmp .facts th{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);text-align:left;padding:8px 10px;border-bottom:1px solid var(--line-2);background:var(--paper-2);white-space:nowrap}
+.cmp .facts td{font-size:12.5px;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.cmp .facts tr:last-child td{border-bottom:none}
+.cmp .facts tr:hover td{background:var(--paper-2)}
+.cmp .facts td.n{font-variant-numeric:tabular-nums;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.cmp .facts td .cam{font-weight:700;color:var(--ink-2)}
+.cmp .facts td .evs{margin-top:3px}
+.cmp .facts td .sostx{font-size:11.5px;color:var(--ink-3);line-height:1.4}
+.cmp .footnote{font-size:11px;color:var(--faint);margin-top:6px;line-height:1.5}
+.cmp .link{background:none;border:none;color:var(--blue);font-size:11px;font-weight:600;cursor:pointer;padding:0;font-family:inherit;text-decoration:underline}
+.cmp .chartcard{border:1px solid var(--line-2);border-radius:8px;background:#FFFFFF;padding:12px 14px}
+.cmp .chart-top{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;margin-bottom:8px}
+.cmp .seg{display:inline-flex;border:1px solid var(--line-2);border-radius:8px;overflow:hidden}
+.cmp .seg button{font-family:inherit;font-size:11px;font-weight:600;color:var(--slate);background:var(--paper);border:none;padding:6px 10px;cursor:pointer;border-right:1px solid var(--line-2)}
+.cmp .seg button:last-child{border-right:none}
+.cmp .seg button.on{background:var(--ink-2);color:#FFFFFF}
+.cmp .legend{display:flex;flex-wrap:wrap;gap:6px 18px;margin-left:auto;margin-top:0}
+.cmp .legend .li{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)}
+.cmp .legend .li b{font-weight:700;color:var(--ink-2)}
+.cmp .legend .li .val{font-variant-numeric:tabular-nums;color:var(--mute);font-size:11px}
+.cmp .chartcard svg{width:100%;height:auto;display:block}
+.cmp .lectura{border:1px solid var(--line-2);border-radius:8px;background:var(--paper);padding:12px 14px}
+.cmp .lectura p{font-size:13px;color:var(--ink-2);line-height:1.55;max-width:86ch;margin:0}
+.cmp .nota{border:1px solid var(--line-2);border-radius:8px;background:#FFFFFF;padding:12px 14px}
+.cmp .nota textarea{width:100%;min-height:74px;font-family:inherit;font-size:13px;color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:9px 10px;background:var(--paper);resize:vertical;margin-top:7px}
+.cmp .nota .row{display:flex;align-items:center;gap:12px;margin-top:9px}
+.cmp .nota .hint{font-size:11px;color:var(--faint)}
+.cmp .btn-coral{margin-left:auto;background:var(--coral);border:1px solid var(--coral-deep);color:#FFFFFF;font-family:inherit;font-size:13px;font-weight:700;border-radius:8px;padding:9px 16px;cursor:pointer}
+.cmp .btn-coral:disabled{opacity:.45;cursor:not-allowed}
+.cmp .legal{color:var(--slate);font-size:11px;margin-top:12px}
+.cmp .headrow{margin-bottom:14px}
+.cmp .headrow h1,.cmp .headrow .h2{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.cmp .headrow .sub{color:var(--slate);font-size:12px;margin-top:2px}
+.cmp .esc-actions{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.cmp .esc-actions button{font-size:10.5px;color:var(--mute);padding:2px 5px;border-radius:4px;background:none;border:none;cursor:pointer;font-family:inherit}
+.cmp .esc-actions button:hover{background:var(--paper-2);color:var(--ink)}
+
+/* FilaFiscal · variantes celda / nota (mismo firewall .fila-fiscal) */
+.fila-fiscal.fila-fiscal--celda{background:transparent;border:none;border-radius:0;padding:0}
+.fila-fiscal.fila-fiscal--celda .ff-val{font-size:12.5px;font-weight:600;font-variant-numeric:tabular-nums}
+.fila-fiscal.fila-fiscal--celda .ff-note{font-size:10px !important;margin-top:2px;font-style:normal}
+.fila-fiscal.fila-fiscal--nota{margin-top:8px;padding:10px 12px}
