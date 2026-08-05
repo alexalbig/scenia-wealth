@@ -501,7 +501,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
             </Button>
           </div>
 
-          <div>
+          <div className="results">
             {modo === "comparador" ? (
               <>
                 <TablaHechos

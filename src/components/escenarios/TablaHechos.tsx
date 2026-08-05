@@ -48,6 +48,7 @@ export function TablaHechos({
   return (
     <div className="sect">
       <span className="lbl">Los hechos, primero</span>
+      <div className="facts-scroll">
       <table className="facts">
         <thead>
           <tr>
@@ -116,6 +117,7 @@ export function TablaHechos({
           )}
         </tbody>
       </table>
+      </div>
       <FilaFiscal
         variant="nota"
         cells={filas
