@@ -13,6 +13,7 @@ import {
   avisoCoberturaCcaa,
   baseAhorroPersona,
   ccaaConCobertura,
+  ccaaConCoberturaGeneral,
   estadoFiscalPersona,
   getTramos,
   liquidacionEjercicio,
@@ -20,7 +21,7 @@ import {
   tramoDeBase,
   type EstadoFiscalPersona,
 } from "@/lib/fiscal";
-import type { Cliente } from "@/lib/types";
+import type { CCAA, Cliente } from "@/lib/types";
 
 /**
  * P4 · Fiscalidad — foto del plan base (porte de fiscalidad-d-zona).
@@ -107,6 +108,12 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
 
       {estado.kind === "sin_calculo" ? (
         <EstadoPersonaPanel estado={estado} clienteId={cliente.id} />
+      ) : !ccaaConCoberturaGeneral(personaActiva.ccaa) ? (
+        <PersonaSoloAhorro
+          persona={personaActiva}
+          clienteId={cliente.id}
+          anio={anio}
+        />
       ) : (
         <PersonaCalculable
           cliente={cliente}
@@ -130,6 +137,60 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
         </section>
       )}
     </SheetPad>
+  );
+}
+
+function PersonaSoloAhorro({
+  persona,
+  clienteId,
+  anio,
+}: {
+  persona: { id: string; nombre: string; ccaa: string };
+  clienteId: string;
+  anio: number;
+}) {
+  const baseA = baseAhorroPersona(clienteId, persona.id);
+  const liq =
+    baseA != null
+      ? liquidacionEjercicio({
+          baseGeneral: 0,
+          baseAhorro: baseA,
+          anio,
+          ccaa: persona.ccaa,
+        })
+      : null;
+
+  return (
+    <>
+      <div className="idrow" style={{ marginBottom: 14 }}>
+        <div className="idcell">
+          <div className="lbl">Cobertura · {persona.nombre}</div>
+          <div className="v" style={{ fontSize: 14, marginTop: 6 }}>
+            Base del ahorro disponible
+          </div>
+          <div className="s" style={{ marginTop: 6 }}>
+            {avisoCoberturaCcaa(persona.ccaa as CCAA)}
+          </div>
+        </div>
+      </div>
+      <section className="notes">
+        <div className="nrow">
+          <span className="lbl">Base general</span>
+          <span>
+            Sin escala autonómica cargada para esta comunidad — no se muestra
+            cuota de base general.
+          </span>
+        </div>
+        <div className="nrow">
+          <span className="lbl">Base del ahorro</span>
+          <span>
+            {baseA == null
+              ? "Sin rentas del ahorro en el expediente — hueco. Las plusvalías latentes no tributan hasta que un evento las realice."
+              : `Base del ahorro ${formatEUR(baseA)} → cuota ${formatEUR(liq?.cuotaAhorro ?? 0)} · orientativo`}
+          </span>
+        </div>
+      </section>
+    </>
   );
 }
 

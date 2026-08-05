@@ -130,7 +130,11 @@ function ccaaAusenteOSinCoberturaGeneral(ccaa: string): string | null {
   }
   if (esRegimenForal(ccaa)) return mensajeForal(ccaa);
   if (ccaa !== CCAA_COBERTURA_GENERAL) {
-    return "El cálculo fiscal de la base general solo está disponible para la Comunitat Valenciana.";
+    return (
+      `La base general (rescate y aportación a plan) todavía solo está cargada para la Comunitat Valenciana` +
+      (ccaa.trim() ? ` · este titular reside en ${ccaa}` : "") +
+      `.`
+    );
   }
   return null;
 }
@@ -199,6 +203,33 @@ function particionPorEstado(tits: TitularFiscal[]): {
     }
   }
   return { calculables, excluidos };
+}
+
+/**
+ * En eventos de base general, excluye titulares cuya CCAA no tiene
+ * escala autonómica cargada (hoy solo CV). No inventa cifras de otra CCAA.
+ */
+function particionCoberturaGeneral(
+  calculables: TitularFiscal[],
+  excluidos: TitularSinCalculo[],
+  ccaaFallback: string,
+): { calculables: TitularFiscal[]; excluidos: TitularSinCalculo[] } {
+  const ok: TitularFiscal[] = [];
+  const out = [...excluidos];
+  for (const t of calculables) {
+    const ccaaTitular = t.ccaa ?? ccaaFallback;
+    const bloqueo = ccaaAusenteOSinCoberturaGeneral(ccaaTitular);
+    if (bloqueo) {
+      out.push({
+        personaId: t.personaId,
+        nombre: t.nombre,
+        motivo: `${etiquetaTitular(t)}: ${bloqueo}`,
+      });
+    } else {
+      ok.push(t);
+    }
+  }
+  return { calculables: ok, excluidos: out };
 }
 
 function notaParcialTitulares(excluidos: TitularSinCalculo[]): string {
@@ -428,7 +459,12 @@ export function simularMotorEvento(
               },
             ];
 
-      const { calculables, excluidos } = particionPorEstado(tits);
+      const { calculables: calc0, excluidos: excl0 } = particionPorEstado(tits);
+      const { calculables, excluidos } = particionCoberturaGeneral(
+        calc0,
+        excl0,
+        ccaa,
+      );
       if (calculables.length === 0) {
         return {
           kind: "sin_calculo",
@@ -644,7 +680,12 @@ export function simularMotorEvento(
               },
             ];
 
-      const { calculables, excluidos } = particionPorEstado(tits);
+      const { calculables: calc0, excluidos: excl0 } = particionPorEstado(tits);
+      const { calculables, excluidos } = particionCoberturaGeneral(
+        calc0,
+        excl0,
+        ccaa,
+      );
       if (calculables.length === 0) {
         return {
           kind: "sin_calculo",

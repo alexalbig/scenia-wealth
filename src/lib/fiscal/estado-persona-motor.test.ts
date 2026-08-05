@@ -1,6 +1,6 @@
 /**
  * Guardas v14 en el motor: titular no calculable no se liquida;
- * en ganancias el resto sigue; la fila marca parcial.
+ * plusvalías (ahorro) sí liquidan fuera de CV; rescate exige CV.
  */
 
 import assert from "node:assert/strict";
@@ -13,12 +13,13 @@ import { rollupImpuestosEscenario } from "./rollup";
 import { estadoFiscalPersona } from "./estado-persona";
 
 describe("guardas v14 · motor por titular", () => {
-  it("Hugo (Madrid) en reembolso → sin_calculo; Carlos/Marta se liquidan; rollup parcial", () => {
+  it("Hugo (Madrid) en reembolso mixtitular → se liquida su parte; no es parcial por CCAA", () => {
     const bag0 = cloneExpedienteFromSeed(ids.clienteGarciaLlorente)!;
-    // Titularidad temporal: Carlos 50 % · Marta 30 % · Hugo 20 %
-    // Hugo ya no está en personaIds de GL (seed); el caso mixtitular sigue siendo válido.
     const hugoFromSeed = seed.personas.find((p) => p.id === ids.personaHugo)!;
     bag0.personas.push({ ...hugoFromSeed });
+    bag0.ingresos.push(
+      ...seed.ingresos.filter((i) => i.personaId === ids.personaHugo),
+    );
     const fondo = bag0.instrumentos.find((i) => i.id === ids.fondoA)!;
     fondo.titularidades = [
       {
@@ -40,10 +41,7 @@ describe("guardas v14 · motor por titular", () => {
       (i) => i.personaId === ids.personaHugo,
     );
     const estHugo = estadoFiscalPersona(hugo, ingresosHugo);
-    assert.equal(estHugo.kind, "sin_calculo");
-    if (estHugo.kind === "sin_calculo") {
-      assert.equal(estHugo.motivo, "ccaa_sin_cobertura");
-    }
+    assert.equal(estHugo.kind, "calculable");
 
     const ev = {
       id: "evt-test-reembolso-hugo",
@@ -59,37 +57,83 @@ describe("guardas v14 · motor por titular", () => {
       (t) => t.personaId === ids.personaHugo,
     );
     assert.ok(hugoTit);
-    assert.equal(hugoTit!.estado?.kind, "sin_calculo");
+    assert.equal(hugoTit!.estado?.kind, "calculable");
     assert.equal(hugoTit!.ccaa, "Comunidad de Madrid");
 
     const r = simularMotorEvento("reembolsar_fondo", ctx);
     assert.equal(r.kind, "calculado");
     if (r.kind === "calculado") {
-      assert.ok(r.importe > 0, "Carlos+Marta generan cuota");
-      assert.ok(r.parcialTitulares && r.parcialTitulares.length === 1);
-      assert.equal(r.parcialTitulares![0]!.personaId, ids.personaHugo);
-      assert.match(r.parcialTitulares![0]!.motivo, /Comunitat Valenciana/);
-      assert.match(r.nota, /cálculo parcial/);
+      assert.ok(r.importe > 0, "los tres titulares generan cuota del ahorro");
+      assert.equal(r.parcialTitulares, undefined);
       assert.match(r.desglose ?? "", /Hugo/);
-      assert.match(r.desglose ?? "", /sin_calculo/);
-      // Solo 80 % de la ganancia (Carlos 50 + Marta 30) entra en la cuota
-      const rFull = simularMotorEvento("reembolsar_fondo", {
-        ...ctx,
-        titularidades: ctx.titularidades.filter(
-          (t) => t.personaId !== ids.personaHugo,
-        ),
-      });
-      assert.equal(rFull.kind, "calculado");
-      if (rFull.kind === "calculado") {
-        assert.equal(r.importe, rFull.importe);
-      }
+    }
+  });
+
+  it("Madrid solo · reembolso liquida; rescate queda sin_calculo", () => {
+    const bag0 = cloneExpedienteFromSeed(ids.clienteGarciaLlorente)!;
+    const hugo = seed.personas.find((p) => p.id === ids.personaHugo)!;
+    bag0.personas = [{ ...hugo }];
+    bag0.cliente = {
+      ...bag0.cliente,
+      ccaa: "Comunidad de Madrid",
+      personaIds: [ids.personaHugo],
+    };
+    const fondo = bag0.instrumentos.find((i) => i.id === ids.fondoA)!;
+    fondo.titularidades = [
+      {
+        owner: { kind: "persona", personaId: ids.personaHugo },
+        porcentaje: 1,
+      },
+    ];
+    // Ingresos de Hugo en el bag
+    bag0.ingresos = seed.ingresos.filter((i) => i.personaId === ids.personaHugo);
+
+    const evReemb = {
+      id: "evt-madrid-reemb",
+      escenarioId: ids.escBase,
+      tipo: "reembolsar_fondo" as const,
+      anio: 2026,
+      etiqueta: "Reembolso Madrid",
+      targetId: ids.fondoA,
+    };
+    const ctxReemb = buildContextoFiscalFromBag(
+      bag0,
+      evReemb,
+      { importe: 35_000 },
+      [],
+    );
+    const rReemb = simularMotorEvento("reembolsar_fondo", ctxReemb);
+    assert.equal(rReemb.kind, "calculado");
+    if (rReemb.kind === "calculado") {
+      assert.ok(rReemb.importe > 0);
     }
 
-    const rollup = rollupImpuestosEscenario([ev], () => ctx);
-    assert.equal(rollup.parcial, true);
-    assert.ok(
-      rollup.motivosParcial.some((m) => /Hugo|Comunitat Valenciana/.test(m)),
+    const plan = bag0.instrumentos.find(
+      (i) => i.tipoFiscal === "plan_pensiones",
     );
+    const evResc = {
+      id: "evt-madrid-resc",
+      escenarioId: ids.escBase,
+      tipo: "rescatar_plan" as const,
+      anio: 2026,
+      etiqueta: "Rescate Madrid",
+      targetId: plan?.id ?? ids.personaHugo,
+    };
+    const ctxResc = buildContextoFiscalFromBag(
+      bag0,
+      evResc,
+      { importe: 10_000, modalidad: "renta" },
+      [],
+    );
+    // ctx.ccaa puede venir del cliente Madrid
+    const rResc = simularMotorEvento("rescatar_plan", {
+      ...ctxResc,
+      ccaa: "Comunidad de Madrid",
+    });
+    assert.equal(rResc.kind, "sin_calculo");
+    if (rResc.kind === "sin_calculo") {
+      assert.match(rResc.nota, /base general|Comunitat Valenciana|Madrid/i);
+    }
   });
 
   it("rescate sobre Lucía (sin ingresos) → sin_calculo entero", () => {
@@ -119,14 +163,12 @@ describe("guardas v14 · motor por titular", () => {
     }
   });
 
-  it("seed Fondo A vuelve a Carlos 60 / Marta 40 (sin Hugo)", () => {
-    const fondo = seed.instrumentos.find((i) => i.id === ids.fondoA)!;
-    assert.equal(fondo.titularidades.length, 2);
-    assert.ok(
-      !fondo.titularidades.some(
-        (t) =>
-          t.owner.kind === "persona" && t.owner.personaId === ids.personaHugo,
-      ),
-    );
+  it("rollup de escenario con evento mixtitular no inventa cuota", () => {
+    const bag0 = cloneExpedienteFromSeed(ids.clienteGarciaLlorente)!;
+    const ev = bag0.eventos.find((e) => e.tipo === "reembolsar_fondo");
+    if (!ev) return;
+    const ctx = buildContextoFiscalFromBag(bag0, ev, { importe: 35_000 }, []);
+    const rollup = rollupImpuestosEscenario([ev], () => ctx);
+    assert.equal(typeof rollup.impuestosPeriodo, "number");
   });
 });

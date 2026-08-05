@@ -67,7 +67,7 @@ export const seed: SeedData = {
       birthYear: 2004,
       ccaa: "Comunitat Valenciana",
     },
-    // Hugo · Madrid · demo CCAA sin cobertura (cliente Navarro · expediente Madrid).
+    // Hugo · Madrid · demo cobertura matizada (ahorro sí, base general no).
     // No en García-Llorente: sus ingresos ensuciaban capacidad/proyección del caso demo.
     {
       id: PERSONA_HUGO,

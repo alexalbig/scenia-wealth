@@ -5,7 +5,6 @@ import { Button, Modal } from "@/components/ui";
 import {
   CCAAS,
   CCAA_CON_COBERTURA_FISCAL,
-  esRegimenForal,
   type CCAA,
   type Segmento,
 } from "@/lib/types";
@@ -60,7 +59,6 @@ export function AltaClienteModal({
   const [submitted, setSubmitted] = useState(false);
 
   const hasNonCv = ccaa !== CCAA_CON_COBERTURA_FISCAL;
-  const foral = esRegimenForal(ccaa);
 
   const errors = useMemo(() => {
     const e: string[] = [];
@@ -221,20 +219,7 @@ export function AltaClienteModal({
       {hasNonCv && (
         <div className="hint-info" role="alert">
           <b>ⓘ</b>
-          <span>
-            {foral ? (
-              <>
-                {avisoCoberturaCcaa(ccaa)} Ni la base general ni la del ahorro
-                se liquidan.
-              </>
-            ) : (
-              <>
-                El cálculo fiscal solo está disponible para la{" "}
-                <b>Comunitat Valenciana</b> por ahora. Para esta comunidad,
-                Scenia mostrará el patrimonio sin cifras fiscales.
-              </>
-            )}
-          </span>
+          <span>{avisoCoberturaCcaa(ccaa)}</span>
         </div>
       )}
 

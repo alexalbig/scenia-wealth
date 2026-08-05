@@ -13,7 +13,7 @@ Scenia *muestra* el cálculo fiscal; **nunca recomienda**. Esa línea es su posi
 4. **Nota del asesor obligatoria** en el modal antes de generar cualquier informe PDF.
 5. **El asesor no puede editar parámetros fiscales** (tramos, tipos, reglas). Viven en la tabla del motor. «Parámetros fiscales» son los de la tabla del motor (tramos, tipos, límites legales). Los **datos del contribuyente** que el asesor sí introduce —fracción de aportaciones pre-2007, pensión estimada, valores de activos— no son parámetros: se introducen, se marcan como «introducido por el asesor» y no se bloquean.
 6. **Cifra calculada ≠ cifra introducida.** Lo que calcula el motor nunca tiene el mismo aspecto visual que lo que teclea el asesor. Marcar "introducido por el asesor, no calculado".
-7. **CCAA sin cobertura → aviso explícito.** Solo la Comunitat Valenciana tiene parámetros fiscales. Si se elige otra: *"el cálculo fiscal solo está disponible para la Comunitat Valenciana"*. **Nunca mostrar cifras de CV para otra comunidad.**
+7. **Cobertura por CCAA → aviso explícito y matizado.** La base del ahorro (plusvalías) se liquida en todo el régimen común. La base general (rescate / aportación a plan) solo tiene cargada la escala de la Comunitat Valenciana. País Vasco y Navarra: régimen foral, sin cobertura de ningún tipo. **Nunca mostrar cifras de CV para otra comunidad.**
 8. **NO construir el liquidador de Impuesto de Sociedades.** F4 Sociedad sí (datos, participación, eventos); el cálculo societario queda marcado "pendiente de definir". **No inventar cifras.**
 
 **Regla de oro:** ante la duda, no inventes un número. Un hueco marcado es correcto; una cifra fiscal inventada es un fallo grave.

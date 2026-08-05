@@ -159,7 +159,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Añadir varias Personas | 19 | Un expediente puede contener N personas | MVP |
 | Selector de Segmento | 20 | Desplegable con los cinco segmentos | MVP |
 | **Selector de CCAA por persona** | 21 | Por defecto Comunitat Valenciana. **La comunidad vive en la persona, no en el expediente** | CORE |
-| **Aviso de cobertura fiscal** | 22 | Si se elige una CCAA distinta de la Valenciana, aviso visible. País Vasco y Navarra con aviso propio de régimen foral. **Nunca dejar elegir sin avisar** | CORE |
+| **Aviso de cobertura fiscal** | 22 | Si se elige una CCAA distinta de la Valenciana, aviso visible y **matizado**: la base del ahorro (plusvalías) se calcula en todo el régimen común; la base general (rescate / aportación a plan) solo tiene cargada la escala de la Comunitat Valenciana. País Vasco y Navarra con aviso propio de régimen foral (bloqueo total). **Nunca dejar elegir sin avisar** | CORE |
 | Validación de obligatorios | 23 | Nombre del expediente + una Persona con nombre y nacimiento. Error en `--coral-deep`, el único rojo permitido | MVP |
 | Creación del plan base | 24 | Al crear el cliente se genera automáticamente su primer escenario ("Situación actual"), vacío | CORE |
 | Vincular Persona existente | 25 | Buscador entre Personas ya dadas de alta, para no re-teclear a alguien presente en otro expediente. El modelo ya lo soporta; solo falta exponerlo | V2 |
@@ -172,14 +172,14 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 - **Segmento:** Empresario · Pre-jubilado · Jubilado · Alto ingreso · Herencia en curso
 - **CCAA (por persona):** las 17 comunidades · por defecto Comunitat Valenciana
-- **Estado de cobertura fiscal:** con cálculo (Comunitat Valenciana) · sin cálculo, resto de régimen común · sin cobertura por régimen foral (País Vasco, Navarra)
+- **Estado de cobertura fiscal:** cobertura completa (Comunitat Valenciana) · base del ahorro disponible, base general pendiente (resto de régimen común) · sin cobertura por régimen foral (País Vasco, Navarra)
 - **Campos obligatorios:** nombre del expediente · al menos una Persona (nombre + fecha de nacimiento)
 
 ## Cómo la usa el asesor
 
 **Flujo 1 · Alta rápida antes de una reunión.** Tiene diez minutos y quiere meter al cliente para poder cargar su patrimonio. Nombre, una persona, listo. Lo que exige: que no haya campos que le frenen. Cualquier campo obligatorio de más es fricción en el momento más frágil de la relación con el producto.
 
-**Flujo 2 · Alta de un cliente que no es valenciano.** Elige Madrid y ve el aviso. **Este flujo es una decepción y cómo se comunica decide mucho:** o entiende que el producto es honesto sobre su alcance, o concluye que está a medias. La diferencia está en el texto.
+**Flujo 2 · Alta de un cliente que no es valenciano.** Elige Madrid y ve el aviso matizado: las plusvalías se calculan; el rescate de planes todavía no. **Este flujo es una decepción y cómo se comunica decide mucho:** o entiende que el producto es honesto sobre su alcance, o concluye que está a medias. La diferencia está en el texto.
 
 # P8 · Ajustes
 
@@ -265,6 +265,8 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 ### Variables
 
 - **Categorías del treemap:** financiero · inmobiliario · empresarial · otros · pasivos
+- **Paleta de categorías (de más líquido a menos):** financiero `--blue` · inmobiliario `--ink-3` · empresarial `--slate` · otros `--faintest`. El coral no se usa en categorías (reservado a acción principal).
+- **Capacidad de ahorro:** cifra a tinta (sin verde/ámbar de valoración)
 - **Estado de valoración:** valorado · no valorado
 - **Estado del expediente:** completo · ligero (solo puebla la Cartera)
 - **Fecha de los datos:** siempre visible, formato es-ES
@@ -647,7 +649,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Parámetros no editables | 171 | Tramos y tipos viven en la tabla verificada, con candado visible. **Es firewall** | CORE |
 | Sello "orientativo" | 172 | Acompaña a toda cifra fiscal, sin excepción | CORE |
 | Marca "(a verificar)" | 173 | Cada parámetro no confirmado por el fiscalista va marcado | CORE |
-| Aviso de cobertura por CCAA | 174 | **Se evalúa antes que cualquier otro estado**, incluido el de expediente ligero | CORE |
+| Aviso de cobertura por CCAA | 174 | **Se evalúa antes que cualquier otro estado**, incluido el de expediente ligero. Texto matizado: plusvalías OK en régimen común; base general solo CV; forales fuera | CORE |
 | Aviso de simplificación del mínimo autonómico | 175 | El motor usa el mínimo estatal en ambas mitades y lo declara | MVP |
 | Aviso de cálculo individual | 176 | La tributación conjunta no está contemplada y se dice | MVP |
 | Vista comparada de titulares | 177 | Ver dos o más personas en paralelo. **Capa opcional cuando hay dos o más calculables**, nunca el fundamento de la pantalla | V2 |
@@ -677,7 +679,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 - **Persona:** cualquiera del expediente, con su estado de cálculo
 - **Año:** ejercicio seleccionable del horizonte
 - **Estado del parámetro:** verificado · **(a verificar)** *(hoy: todos a verificar)*
-- **Estado de cobertura:** con cálculo · sin cálculo, resto de régimen común · sin cobertura por régimen foral
+- **Estado de cobertura:** cobertura completa (CV) · base del ahorro disponible / base general pendiente (resto régimen común) · sin cobertura por régimen foral
 - **Estado del titular:** calculable · sin ingresos informados · fuente no contemplada · CCAA sin cobertura
 - **Modalidad de declaración:** individual *(la conjunta no está contemplada)*
 - **Componentes de la base liquidable:** bruto − cotizaciones − gastos art. 19.2.f) − reducción art. 20
@@ -1060,7 +1062,7 @@ En los tres casos la fila fiscal marca cálculo parcial. **Un hueco declarado es
 | 5 · Parámetros intocables | 338 | Tramos, tipos y límites viven en la tabla verificada. **Los datos del contribuyente sí los introduce el asesor** y no son parámetros | CORE |
 | 6 · Calculado ≠ introducido | 339 | Distinción visual siempre, incluido el híbrido: cálculo real sobre dato estimado | CORE |
 | 7 · Verde y rojo restringidos | 340 | Único verde: hechos objetivos del activo. Único rojo: error de validación de formulario | CORE |
-| 8 · CCAA sin cobertura | 341 | Aviso explícito, comprobado por persona. Nunca mostrar cifras de una comunidad para otra | CORE |
+| 8 · Cobertura por CCAA | 341 | Aviso explícito y matizado (ahorro en régimen común; base general solo CV; forales fuera). Nunca mostrar cifras de una comunidad para otra | CORE |
 | Regla de oro · No inventar cifras | 342 | Ante la duda, un hueco marcado es correcto; una cifra fiscal inventada es un fallo grave | CORE |
 | Fuentes oficiales únicamente | 343 | BOE · DOGV · AEAT. Nunca blogs, comparadores ni conocimiento previo del modelo | CORE |
 | DPA con cada EAF | 344 | Antes de tratar datos reales de clientes finales | MVP |

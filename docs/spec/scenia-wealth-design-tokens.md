@@ -49,9 +49,9 @@ Es decir: **pantallas de papel claro sobre fondo oscuro de app.** El mismo color
 ## Colores contextuales (fuera de `:root`, con su uso exacto)
 
 **Fondos suaves de acento (sobre papel):**
-- `#E7ECFB` — azul suave: fondo de avatares/iniciales (`.av.f`).
-- `#FBEAE7` — coral suave: fondo de pills de categoría (`.pill.emp`); texto en coral.
-- Pills neutras: `--paper-2` de fondo + `--slate` de texto (`.pill.ind`).
+- `#E7ECFB` — azul suave: fondo de avatares/iniciales (`.av.f`) y bloque financiero del treemap.
+- Pills neutras: `--paper-2` de fondo + `--slate` / `--ink-3` de texto (incl. segmento «Empresario»).
+- **Categorías patrimoniales (barra + treemap + leyenda), de más líquido a menos:** financiero `--blue` · inmobiliario `--ink-3` · empresarial `--slate` · otros `--faintest`. Sin coral.
 
 **El semáforo de liquidez** (propiedad objetiva del activo — ver firewall):
 - Liquidez alta (`.liq.a`): fondo `--green-bg` + texto `--green`.
@@ -59,9 +59,9 @@ Es decir: **pantallas de papel claro sobre fondo oscuro de app.** El mismo color
 
 **Superficies oscuras** (tarjetas destacadas sobre el papel, p. ej. la de capacidad de ahorro — paleta propia invertida):
 - Fondo: `--ink-2` (`#1A2438`) · líneas internas: `#1E2A42` · bordes: `#2A3650`.
-- Texto claro: `#E8ECF4` · cifra positiva: verde claro `#5FD89A`.
-- Tags fiscales sobre oscuro: fondo `#3A2E1A` + texto ámbar `#E0A868` (`.ftag.p`) · fondo `#3A1E1A` + texto coral claro `#FF9585` (`.ftag.v`).
-- El coral sobre oscuro puede ir con fondo `--ink-2` y borde `#2A3650`.
+- Texto claro: `#E8ECF4` · **cifra de capacidad a la misma tinta** (no verde: el verde está reservado a hechos objetivos del activo).
+- Tags neutros sobre oscuro: fondo `#1E2A42` + texto `#B4C0D8` (no ámbar).
+- El coral sobre oscuro puede ir con fondo `--ink-2` y borde `#2A3650` solo en botones de acción.
 
 ---
 

@@ -4,26 +4,25 @@
  * resultado cuando faltan datos.
  *
  * Orden de comprobación (importa):
- * 1. CCAA sin cobertura (persona.ccaa, no cliente.ccaa)
+ * 1. Régimen foral (bloqueo absoluto: general + ahorro)
  * 2. Fuente no contemplada (actividad económica)
  * 3. Sin ingresos informados
+ *
+ * La base general (rescate / aportación a plan) exige Comunitat Valenciana:
+ * lo comprueba el motor al liquidar, no este clasificador. Un titular de
+ * Madrid con ingresos es calculable para plusvalías (base del ahorro).
  */
 
-import type { CCAA, FuenteIngreso, Ingreso, Persona } from "@/lib/types";
+import { esRegimenForal, type CCAA, type FuenteIngreso, type Ingreso, type Persona } from "@/lib/types";
 
-/** Misma regla que `ccaaConCobertura` del facade — sin importar el facade (ciclo). */
-function ccaaConCoberturaLocal(ccaa: CCAA): boolean {
-  return ccaa === "Comunitat Valenciana";
-}
-
-function avisoCoberturaLocal(ccaa: CCAA): string {
+function avisoForal(ccaa: CCAA): string {
   if (ccaa === "Comunidad Foral de Navarra") {
     return "La Comunidad Foral de Navarra tiene régimen fiscal propio; Scenia no cubre su normativa.";
   }
   if (ccaa === "País Vasco") {
     return "El País Vasco tiene régimen fiscal propio; Scenia no cubre su normativa.";
   }
-  return "El cálculo fiscal solo está disponible para la Comunitat Valenciana.";
+  return "Régimen foral · Scenia no cubre su normativa.";
 }
 
 export type MotivoSinCalculo =
@@ -78,11 +77,14 @@ export function estadoFiscalPersona(
   persona: Persona,
   ingresos: Ingreso[],
 ): EstadoFiscalPersona {
-  if (!ccaaConCoberturaLocal(persona.ccaa)) {
+  // Solo los forales bloquean el clasificador por completo.
+  // El resto de régimen común es calculable (ahorro); la base general
+  // la guarda el motor por titular al liquidar rescate / aportación.
+  if (esRegimenForal(persona.ccaa)) {
     return {
       kind: "sin_calculo",
       motivo: "ccaa_sin_cobertura",
-      aviso: avisoCoberturaLocal(persona.ccaa),
+      aviso: avisoForal(persona.ccaa),
     };
   }
 

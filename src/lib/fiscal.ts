@@ -7,6 +7,7 @@
 import { getCliente, getPersonasDeCliente } from "./seed";
 import { getIngresos, ingresosPorPersona } from "./patrimonio";
 import type { CCAA } from "./types";
+import { esRegimenForal } from "./types";
 import {
   desgloseBaseLiquidable,
   type DesgloseBaseLiquidable,
@@ -48,10 +49,23 @@ function oficialToTramos(
 }
 
 export function ccaaConCobertura(ccaa: CCAA): boolean {
+  return ccaaConCoberturaGeneral(ccaa);
+}
+
+/** Base general (rescate / aportación a plan): solo Comunitat Valenciana. */
+export function ccaaConCoberturaGeneral(ccaa: CCAA): boolean {
   return ccaa === "Comunitat Valenciana";
 }
 
-/** Aviso de cobertura: forales (bloqueo total) vs resto (solo base general = CV). */
+/** Base del ahorro (plusvalías): todo el régimen común. Forales fuera. */
+export function ccaaConCoberturaAhorro(ccaa: CCAA): boolean {
+  return !!ccaa.trim() && !esRegimenForal(ccaa);
+}
+
+/**
+ * Aviso de cobertura por CCAA.
+ * Forales: bloqueo total. Resto de régimen común: matiza general vs ahorro.
+ */
 export function avisoCoberturaCcaa(ccaa: CCAA): string {
   if (ccaa === "Comunidad Foral de Navarra") {
     return "La Comunidad Foral de Navarra tiene régimen fiscal propio; Scenia no cubre su normativa.";
@@ -59,7 +73,13 @@ export function avisoCoberturaCcaa(ccaa: CCAA): string {
   if (ccaa === "País Vasco") {
     return "El País Vasco tiene régimen fiscal propio; Scenia no cubre su normativa.";
   }
-  return "El cálculo fiscal solo está disponible para la Comunitat Valenciana.";
+  if (ccaa === "Comunitat Valenciana") {
+    return "";
+  }
+  return (
+    `Este titular reside en ${ccaa}. Las decisiones sobre plusvalías —reembolsos, traspasos, pignoraciones y venta de inmuebles— se calculan con normalidad. ` +
+    `El rescate de planes de pensiones depende de la escala autonómica y todavía solo está cargada la de la Comunitat Valenciana.`
+  );
 }
 
 export function getTramos(escala: EscalaTramos, anio: number): Tramo[] {

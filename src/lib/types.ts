@@ -23,7 +23,8 @@ export const CCAAS = [
 
 export type CCAA = (typeof CCAAS)[number];
 
-/** Única CCAA con cobertura de base general (rescate). */
+/** Única CCAA con cobertura de base general (rescate / aportación a plan).
+ *  La base del ahorro cubre todo el régimen común (ver `ccaaConCoberturaAhorro`). */
 export const CCAA_CON_COBERTURA_FISCAL: CCAA = "Comunitat Valenciana";
 
 /** Regímenes forales: sin cobertura de general ni del ahorro. */

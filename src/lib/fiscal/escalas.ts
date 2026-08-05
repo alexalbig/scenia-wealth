@@ -321,10 +321,11 @@ export function liquidacionEjercicio(opts: {
   const g = cuotaGeneralIRPF(opts.baseGeneral, opts.anio, opts.ccaa, min);
   const a = cuotaAhorroIRPF(opts.baseAhorro, opts.anio);
   if (g.ccaaSinCobertura) {
+    // Base general no disponible: la del ahorro sí (régimen común).
     return {
       cuotaGeneral: 0,
-      cuotaAhorro: 0,
-      total: 0,
+      cuotaAhorro: Math.round(a.total),
+      total: Math.round(a.total),
       ccaaSinCobertura: true,
       parametrosAVerificar: true,
       estatalGeneral: 0,

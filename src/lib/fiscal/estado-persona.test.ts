@@ -40,12 +40,34 @@ function ingreso(
 }
 
 describe("estadoFiscalPersona", () => {
-  it("CCAA sin cobertura antes que sin ingresos", () => {
+  it("Madrid sin ingresos → sin_ingresos (no bloqueo por CCAA)", () => {
     const e = estadoFiscalPersona(personaMadrid("h", "Hugo"), []);
     assert.equal(e.kind, "sin_calculo");
     if (e.kind === "sin_calculo") {
+      assert.equal(e.motivo, "sin_ingresos");
+    }
+  });
+
+  it("Madrid con trabajo → calculable (base del ahorro disponible)", () => {
+    const e = estadoFiscalPersona(personaMadrid("h", "Hugo"), [
+      ingreso("h", "trabajo", 24_000, 1_200),
+    ]);
+    assert.equal(e.kind, "calculable");
+    if (e.kind === "calculable") {
+      assert.equal(e.ccaa, "Comunidad de Madrid");
+      assert.equal(e.perfil, "trabajo");
+    }
+  });
+
+  it("País Vasco → sin_calculo por régimen foral", () => {
+    const e = estadoFiscalPersona(
+      { ...personaCV("p", "Patxi"), ccaa: "País Vasco" },
+      [ingreso("p", "trabajo", 50_000)],
+    );
+    assert.equal(e.kind, "sin_calculo");
+    if (e.kind === "sin_calculo") {
       assert.equal(e.motivo, "ccaa_sin_cobertura");
-      assert.match(e.aviso, /Comunitat Valenciana/);
+      assert.match(e.aviso, /País Vasco|régimen fiscal propio/i);
     }
   });
 

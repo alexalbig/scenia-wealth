@@ -37,6 +37,7 @@ import {
   type Titularidad,
   type UsoInmueble,
 } from "@/lib/types";
+import { avisoCoberturaCcaa } from "@/lib/fiscal";
 
 export type AltaTarget =
   | { kind: "persona"; item?: Persona }
@@ -575,10 +576,7 @@ export function AltaElementoModal({
           {nonCv && (
             <div className="hint-info">
               <b>ⓘ</b>
-              <span>
-                El cálculo fiscal solo está disponible para la Comunitat
-                Valenciana.
-              </span>
+              <span>{avisoCoberturaCcaa(pCcaa)}</span>
             </div>
           )}
         </>
