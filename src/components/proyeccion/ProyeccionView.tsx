@@ -10,7 +10,7 @@ import { formatEUR } from "@/lib/format";
 import { personaLabel } from "@/lib/patrimonio";
 import {
   PROYECCION_SERIES,
-  buildProyeccionSeries,
+  buildProyeccionSeriesFromBag,
   displayValue,
   serieLabel,
   type EuroMode,
@@ -23,7 +23,7 @@ import type { Cliente, Evento } from "@/lib/types";
  * Fuente de verdad: bag del expediente (ExpedienteProvider).
  */
 export function ProyeccionView({ cliente }: { cliente: Cliente }) {
-  const { bag, ahorro, planBase, menuElementos, eventosDeEscenario, addEvento, removeEvento } =
+  const { bag, planBase, menuElementos, eventosDeEscenario, addEvento, removeEvento } =
     useExpediente();
 
   const events = useMemo(
@@ -39,12 +39,10 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
 
   const points = useMemo(
     () =>
-      buildProyeccionSeries(cliente.id, {
-        patrimonioNeto: bag.cliente.patrimonioNeto,
-        capacidad: ahorro.capacidad,
-        completo: bag.cliente.completo,
+      buildProyeccionSeriesFromBag(bag, events, {
+        rentabilidad: planBase?.rentabilidadEsperada ?? 0.04,
       }),
-    [cliente.id, bag.cliente.patrimonioNeto, bag.cliente.completo, ahorro.capacidad],
+    [bag, events, planBase?.rentabilidadEsperada],
   );
   const inflation = planBase?.inflacion ?? 0.02;
 

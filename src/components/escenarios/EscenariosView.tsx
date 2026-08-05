@@ -20,7 +20,11 @@ import {
   serieComparador,
   type ComparadorMetrica,
 } from "@/lib/escenarios";
-import { buildProyeccionSeries, toEuroHoy, type EuroMode } from "@/lib/proyeccion";
+import {
+  buildProyeccionSeriesFromBag,
+  toEuroHoy,
+  type EuroMode,
+} from "@/lib/proyeccion";
 import type { Cliente, Escenario } from "@/lib/types";
 
 type Modo = "detalle" | "comparador";
@@ -37,7 +41,6 @@ function pctLabel(decimal: number): string {
 export function EscenariosView({ cliente }: { cliente: Cliente }) {
   const {
     bag,
-    ahorro,
     planBase,
     menuElementos,
     eventosDeEscenario,
@@ -59,12 +62,12 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
 
   const years = useMemo(
     () =>
-      buildProyeccionSeries(cliente.id, {
-        patrimonioNeto: bag.cliente.patrimonioNeto,
-        capacidad: ahorro.capacidad,
-        completo: bag.cliente.completo,
-      }).map((p) => p.year),
-    [cliente.id, bag.cliente.patrimonioNeto, bag.cliente.completo, ahorro.capacidad],
+      buildProyeccionSeriesFromBag(
+        bag,
+        planBase ? eventosDeEscenario(planBase.id) : [],
+        { rentabilidad: planBase?.rentabilidadEsperada ?? 0.04 },
+      ).map((p) => p.year),
+    [bag, planBase, eventosDeEscenario],
   );
 
   const [selectedId, setSelectedId] = useState(
@@ -95,12 +98,9 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
     id: e.id,
     nombre: e.nombre,
     years,
-    values: serieComparador(cliente.id, e.id, metrica, {
-      impuestosPeriodo: e.impuestosPeriodo,
-      esPlanBase: e.esPlanBase,
-      patrimonioNeto: bag.cliente.patrimonioNeto,
-      capacidad: ahorro.capacidad,
-      completo: bag.cliente.completo,
+    esPlanBase: e.esPlanBase,
+    values: serieComparador(bag, eventosDeEscenario(e.id), metrica, {
+      rentabilidad: e.rentabilidadEsperada ?? 0.04,
     }),
   }));
 
@@ -449,6 +449,76 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                 />
               </div>
 
+              {cmpYear != null && (
+                <div
+                  className="sidep"
+                  style={{
+                    marginTop: 10,
+                    padding: "12px 14px",
+                    border: "1px solid var(--line-2)",
+                    borderRadius: 8,
+                    background: "var(--paper)",
+                  }}
+                >
+                  <div className="lbl">Año fijado</div>
+                  <div className="h2 num" style={{ marginBottom: 8 }}>
+                    {cmpYear}
+                  </div>
+                  <table className="table" style={{ width: "100%", fontSize: 12 }}>
+                    <thead>
+                      <tr>
+                        <th style={{ textAlign: "left" }}>Escenario</th>
+                        <th style={{ textAlign: "right" }}>
+                          {metrica === "liquidos" ? "Líquidos" : "Patrimonio"}
+                          {mode === "hoy" ? " · € hoy" : " · € futuro"}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {compareEscenarios.map((e, i) => {
+                        const raw =
+                          chartSeries[i]?.values[years.indexOf(cmpYear)] ?? 0;
+                        const v =
+                          mode === "hoy"
+                            ? toEuroHoy(raw, cmpYear, inflation)
+                            : raw;
+                        return (
+                          <tr key={e.id}>
+                            <td>
+                              {e.nombre}
+                              {e.esPlanBase ? (
+                                <span className="base-tag" style={{ marginLeft: 6 }}>
+                                  Plan base
+                                </span>
+                              ) : null}
+                            </td>
+                            <td className="num" style={{ textAlign: "right" }}>
+                              {formatEUR(Math.round(v))}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                  <button
+                    type="button"
+                    className="tiny"
+                    style={{
+                      marginTop: 8,
+                      background: "none",
+                      border: "none",
+                      padding: 0,
+                      color: "var(--slate)",
+                      cursor: "pointer",
+                      textDecoration: "underline",
+                    }}
+                    onClick={() => setCmpYear(null)}
+                  >
+                    Quitar año fijado
+                  </button>
+                </div>
+              )}
+
               <div style={{ marginTop: 12 }}>
                 <FilaFiscal
                   cells={fiscalCells}
@@ -463,9 +533,10 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   parametrosAVerificar
                 />
                 <p className="tiny" style={{ marginTop: 6 }}>
-                  € hoy / € futuro aplica al gráfico (patrimonio, líquidos e
-                  impacto en serie). La fila fiscal es la cuota del primer
-                  ejercicio en euros de ese año — no se deflacta.
+                  € hoy / € futuro aplica al gráfico (patrimonio y líquidos). La
+                  fila fiscal es la cuota del primer ejercicio en euros de ese
+                  año — no se deflacta. Sin acumulación de periodo: no hay serie
+                  de impacto fiscal en el comparador.
                 </p>
               </div>
 
@@ -522,34 +593,6 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
                   );
                 })}
               </div>
-
-              {cmpYear != null && (
-                <div className="tiny" style={{ marginTop: 10 }}>
-                  Año fijado: <b className="num">{cmpYear}</b> ·{" "}
-                  {metrica === "irpf_acumulado"
-                    ? "impacto fiscal de los eventos"
-                    : "valor"}{" "}
-                  por escenario:{" "}
-                  {compareEscenarios
-                    .map((e, i) => {
-                      const raw =
-                        chartSeries[i]?.values[
-                          years.indexOf(cmpYear)
-                        ] ?? 0;
-                      const v =
-                        mode === "hoy"
-                          ? toEuroHoy(raw, cmpYear, inflation)
-                          : raw;
-                      return (
-                        <span key={e.id}>
-                          {i > 0 ? " · " : null}
-                          {e.nombre}{" "}
-                          <b className="num">{formatEUR(Math.round(v))}</b>
-                        </span>
-                      );
-                    })}
-                </div>
-              )}
             </div>
           ) : (
             (() => {

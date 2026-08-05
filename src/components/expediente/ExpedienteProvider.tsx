@@ -269,6 +269,8 @@ export function ExpedienteProvider({
             hastaAnio: payload.hastaAnio,
             etiqueta: payload.etiqueta,
             targetId: payload.targetId || opts?.targetId,
+            importe: payload.importe,
+            tipoGenerico: payload.tipoGenerico,
             cuotaAnual,
             impuestosPeriodo: cuotaAnual,
             introducidoPorAsesor: payload.introducidoPorAsesor,

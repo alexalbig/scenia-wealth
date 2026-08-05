@@ -1,4 +1,4 @@
-import type { TipoEvento } from "@/lib/types";
+import type { TipoEvento, TipoEventoGenerico } from "@/lib/types";
 
 /** Payload que emite CT1 (PlantillaEvento) al guardar un evento. */
 export interface EventoCreadoPayload {
@@ -6,6 +6,10 @@ export interface EventoCreadoPayload {
   etiqueta: string;
   anio: number;
   hastaAnio?: number;
+  /** Importe económico del evento (campo de modelo). */
+  importe?: number;
+  /** Subtipo del evento genérico (campo de modelo). */
+  tipoGenerico?: TipoEventoGenerico;
   /** Cuota anual del motor (calculado/neutro) o impacto tecleado (introducido). */
   cuotaAnual?: number;
   /** @deprecated alias de cuotaAnual para callers antiguos */

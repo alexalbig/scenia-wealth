@@ -586,6 +586,7 @@ export const seed: SeedData = {
       hastaAnio: 2031,
       etiqueta: "Reembolsar Fondo A · 35.000 €/año",
       targetId: FONDO_A,
+      importe: 35_000,
       notas: "2026–2031",
     },
     {
@@ -615,6 +616,7 @@ export const seed: SeedData = {
       anio: 2026,
       etiqueta: "Pignorar Fondo A · 35.000 €",
       targetId: FONDO_A,
+      importe: 35_000,
       notas: "Misma liquidez que A · sin realizar plusvalía",
     },
     {
@@ -644,6 +646,7 @@ export const seed: SeedData = {
       anio: 2033,
       etiqueta: "Vender Vivienda · Jávea · 420.000 €",
       targetId: INMUEBLE_JAVEA,
+      importe: 420_000,
       notas: "Carlos 65 · Marta 62 · art. 33.4.b) parcial",
     },
     {
@@ -673,6 +676,7 @@ export const seed: SeedData = {
       anio: 2036,
       etiqueta: "Vender Vivienda · Jávea · 420.000 €",
       targetId: INMUEBLE_JAVEA,
+      importe: 420_000,
       notas: "Carlos 68 · Marta 65 · art. 33.4.b) pleno",
     },
     {
@@ -702,6 +706,7 @@ export const seed: SeedData = {
       anio: 2026,
       etiqueta: "Rescatar plan · capital · 15.000 €",
       targetId: PLAN_MARTA,
+      importe: 15_000,
       // Contingencia en 2026 → plazo DT 12ª hasta 2028 · reducción 40 % aplicable
       anioContingencia: 2026,
       notas: "DT 12ª · fraccionPre2007 55 % · contingencia 2026",

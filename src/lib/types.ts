@@ -238,6 +238,8 @@ export interface Gasto {
     | null;
 }
 
+export type TipoEventoGenerico = "ingreso" | "gasto" | "movimiento";
+
 export interface Evento {
   id: string;
   escenarioId: string;
@@ -248,6 +250,15 @@ export interface Evento {
   etiqueta: string;
   /** Elemento sobre el que actúa */
   targetId?: string;
+  /**
+   * Importe económico del evento (venta, reembolso, ingreso genérico…).
+   * Campo de modelo — no vive en la etiqueta.
+   */
+  importe?: number;
+  /**
+   * Subtipo del evento genérico. Campo de modelo — no vive en las notas.
+   */
+  tipoGenerico?: TipoEventoGenerico;
   /**
    * Cuota del primer ejercicio (orientativa · motor).
    * El impacto agregado del escenario vive en Escenario.impuestosPeriodo (rollup).

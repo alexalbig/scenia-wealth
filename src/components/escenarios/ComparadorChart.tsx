@@ -1,7 +1,7 @@
 "use client";
 
 import {
-  colorComparador,
+  estiloComparador,
   type ComparadorMetrica,
 } from "@/lib/escenarios";
 import { toEuroHoy, type EuroMode } from "@/lib/proyeccion";
@@ -11,6 +11,7 @@ export interface ComparadorSerieLine {
   nombre: string;
   values: number[];
   years: number[];
+  esPlanBase?: boolean;
 }
 
 interface ComparadorChartProps {
@@ -33,6 +34,7 @@ export function ComparadorChart({
   selectedYear,
   onSelectYear,
 }: ComparadorChartProps) {
+  void metrica;
   const years = series[0]?.years ?? [];
   if (years.length === 0 || series.length === 0) {
     return (
@@ -62,6 +64,9 @@ export function ComparadorChart({
 
   const selIdx =
     selectedYear == null ? -1 : years.findIndex((y) => y === selectedYear);
+
+  // Plan base → estilo 0; alternativas → 0,1,2… sobre la escala desplazada
+  let altIndex = 0;
 
   return (
     <>
@@ -113,19 +118,23 @@ export function ComparadorChart({
           ) : null,
         )}
 
-        {series.map((s, si) => {
+        {series.map((s) => {
+          const estilo = s.esPlanBase
+            ? estiloComparador(0, true)
+            : estiloComparador(altIndex++, false);
           const pts = s.values
             .map((v, i) => `${X(i)},${Y(display(v, years[i]!))}`)
             .join(" ");
-          const dash = si === 2 ? "5 4" : undefined;
           return (
             <polyline
               key={s.id}
               points={pts}
               fill="none"
-              stroke={colorComparador(si)}
-              strokeWidth={2}
-              strokeDasharray={dash}
+              stroke={estilo.color}
+              strokeWidth={estilo.width}
+              strokeDasharray={estilo.dash}
+              strokeLinecap="round"
+              strokeLinejoin="round"
             />
           );
         })}
@@ -171,15 +180,34 @@ export function ComparadorChart({
       </svg>
 
       <div className="legend">
-        {series.map((s, si) => (
-          <span key={s.id}>
-            <i style={{ background: colorComparador(si) }} />
-            {s.nombre}
-          </span>
-        ))}
-        {metrica === "irpf_acumulado" && (
-          <span className="tiny">orientativo</span>
-        )}
+        {(() => {
+          let ai = 0;
+          return series.map((s) => {
+            const estilo = s.esPlanBase
+              ? estiloComparador(0, true)
+              : estiloComparador(ai++, false);
+            return (
+              <span
+                key={s.id}
+                style={{ display: "inline-flex", alignItems: "center", gap: 6 }}
+              >
+                <svg width={22} height={8} aria-hidden>
+                  <line
+                    x1={0}
+                    y1={4}
+                    x2={22}
+                    y2={4}
+                    stroke={estilo.color}
+                    strokeWidth={estilo.width}
+                    strokeDasharray={estilo.dash}
+                  />
+                </svg>
+                {s.nombre}
+                {s.esPlanBase ? " · plan base" : ""}
+              </span>
+            );
+          });
+        })()}
         <span style={{ marginLeft: "auto" }} className="tiny">
           Pincha para fijar un año
         </span>

@@ -765,7 +765,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Supuestos por escenario | 219 | Rentabilidad esperada e inflación, declarados por el asesor | MVP |
 | Selección de escenarios a comparar | 220 | Checkbox por escenario; soporta N | CORE |
 | Gráfico superpuesto | 221 | Un gráfico con las curvas de todos los seleccionados | CORE |
-| Selector de métrica | 222 | Patrimonio · líquidos · impacto fiscal de los eventos | CORE |
+| Selector de métrica | 222 | Patrimonio · líquidos. *(Impacto fiscal en serie retirado hasta acumulación de periodo — la fila CT2 cubre el primer ejercicio.)* | CORE |
 | **Fila fiscal neutra (CT2)** | 223 | `Impacto fiscal · primer año · A · B · Δ · orientativo`. **La pieza central del producto** | CORE |
 | Eventos en paralelo | 224 | Columna por escenario con sus eventos, para ver qué los diferencia | MVP |
 | Clic-en-año | 225 | Fija un ejercicio y muestra el valor de cada escenario | MVP |
@@ -780,7 +780,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 ## Variables
 
-- **Métrica del comparador:** patrimonio · activos líquidos · impacto fiscal de los eventos
+- **Métrica del comparador:** patrimonio · activos líquidos *(impacto fiscal en serie → V2, con acumulación de periodo)*
 - **Supuestos por escenario:** rentabilidad esperada (%) · inflación (%)
 - **Régimen:** IRPF · IS · mixto
 - **Naturaleza del escenario:** plan base · alternativo

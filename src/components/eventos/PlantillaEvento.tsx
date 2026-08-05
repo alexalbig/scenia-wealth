@@ -448,13 +448,23 @@ export function PlantillaEvento({
     } else if (tipo === "vender_participacion") {
       etiqueta = `Vender participación · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "generico") {
-      etiqueta = tituloGenerico.trim() || "Evento genérico";
+      etiqueta =
+        tituloGenerico.trim() ||
+        (tipoGenerico === "gasto"
+          ? "Gasto"
+          : tipoGenerico === "movimiento"
+            ? "Movimiento"
+            : "Ingreso");
     }
 
     const usaHasta =
       (tipo === "reembolsar_fondo" || tipo === "rescatar_plan") &&
       Number.isFinite(hastaN) &&
       hastaN >= year;
+
+    const importeN = Number(importe);
+    const importeEvento =
+      Number.isFinite(importeN) && importeN > 0 ? importeN : undefined;
 
     const notasExtra = usaHasta
       ? `${year}–${hastaN}`
@@ -467,6 +477,8 @@ export function PlantillaEvento({
       etiqueta,
       anio: year,
       hastaAnio: usaHasta ? hastaN : undefined,
+      importe: importeEvento,
+      tipoGenerico: tipo === "generico" ? tipoGenerico : undefined,
       cuotaAnual,
       impuestosPeriodo: cuotaAnual,
       introducidoPorAsesor: introducido || undefined,

@@ -278,13 +278,15 @@ export function buildContextoFiscalFromBag(
           : "renta"
       : undefined;
 
-  let importe: number | undefined;
-  const mImp = ev.etiqueta.match(/([\d.]+)\s*€/);
-  if (mImp) {
-    const raw = mImp[1]!;
-    importe = raw.includes(",")
-      ? Number(raw.replace(/\./g, "").replace(",", "."))
-      : Number(raw.replace(/\./g, ""));
+  let importe: number | undefined = ev.importe;
+  if (importe == null) {
+    const mImp = ev.etiqueta.match(/([\d.]+)\s*€/);
+    if (mImp) {
+      const raw = mImp[1]!;
+      importe = raw.includes(",")
+        ? Number(raw.replace(/\./g, "").replace(",", "."))
+        : Number(raw.replace(/\./g, ""));
+    }
   }
 
   const desgloseTitular = baseTitular?.desglose;

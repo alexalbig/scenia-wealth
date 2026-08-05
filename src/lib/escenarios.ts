@@ -1,11 +1,14 @@
-import { buildProyeccionSeries, type YearPoint } from "./proyeccion";
-import type { TipoEvento } from "./types";
-import { periodoFilaFiscal } from "./fiscal/rollup";
+import {
+  buildProyeccionSeriesFromBag,
+  type YearPoint,
+} from "./proyeccion";
+import type { ExpedienteBag } from "./expediente";
+import type { Evento, TipoEvento } from "./types";
 
 export type { ResultadoFiscalMotor } from "./fiscal/motor";
 export { simularMotorEvento } from "./fiscal/motor";
 
-export type ComparadorMetrica = "patrimonio" | "liquidos" | "irpf_acumulado";
+export type ComparadorMetrica = "patrimonio" | "liquidos";
 
 export const COMPARADOR_METRICAS: Array<{
   id: ComparadorMetrica;
@@ -14,97 +17,73 @@ export const COMPARADOR_METRICAS: Array<{
 }> = [
   { id: "patrimonio", label: "Patrimonio" },
   { id: "liquidos", label: "Líquidos" },
-  {
-    id: "irpf_acumulado",
-    label: "Impacto fiscal de los eventos",
-    orientativo: true,
-  },
+  // «Impacto fiscal de los eventos» retirado del selector hasta acumulación
+  // de periodo (V2). La fila fiscal CT2 ya enseña el primer ejercicio.
 ];
 
-const COLS_COMPARADOR = [
-  "var(--ink)",
-  "var(--blue)",
-  "#8FA0BE",
-  "var(--ink-3)",
-  "var(--faintest)",
-] as const;
+/** Tintas neutras + trazo: con N series el trazo distingue mejor que el tono. */
+const ESTILOS_COMPARADOR: Array<{
+  color: string;
+  dash?: string;
+  width: number;
+}> = [
+  { color: "var(--ink)", width: 2.5 }, // plan base · continuo grueso
+  { color: "var(--blue)", width: 2 },
+  { color: "var(--ink-3)", dash: "7 4", width: 2 },
+  { color: "var(--slate)", dash: "2 3", width: 2 },
+  { color: "var(--faint)", dash: "10 3 2 3", width: 2 },
+  { color: "var(--faintest)", dash: "4 4", width: 1.75 },
+];
 
+export function estiloComparador(
+  index: number,
+  esPlanBase = false,
+): { color: string; dash?: string; width: number } {
+  if (esPlanBase) return ESTILOS_COMPARADOR[0]!;
+  // index 0-based entre alternativas → estilos 1..N
+  const i = (index % (ESTILOS_COMPARADOR.length - 1)) + 1;
+  return ESTILOS_COMPARADOR[i]!;
+}
+
+/** @deprecated Prefer estiloComparador */
 export function colorComparador(index: number): string {
-  return COLS_COMPARADOR[index % COLS_COMPARADOR.length]!;
+  return estiloComparador(index).color;
 }
 
 /**
- * Serie del comparador.
- * - patrimonio / liquidos: trayectoria base (sin drag fiscal inventado).
- * - irpf_acumulado: suma el impacto del primer ejercicio (rollup) una sola vez
- *   en el año del horizonte; sin proyección multi-año inventada.
+ * Serie del comparador a partir del bag + eventos del escenario.
+ * patrimonio / liquidos reflejan la proyección con eventos aplicados.
  */
 export function serieComparador(
-  clienteId: string,
-  _escenarioId: string,
+  bag: ExpedienteBag,
+  eventos: Evento[],
   metrica: ComparadorMetrica,
-  opts?: {
-    impuestosPeriodo?: number;
-    esPlanBase?: boolean;
-    patrimonioNeto?: number;
-    capacidad?: number;
-    completo?: boolean;
-  },
+  opts?: { rentabilidad?: number },
 ): number[] {
-  const base = buildProyeccionSeries(clienteId, {
-    patrimonioNeto: opts?.patrimonioNeto,
-    capacidad: opts?.capacidad,
-    completo: opts?.completo,
+  const points = buildProyeccionSeriesFromBag(bag, eventos, {
+    rentabilidad: opts?.rentabilidad,
   });
-  if (base.length === 0) return [];
-
-  const { desde } = periodoFilaFiscal();
-  const impactoPrimerAnio = opts?.esPlanBase
-    ? 0
-    : (opts?.impuestosPeriodo ?? 0);
-
-  if (metrica === "irpf_acumulado") {
-    let acc = 0;
-    return base.map((p) => {
-      const extra =
-        !opts?.esPlanBase && p.year === desde ? impactoPrimerAnio : 0;
-      acc += p.irpf + extra;
-      return acc;
-    });
-  }
-
-  const baseVals =
-    metrica === "liquidos"
-      ? base.map((p) => p.liquidos)
-      : base.map((p) => p.patrimonio);
-
-  return baseVals;
+  if (points.length === 0) return [];
+  return metrica === "liquidos"
+    ? points.map((p) => p.liquidos)
+    : points.map((p) => p.patrimonio);
 }
 
 /** @deprecated prefer serieComparador — mantiene YearPoint para compat. */
 export function buildEscenarioSeries(
-  clienteId: string,
-  escenarioId: string,
+  bag: ExpedienteBag,
+  eventos: Evento[],
+  opts?: { rentabilidad?: number },
 ): YearPoint[] {
-  const base = buildProyeccionSeries(clienteId);
-  const pat = serieComparador(clienteId, escenarioId, "patrimonio");
-  const liq = serieComparador(clienteId, escenarioId, "liquidos");
-  return base.map((p, i) => ({
-    ...p,
-    patrimonio: Math.round(pat[i] ?? p.patrimonio),
-    liquidos: Math.round(liq[i] ?? p.liquidos),
-  }));
+  return buildProyeccionSeriesFromBag(bag, eventos, opts);
 }
 
 export function metricaValue(
   point: YearPoint,
   metrica: ComparadorMetrica,
-  series: YearPoint[],
 ): number {
-  if (metrica === "patrimonio") return point.patrimonio;
   if (metrica === "liquidos") return point.liquidos;
-  const idx = series.findIndex((p) => p.year === point.year);
-  return series.slice(0, idx + 1).reduce((s, p) => s + p.irpf, 0);
+  return point.patrimonio;
 }
 
 export const EVENTOS_COMPLETOS: Array<{
