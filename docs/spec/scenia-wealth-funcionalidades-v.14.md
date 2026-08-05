@@ -111,9 +111,9 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Columna Cliente | 2 | Nombre o alias del expediente, con avatar de iniciales y NIF debajo | MVP |
 | Columna Segmento | 3 | Etiqueta del tipo de cliente, en formato pill | MVP |
 | Columna Patrimonio | 4 | Patrimonio **neto** consolidado (activos − pasivos) | MVP |
-| Barra de composición | 5 | Mini-barra apilada dentro de la celda de Patrimonio: financiero / inmobiliario / empresarial / otros | MVP |
-| Columna Escenarios | 6 | Cuántos escenarios tiene abiertos el cliente. Se recalcula al crear, clonar o eliminar | MVP |
-| Columna Última revisión | 7 | Fecha del último informe emitido, en formato relativo ("hace 2 meses", "hoy") | MVP |
+| Barra de composición | 5 | Mini-barra apilada dentro de la celda de Patrimonio: financiero / inmobiliario / empresarial / otros. **Tooltip al pasar** por cada bloque: categoría · porcentaje · importe | MVP |
+| Columna Escenarios | 6 | Cuántos escenarios tienen **al menos un evento** («alternativas montadas»). El plan base vacío no cuenta. Se recalcula al crear, clonar, eliminar o editar eventos | MVP |
+| Columna Último informe | 7 | Fecha del último informe emitido, en formato relativo ("hace 2 meses", "hoy"). No mide el último cambio de datos del expediente | MVP |
 | Buscador | 8 | Filtra por nombre o NIF, en vivo | MVP |
 | Ordenar por columnas | 9 | Clic en la cabecera; segundo clic invierte el orden | MVP |
 | Totales al pie | 10 | Nº de clientes + patrimonio total, en `tfoot` | MVP |
@@ -129,14 +129,15 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 - **Segmento:** Empresario · Pre-jubilado · Jubilado · Alto ingreso · Herencia en curso
 - **Composición del patrimonio:** financiero · inmobiliario · empresarial · otros (fracciones que suman 100 %)
 - **Estado de valoración:** valorado · con elementos no valorados
-- **Última revisión:** fecha relativa calculada sobre la fecha actual, nunca hardcodeada
+- **Último informe:** fecha relativa del último informe emitido, calculada sobre la fecha actual, nunca hardcodeada
+- **Escenarios (columna):** número de escenarios con al menos un evento; el plan base sin eventos no cuenta
 - **Orden:** ascendente · descendente, por cualquier columna
 
 ## Cómo la usa el asesor
 
 **Flujo 1 · Localizar (el 90 % de las veces).** Sabe a quién busca y quiere entrar. Teclea tres letras en el buscador y pincha. Lo que exige de la pantalla: que el buscador esté a mano y filtre en vivo. Todo lo demás sobra en este flujo.
 
-**Flujo 2 · Barrer la cartera.** Ordena por patrimonio o por última revisión para ver quién lleva tiempo sin tocarse. Es el uso que sustituye al escritorio que no existe: "¿a quién le debo una revisión?". Lo que exige: que "última revisión" sea fiable — y hoy mide cuándo se emitió el último informe, no cuándo se tocaron los datos.
+**Flujo 2 · Barrer la cartera.** Ordena por patrimonio o por último informe para ver a quién le debe una entrega. Es el uso que sustituye al escritorio que no existe. La columna dice la verdad: mide cuándo se emitió el último informe, no cuándo se tocaron los datos.
 
 **Flujo 3 · El primer día.** Abre Scenia y no tiene clientes. Es el flujo que menos se prueba y el que decide si el producto arranca.
 

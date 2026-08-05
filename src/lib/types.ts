@@ -329,7 +329,7 @@ export interface Cliente {
   /** Patrimonio NETO (activos − pasivos) */
   patrimonioNeto: number;
   composicion: ComposicionPatrimonio;
-  /** Meses desde la última revisión (relativo a hoy) */
+  /** Meses desde el último informe emitido (relativo a hoy). Columna P1 «Último informe». */
   ultimaRevisionMeses: number;
   /** true = datos completos (García-Llorente); false = ligero para Cartera */
   completo: boolean;

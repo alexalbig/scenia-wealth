@@ -780,6 +780,20 @@ export function getEscenariosDeCliente(clienteId: string) {
   return seed.escenarios.filter((e) => e.clienteId === clienteId);
 }
 
+/**
+ * Escenarios con trabajo montado (al menos un evento).
+ * El plan base vacío no cuenta: en P1 la columna es «alternativas montadas».
+ */
+export function countEscenariosConEventos(
+  escenarios: Array<{ id: string; eventoIds: string[] }>,
+  eventos: Array<{ escenarioId: string }> = [],
+): number {
+  return escenarios.filter((e) => {
+    if (e.eventoIds.length > 0) return true;
+    return eventos.some((ev) => ev.escenarioId === e.id);
+  }).length;
+}
+
 export function getPlanBase(clienteId: string) {
   return seed.escenarios.find((e) => e.clienteId === clienteId && e.esPlanBase);
 }

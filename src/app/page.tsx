@@ -17,6 +17,7 @@ import {
   TR,
 } from "@/components/ui";
 import {
+  countEscenariosConEventos,
   getEscenariosDeCliente,
   getPersonasDeCliente,
   seed,
@@ -74,6 +75,14 @@ function rowFromCliente(
   return { cliente, escenarios, searchBlob };
 }
 
+function escenariosMontadosDeCliente(clienteId: string): number {
+  const bag = readExpediente(clienteId);
+  if (bag) {
+    return countEscenariosConEventos(bag.escenarios, bag.eventos);
+  }
+  return countEscenariosConEventos(getEscenariosDeCliente(clienteId));
+}
+
 function buildSeedRows(): CarteraRow[] {
   return seed.clientes.map((c) => {
     const personas = getPersonasDeCliente(c.id);
@@ -84,7 +93,7 @@ function buildSeedRows(): CarteraRow[] {
       c,
       personas,
       sociedades,
-      getEscenariosDeCliente(c.id).length || 1,
+      countEscenariosConEventos(getEscenariosDeCliente(c.id)),
     );
   });
 }
@@ -98,17 +107,26 @@ function buildRows(): CarteraRow[] {
     const sociedades =
       bag?.sociedades ??
       seed.sociedades.filter((s) => c.sociedadIds.includes(s.id));
-    const nEscenarios =
-      (bag?.escenarios?.length ?? getEscenariosDeCliente(c.id).length) || 1;
-    return rowFromCliente(cliente, personas, sociedades, nEscenarios);
+    return rowFromCliente(
+      cliente,
+      personas,
+      sociedades,
+      escenariosMontadosDeCliente(c.id),
+    );
   });
 
   const customRows = listCustomClientes()
     .filter((c) => !seedIds.has(c.id))
     .map((c) => {
       const bag = readExpediente(c.id);
-      const nEscenarios = bag?.escenarios?.length || 1;
-      return rowFromCliente(c, bag?.personas ?? [], bag?.sociedades ?? [], nEscenarios);
+      return rowFromCliente(
+        c,
+        bag?.personas ?? [],
+        bag?.sociedades ?? [],
+        bag
+          ? countEscenariosConEventos(bag.escenarios, bag.eventos)
+          : 0,
+      );
     });
 
   return [...seedRows, ...customRows];
@@ -201,6 +219,9 @@ export default function CarteraPage() {
     return [...filtered].sort((a, b) => compareRows(a, b, sortKey, sortDir));
   }, [baseRows, query, sortKey, sortDir]);
 
+  const sinClientes = baseRows.length === 0;
+  const busquedaVacia = !sinClientes && rows.length === 0;
+
   const footerCount = rows.length;
   const footerPatrimonio = rows.reduce(
     (sum, r) => sum + r.cliente.patrimonioNeto,
@@ -227,27 +248,29 @@ export default function CarteraPage() {
             <div className="h1">Cartera de clientes</div>
           </div>
           <div className="toolbar">
-            <div className="search">
-              <svg
-                width="13"
-                height="13"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#8A95A8"
-                strokeWidth="2.4"
-                aria-hidden
-              >
-                <circle cx="11" cy="11" r="7" />
-                <path d="M20 20l-3.5-3.5" />
-              </svg>
-              <input
-                type="text"
-                placeholder="Buscar por nombre o NIF"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                aria-label="Buscar por nombre o NIF"
-              />
-            </div>
+            {!sinClientes && (
+              <div className="search">
+                <svg
+                  width="13"
+                  height="13"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#8A95A8"
+                  strokeWidth="2.4"
+                  aria-hidden
+                >
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="M20 20l-3.5-3.5" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o NIF"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  aria-label="Buscar por nombre o NIF"
+                />
+              </div>
+            )}
             <Button variant="coral" onClick={() => setAltaOpen(true)}>
               + Nuevo cliente
             </Button>
@@ -255,101 +278,115 @@ export default function CarteraPage() {
         </div>
 
         <div style={{ padding: "0 22px" }}>
-          <Table>
-            <THead>
-              <TR>
-                <SortHeader
-                  label="Cliente"
-                  active={sortKey === "nombre"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("nombre")}
-                />
-                <SortHeader
-                  label="Segmento"
-                  active={sortKey === "segmento"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("segmento")}
-                />
-                <SortHeader
-                  label="Patrimonio neto"
-                  active={sortKey === "patrimonio"}
-                  dir={sortDir}
-                  align="right"
-                  onClick={() => toggleSort("patrimonio")}
-                />
-                <SortHeader
-                  label="Escenarios"
-                  active={sortKey === "escenarios"}
-                  dir={sortDir}
-                  align="right"
-                  onClick={() => toggleSort("escenarios")}
-                />
-                <SortHeader
-                  label="Última revisión"
-                  active={sortKey === "revision"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("revision")}
-                />
-              </TR>
-            </THead>
-            <TBody>
-              {rows.map(({ cliente, escenarios }) => (
-                <TR
-                  key={cliente.id}
-                  className="rowlink"
-                  onClick={() =>
-                    router.push(`/clientes/${cliente.id}/patrimonio`)
-                  }
-                >
-                  <TD>
-                    <div
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 10,
-                      }}
-                    >
-                      <Avatar initials={initials(cliente.nombre)} />
-                      <div>
-                        <b>{cliente.nombre}</b>
-                      </div>
-                    </div>
-                  </TD>
-                  <TD>
-                    <Pill
-                      tone={
-                        cliente.segmento === "Empresario" ? "emp" : "default"
-                      }
-                    >
-                      {cliente.segmento}
-                    </Pill>
-                  </TD>
-                  <TD className="right">
-                    <div className="num strong">
-                      {formatEUR(cliente.patrimonioNeto)}
-                    </div>
-                    <CompositionBar
-                      composicion={cliente.composicion}
-                      style={{ marginLeft: "auto" }}
-                    />
-                  </TD>
-                  <TD className="right num">{escenarios}</TD>
-                  <TD className="slt">
-                    {monthsAgoLabel(cliente.ultimaRevisionMeses)}
-                  </TD>
-                </TR>
-              ))}
-              {rows.length === 0 && (
+          {sinClientes ? (
+            <div className="empty empty-invite">
+              <p>
+                Aquí aparecen los expedientes de la cartera. Dé de alta el
+                primero para empezar a trabajar con su patrimonio y su
+                fiscalidad.
+              </p>
+              <Button variant="coral" onClick={() => setAltaOpen(true)}>
+                + Nuevo cliente
+              </Button>
+            </div>
+          ) : (
+            <Table>
+              <THead>
                 <TR>
-                  <TD colSpan={5}>
-                    <div className="empty">
-                      Ningún cliente coincide con la búsqueda.
-                    </div>
-                  </TD>
+                  <SortHeader
+                    label="Cliente"
+                    active={sortKey === "nombre"}
+                    dir={sortDir}
+                    onClick={() => toggleSort("nombre")}
+                  />
+                  <SortHeader
+                    label="Segmento"
+                    active={sortKey === "segmento"}
+                    dir={sortDir}
+                    onClick={() => toggleSort("segmento")}
+                  />
+                  <SortHeader
+                    label="Patrimonio neto"
+                    active={sortKey === "patrimonio"}
+                    dir={sortDir}
+                    align="right"
+                    onClick={() => toggleSort("patrimonio")}
+                  />
+                  <SortHeader
+                    label="Escenarios"
+                    active={sortKey === "escenarios"}
+                    dir={sortDir}
+                    align="right"
+                    onClick={() => toggleSort("escenarios")}
+                  />
+                  <SortHeader
+                    label="Último informe"
+                    active={sortKey === "revision"}
+                    dir={sortDir}
+                    onClick={() => toggleSort("revision")}
+                  />
                 </TR>
-              )}
-            </TBody>
-          </Table>
+              </THead>
+              <TBody>
+                {rows.map(({ cliente, escenarios }) => (
+                  <TR
+                    key={cliente.id}
+                    className="rowlink"
+                    onClick={() =>
+                      router.push(`/clientes/${cliente.id}/patrimonio`)
+                    }
+                  >
+                    <TD>
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                        }}
+                      >
+                        <Avatar initials={initials(cliente.nombre)} />
+                        <div>
+                          <b>{cliente.nombre}</b>
+                        </div>
+                      </div>
+                    </TD>
+                    <TD>
+                      <Pill
+                        tone={
+                          cliente.segmento === "Empresario" ? "emp" : "default"
+                        }
+                      >
+                        {cliente.segmento}
+                      </Pill>
+                    </TD>
+                    <TD className="right">
+                      <div className="num strong">
+                        {formatEUR(cliente.patrimonioNeto)}
+                      </div>
+                      <CompositionBar
+                        composicion={cliente.composicion}
+                        patrimonioNeto={cliente.patrimonioNeto}
+                        style={{ marginLeft: "auto" }}
+                      />
+                    </TD>
+                    <TD className="right num">{escenarios}</TD>
+                    <TD className="slt">
+                      {monthsAgoLabel(cliente.ultimaRevisionMeses)}
+                    </TD>
+                  </TR>
+                ))}
+                {busquedaVacia && (
+                  <TR>
+                    <TD colSpan={5}>
+                      <div className="empty">
+                        Ningún cliente coincide con la búsqueda.
+                      </div>
+                    </TD>
+                  </TR>
+                )}
+              </TBody>
+            </Table>
+          )}
         </div>
 
         {/* Pie a ancho de sheet · captura mockup */}
