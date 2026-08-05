@@ -158,7 +158,7 @@ export function ResumenTab({
                 }}
               >
                 <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
-                  {labels.financiero ?? "Portfolio"}
+                  {labels.financiero ?? "Activos financieros"}
                 </span>
                 <button
                   type="button"
@@ -354,7 +354,7 @@ export function ResumenTab({
                 <b className="num">{formatEUR(a.ingresos)}</b>
               </div>
               <div className="row">
-                <span>Gastos (solo intereses de deuda)</span>
+                <span>Gastos</span>
                 <b className="num">−{formatEUR(a.gastos)}</b>
               </div>
               <div className="row">

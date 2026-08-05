@@ -898,13 +898,13 @@ DENTRO DE UN CLIENTE — barra de 5 entradas, plana
 ## F.1 · Cliente completo — Familia García-Llorente
 
 - **Segmento:** Pre-jubilado · **CCAA:** Comunitat Valenciana
-- **Personas:** Carlos (58, nacido 1968) · Marta (55, nacida 1971)
+- **Personas:** Carlos (58, nacido 1968) · Marta (55, nacida 1971) · Lucía (sin ingresos, demo `sin_ingresos`)
 - **Fondo A:** 300.000 €, adquirido en 2014, **Carlos 60 % / Marta 40 %**, plusvalía latente +120.000 €
 - **Plan de pensiones de Carlos:** 120.000 €, desde 2009, 100 % suyo
 - **Vivienda en Jávea:** 420.000 €, **50/50**, hipoteca de 180.000 € (~950 €/mes)
 - **Otros activos:** Audi Q8, 45.000 €, Carlos 100 %
 - **Sociedad:** García Consulting SL, Carlos 100 % (sin cálculo fiscal — ver F4)
-- **Ingresos:** Carlos 95.000 €/año (trabajo) · Marta 32.000 €/año (trabajo)
+- **Ingresos:** Carlos 95.000 €/año (trabajo) · Marta 32.000 €/año (trabajo) → **127.000 €/año** en el expediente
 - **Escenarios:** "Situación actual" (plan base) · "A · Reembolso" (≈ **14.200 €** de impuestos del periodo) · "B · Traspaso + rescate" (≈ **9.800 €**). Cifras fijas en el mockup.
 
 ## F.2 · Clientes ligeros (solo para poblar la Cartera)
@@ -917,10 +917,14 @@ DENTRO DE UN CLIENTE — barra de 5 entradas, plana
 | **Familia Server Alcaraz** | Herencia en curso | 1.930.000 € | Inmobiliario 64 % · financiero 28 % · empresarial 8 % | 1 | hace 8 meses |
 | **Familia Tormo Gisbert** | Pre-jubilado | 875.000 € | Financiero 46 % · inmobiliario 44 % · otros 10 % | 0 | hace 1 mes |
 
+**Navarro · demo CCAA sin cobertura:** expediente Madrid + Hugo (Madrid, 24.000 €/año trabajo) → aviso de cobertura en P4 y clasificador `ccaa_sin_cobertura` por persona.
+
+**Capacidad de ahorro (decisión de producto):** suma los ingresos de **todas** las personas del expediente, sin filtrar por cobertura fiscal del titular. El expediente es una unidad económica; la liquidación IRPF y la capacidad de ahorro son conceptos distintos.
+
 **Notas para el mockup:**
 - **La columna Patrimonio de P1 es patrimonio NETO** (activos − pasivos). Para García-Llorente: 885.000 € de activos − 180.000 € de hipoteca = **705.000 €**. Las cifras de la tabla de arriba ya son netas.
 - **Total de la cartera:** 6 clientes · **8.110.000 €** seguidos (fila de totales al pie de P1).
-- Todos con CCAA **Comunitat Valenciana** (es la única con parámetros fiscales; usar otra obligaría al aviso de cobertura y aquí no aporta).
+- Todos con CCAA **Comunitat Valenciana** salvo **Navarro** (Madrid, demo aviso de cobertura).
 - Los apellidos son de la Comunitat Valenciana a propósito: coherente con el mercado objetivo y con el segmento de EAF valenciano.
 - Las cifras de "última revisión" deben calcularse **relativas a la fecha actual** (restando meses a `new Date()`), no hardcodearse como fechas fijas, para que la tabla no envejezca.
 - García-Llorente es el más pequeño de la cartera en patrimonio: es lo correcto, porque es el que tiene el caso fiscal interesante, no el más rico. No cambiar sus cifras — están calibradas con el ejemplo del motor.

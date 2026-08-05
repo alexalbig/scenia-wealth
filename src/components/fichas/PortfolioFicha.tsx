@@ -60,7 +60,7 @@ export function PortfolioFicha({
         }}
       >
         <div>
-          <div className="lbl">Ficha · Portfolio financiero</div>
+          <div className="lbl">Ficha · Activos financieros</div>
           <div className="h1" style={{ fontSize: 22 }}>
             {titulo}
           </div>

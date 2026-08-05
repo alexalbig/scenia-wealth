@@ -16,6 +16,9 @@ describe("guardas v14 · motor por titular", () => {
   it("Hugo (Madrid) en reembolso → sin_calculo; Carlos/Marta se liquidan; rollup parcial", () => {
     const bag0 = cloneExpedienteFromSeed(ids.clienteGarciaLlorente)!;
     // Titularidad temporal: Carlos 50 % · Marta 30 % · Hugo 20 %
+    // Hugo ya no está en personaIds de GL (seed); el caso mixtitular sigue siendo válido.
+    const hugoFromSeed = seed.personas.find((p) => p.id === ids.personaHugo)!;
+    bag0.personas.push({ ...hugoFromSeed });
     const fondo = bag0.instrumentos.find((i) => i.id === ids.fondoA)!;
     fondo.titularidades = [
       {
@@ -32,8 +35,8 @@ describe("guardas v14 · motor por titular", () => {
       },
     ];
 
-    const hugo = bag0.personas.find((p) => p.id === ids.personaHugo)!;
-    const ingresosHugo = bag0.ingresos.filter(
+    const hugo = hugoFromSeed;
+    const ingresosHugo = seed.ingresos.filter(
       (i) => i.personaId === ids.personaHugo,
     );
     const estHugo = estadoFiscalPersona(hugo, ingresosHugo);

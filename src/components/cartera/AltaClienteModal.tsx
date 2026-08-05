@@ -239,8 +239,9 @@ export function AltaClienteModal({
       )}
 
       <div className="tiny">
-        Alta mínima: solo el nombre y una persona son obligatorios. El
-        patrimonio se completa después, por capas.
+        Alta mínima: el nombre del expediente y una persona con fecha de
+        nacimiento son obligatorios. El patrimonio se completa después, por
+        capas.
       </div>
     </Modal>
   );

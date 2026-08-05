@@ -185,11 +185,45 @@ export function formatFechaDMY(iso: string) {
 
 /** Nivel 1: cuota anual ≈ cuota×12 − intereses (orientativo). */
 export function amortizacionCapitalAnual(pasivos: Pasivo[], gastos: Gasto[]) {
-  const intereses = gastos
-    .filter((g) => g.categoria.toLowerCase().includes("interés") || g.categoria.toLowerCase().includes("interes"))
-    .reduce((s, g) => s + g.importeAnual, 0);
-  const cuotasAnuales = pasivos.reduce((s, p) => s + p.cuotaMensual * 12, 0);
-  return Math.max(0, cuotasAnuales - intereses);
+  // Intereses: asignamos por inmueble cuando hay vinculación;
+  // y si no hay inmueble vinculado (crédito personal / hipoteca sin inmueble),
+  // repartimos los intereses no asignados entre los pasivos sin inmueble.
+  const interesesPorInmueble = new Map<string, number>();
+  let interesesNoAsignados = 0;
+
+  for (const g of gastos) {
+    const esInteres =
+      g.categoria.toLowerCase().includes("interés") ||
+      g.categoria.toLowerCase().includes("interes");
+    if (!esInteres) continue;
+
+    if (g.vinculadoA?.kind === "inmueble") {
+      const id = g.vinculadoA.inmuebleId;
+      interesesPorInmueble.set(
+        id,
+        (interesesPorInmueble.get(id) ?? 0) + g.importeAnual,
+      );
+    } else {
+      interesesNoAsignados += g.importeAnual;
+    }
+  }
+
+  const pasivosSinInmueble = pasivos.filter(
+    (p) => !(p.tipo === "hipoteca" && p.inmuebleId),
+  );
+  const interesesSinInmueblePorPasivo =
+    pasivosSinInmueble.length > 0
+      ? interesesNoAsignados / pasivosSinInmueble.length
+      : 0;
+
+  return pasivos.reduce((sum, p) => {
+    const cuotaAnual = p.cuotaMensual * 12;
+    const intereses =
+      p.tipo === "hipoteca" && p.inmuebleId
+        ? interesesPorInmueble.get(p.inmuebleId) ?? 0
+        : interesesSinInmueblePorPasivo;
+    return sum + Math.max(0, cuotaAnual - intereses);
+  }, 0);
 }
 
 export function capacidadAhorro(clienteId: string) {

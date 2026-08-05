@@ -14,6 +14,7 @@ import type { HistorialInforme, SeedData } from "./types";
 
 const CUENTA_ID = "cuenta-eaf-1";
 const CLIENTE_GL = "cliente-garcia-llorente";
+const CLIENTE_NAVARRO = "cliente-navarro";
 const CLIENTE_REQUENA = "cliente-requena";
 const CLIENTE_TORMO = "cliente-tormo";
 const PERSONA_CARLOS = "persona-carlos";
@@ -66,8 +67,8 @@ export const seed: SeedData = {
       birthYear: 2004,
       ccaa: "Comunitat Valenciana",
     },
-    // Hugo · Madrid · demo cobertura por persona (firewall §8).
-    // SIN titularidad — liquidar su parte con escalas CV sería un fallo grave.
+    // Hugo · Madrid · demo CCAA sin cobertura (cliente Navarro · expediente Madrid).
+    // No en García-Llorente: sus ingresos ensuciaban capacidad/proyección del caso demo.
     {
       id: PERSONA_HUGO,
       nombre: "Hugo",
@@ -100,7 +101,7 @@ export const seed: SeedData = {
       nombre: "Familia García-Llorente",
       segmento: "Pre-jubilado",
       ccaa: "Comunitat Valenciana",
-      personaIds: [PERSONA_CARLOS, PERSONA_MARTA, PERSONA_LUCIA, PERSONA_HUGO],
+      personaIds: [PERSONA_CARLOS, PERSONA_MARTA, PERSONA_LUCIA],
       sociedadIds: [SOCIEDAD_GC],
       // 970.000 activos − 180.000 hipoteca = 790.000
       patrimonioNeto: 790_000,
@@ -136,13 +137,13 @@ export const seed: SeedData = {
       datosAFecha: "2026-05-15",
     },
     {
-      id: "cliente-navarro",
+      id: CLIENTE_NAVARRO,
       cuentaId: CUENTA_ID,
       nombre: "Familia Navarro Sanchís",
       segmento: "Jubilado",
       // Demo firewall §7 · aviso de cobertura (resto de ligeros = CV)
       ccaa: "Comunidad de Madrid",
-      personaIds: [],
+      personaIds: [PERSONA_HUGO],
       sociedadIds: [],
       patrimonioNeto: 1_150_000,
       composicion: {
@@ -354,7 +355,7 @@ export const seed: SeedData = {
     },
     {
       id: "ing-hugo-trabajo",
-      clienteId: CLIENTE_GL,
+      clienteId: CLIENTE_NAVARRO,
       personaId: PERSONA_HUGO,
       fuente: "trabajo",
       importeAnual: 24_000,

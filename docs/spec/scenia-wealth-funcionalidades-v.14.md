@@ -448,7 +448,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 | Funcionalidad | Nº | Detalle | Fase |
 |---|---|---|---|
-| Capacidad de ahorro | 104 | Ingresos − gastos + amortización de capital | MVP |
+| Capacidad de ahorro | 104 | Ingresos − gastos + amortización de capital. **Los ingresos suman todas las líneas de ingreso de todas las personas del expediente, con independencia de la cobertura fiscal de cada titular** — el expediente es una unidad económica; filtrar por CCAA mezclaría capacidad de ahorro con liquidación IRPF | MVP |
 | Desglose del cálculo | 105 | Las tres líneas visibles, para que la cifra sea auditable | MVP |
 | Tasa de ahorro | 106 | Capacidad sobre ingresos, en % | MVP |
 | Solo lectura | 107 | Es un resultado calculado. **No admite altas ni eventos** | MVP |

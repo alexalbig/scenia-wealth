@@ -155,6 +155,11 @@ export interface Instrumento {
    * Solo planes de pensiones · introducido por el asesor · no calculado.
    */
   fraccionPre2007?: number;
+  /**
+   * Año de contingencia del plan (jubilación, invalidez...) para DT 12ª.
+   * Dato introducido por el asesor; se usa como valor por defecto en rescates.
+   */
+  anioContingencia?: number;
   titularidades: Titularidad[];
   /** Si cuelga de una sociedad */
   sociedadId?: string;

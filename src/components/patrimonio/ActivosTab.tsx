@@ -132,7 +132,7 @@ export function ActivosTab({
                   alignItems: "center",
                 }}
               >
-                <span>Portfolio financiero</span>
+                <span>Activos financieros</span>
                 <AddBtn onClick={() => onAdd("instrumento")} />
               </div>
             </TD>
@@ -217,7 +217,7 @@ export function ActivosTab({
                     </TR>
                   ))}
                   <TR className="subtotal">
-                    <TD colSpan={2}>Subtotal portfolio</TD>
+                    <TD colSpan={2}>Subtotal activos financieros</TD>
                     <TD className="right num">{formatEUR(totalFin)}</TD>
                     <TD colSpan={5} />
                   </TR>

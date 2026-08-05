@@ -68,7 +68,7 @@ interface AltaElementoModalProps {
 
 const TITLES: Record<AltaKind, string> = {
   persona: "Persona",
-  instrumento: "Portfolio financiero",
+  instrumento: "Activos financieros",
   inmueble: "Inmueble",
   sociedad: "Inversión empresarial",
   otro: "Otro activo",
@@ -121,6 +121,7 @@ export function AltaElementoModal({
   const [iCoste, setICoste] = useState("");
   const [iTit, setITit] = useState<Titularidad[]>([]);
   const [iFracPre2007, setIFracPre2007] = useState("");
+  const [iAnioContingencia, setIAnioContingencia] = useState("");
 
   // Inmueble
   const [nNombre, setNNombre] = useState("");
@@ -190,6 +191,9 @@ export function AltaElementoModal({
         it?.fraccionPre2007 != null
           ? String(Math.round(it.fraccionPre2007 * 100))
           : "",
+      );
+      setIAnioContingencia(
+        it?.anioContingencia != null ? String(it.anioContingencia) : "",
       );
     }
     if (target.kind === "inmueble") {
@@ -366,6 +370,13 @@ export function AltaElementoModal({
         fracPct <= 100
           ? fracPct / 100
           : undefined;
+      const anioContingenciaRaw = iAnioContingencia.trim();
+      const anioContingencia =
+        iTipo === "plan_pensiones" &&
+        anioContingenciaRaw !== "" &&
+        Number.isFinite(Number(anioContingenciaRaw))
+          ? Number(anioContingenciaRaw)
+          : undefined;
       onSaveInstrumento({
         id: idOf(target.item, "inst"),
         clienteId: "",
@@ -377,6 +388,7 @@ export function AltaElementoModal({
         plusvaliaLatente:
           coste != null && Number.isFinite(coste) ? valor - coste : undefined,
         fraccionPre2007,
+        anioContingencia,
         titularidades: iTit,
       });
     }
@@ -638,22 +650,33 @@ export function AltaElementoModal({
             </div>
           )}
           {iTipo === "plan_pensiones" && (
-            <div className="field">
-              <label className="lbl">
-                % aportaciones ≤ 31/12/2006 (DT 12ª)
-              </label>
-              <input
-                type="number"
-                min={0}
-                max={100}
-                step={1}
-                value={iFracPre2007}
-                onChange={(e) => setIFracPre2007(e.target.value)}
-                placeholder="Opcional · introducido por el asesor"
-              />
-              <div className="tiny" style={{ marginTop: 4 }}>
-                Dato introducido por el asesor · no calculado. Sin él, el motor
-                no aplica la reducción del 40 % en rescates en capital.
+            <div className="grid2">
+              <div className="field">
+                <label className="lbl">
+                  % aportaciones ≤ 31/12/2006 (DT 12ª)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  max={100}
+                  step={1}
+                  value={iFracPre2007}
+                  onChange={(e) => setIFracPre2007(e.target.value)}
+                  placeholder="Opcional · introducido por el asesor"
+                />
+                <div className="tiny" style={{ marginTop: 4 }}>
+                  Dato introducido por el asesor · no calculado. Sin él, el
+                  motor no aplica la reducción del 40 % en rescates en capital.
+                </div>
+              </div>
+              <div className="field">
+                <label className="lbl">Año de contingencia (DT 12ª)</label>
+                <input
+                  type="number"
+                  value={iAnioContingencia}
+                  onChange={(e) => setIAnioContingencia(e.target.value)}
+                  placeholder="Opcional · introducido por el asesor"
+                />
               </div>
             </div>
           )}

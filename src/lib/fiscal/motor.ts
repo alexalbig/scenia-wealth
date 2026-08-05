@@ -293,6 +293,14 @@ export function simularMotorEvento(
     case "reembolsar_fondo": {
       const importe = ctx.importe ?? 0;
       const valor = ctx.valorActivo ?? 0;
+      const sinCosteYPlusvalia =
+        ctx.costeAdquisicion == null && ctx.plusvaliaLatente == null;
+      if (sinCosteYPlusvalia) {
+        return {
+          kind: "sin_calculo",
+          nota: "Falta el coste de adquisición (o una plusvalía latente informada) del fondo · no se estima una cuota sobre datos incompletos",
+        };
+      }
       const plusv =
         ctx.plusvaliaLatente ??
         (valor > 0 && ctx.costeAdquisicion != null

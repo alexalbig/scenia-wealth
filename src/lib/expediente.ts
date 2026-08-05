@@ -514,7 +514,7 @@ export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
   return { ...bag, escenarios, eventos };
 }
 
-/** Asegura campos nuevos en bags antiguos de sessionStorage. */
+/** Asegura campos nuevos en bags antiguos guardados en storage. */
 export function normalizeBag(bag: ExpedienteBag): ExpedienteBag {
   const escenarios =
     bag.escenarios?.length > 0

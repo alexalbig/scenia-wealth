@@ -13,13 +13,13 @@ const KEY_PREFIX = "scenia-expediente-v2:";
 const KEY_INDEX = "scenia-expediente-index-v2";
 
 function canUseStorage() {
-  return typeof window !== "undefined" && !!window.sessionStorage;
+  return typeof window !== "undefined" && !!window.localStorage;
 }
 
 export function readExpediente(clienteId: string): ExpedienteBag | null {
   if (!canUseStorage()) return null;
   try {
-    const raw = sessionStorage.getItem(KEY_PREFIX + clienteId);
+    const raw = localStorage.getItem(KEY_PREFIX + clienteId);
     if (!raw) return null;
     return normalizeBag(JSON.parse(raw) as ExpedienteBag);
   } catch {
@@ -31,14 +31,14 @@ function indexCustomCliente(clienteId: string) {
   if (!canUseStorage()) return;
   const idx = listCustomClienteIds();
   if (!idx.includes(clienteId)) {
-    sessionStorage.setItem(KEY_INDEX, JSON.stringify([...idx, clienteId]));
+    localStorage.setItem(KEY_INDEX, JSON.stringify([...idx, clienteId]));
   }
 }
 
 export function writeExpediente(bag: ExpedienteBag) {
   if (!canUseStorage()) return;
   const synced = syncClienteTotales(bag);
-  sessionStorage.setItem(
+  localStorage.setItem(
     KEY_PREFIX + synced.cliente.id,
     JSON.stringify(synced),
   );
@@ -47,7 +47,7 @@ export function writeExpediente(bag: ExpedienteBag) {
 export function listCustomClienteIds(): string[] {
   if (!canUseStorage()) return [];
   try {
-    const raw = sessionStorage.getItem(KEY_INDEX);
+    const raw = localStorage.getItem(KEY_INDEX);
     if (!raw) return [];
     return JSON.parse(raw) as string[];
   } catch {
@@ -61,7 +61,7 @@ export function listCustomClientes(): Cliente[] {
     .filter((c): c is Cliente => !!c);
 }
 
-/** Carga bag: session → clone seed → null. */
+/** Carga bag: localStorage → clone seed → null. */
 export function resolveExpediente(clienteId: string): ExpedienteBag | null {
   const stored = readExpediente(clienteId);
   if (stored) return stored;

@@ -161,7 +161,18 @@ export function PlantillaEvento({
     setTituloGenerico("");
     setTipoGenerico("ingreso");
     setModalidad("capital");
-    setAnioContingencia(yearPref);
+    const targetId = menuCompleto ? elemento?.id : elementoIdProp;
+    const planTarget =
+      targetId != null
+        ? exp?.bag.instrumentos.find(
+            (i) => i.id === targetId && i.tipoFiscal === "plan_pensiones",
+          )
+        : undefined;
+    setAnioContingencia(
+      t === "rescatar_plan" && planTarget?.anioContingencia != null
+        ? String(planTarget.anioContingencia)
+        : yearPref,
+    );
   }
 
   useEffect(() => {
@@ -1027,8 +1038,13 @@ export function PlantillaEvento({
                 onChange={(e) => setAnioContingencia(e.target.value)}
               />
               <div className="tiny" style={{ marginTop: 4 }}>
-                En 2026 la reducción 40 % solo cabe si la contingencia es 2024,
-                2025 o 2026 (plazo = contingencia + 2 ejercicios).
+                {(() => {
+                  const anioRescate = Number(anio);
+                  if (!Number.isFinite(anioRescate)) {
+                    return "La reducción 40 % exige comprobar el plazo de la DT 12ª según año de rescate y contingencia.";
+                  }
+                  return `En ${anioRescate} la reducción 40 % solo cabe si la contingencia es ${anioRescate - 2}, ${anioRescate - 1} o ${anioRescate} (plazo = contingencia + 2 ejercicios).`;
+                })()}
               </div>
             </div>
           )}

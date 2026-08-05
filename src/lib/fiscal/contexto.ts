@@ -71,6 +71,8 @@ export interface BagFiscalSlice {
     costeAdquisicion?: number;
     /** Fracción 0–1 de aportaciones ≤ 31/12/2006 (planes). */
     fraccionPre2007?: number;
+    /** Año de contingencia del plan (dato del asesor). */
+    anioContingencia?: number;
     titularidades: Titularidad[];
   }>;
   inmuebles: Array<{
@@ -300,7 +302,10 @@ export function buildContextoFiscalFromBag(
     modalidad: overrides?.modalidad ?? modalidad,
     reinvierte: overrides?.reinvierte,
     fraccionPre2007: overrides?.fraccionPre2007 ?? inst?.fraccionPre2007,
-    anioContingencia: overrides?.anioContingencia ?? ev.anioContingencia,
+    anioContingencia:
+      overrides?.anioContingencia ??
+      ev.anioContingencia ??
+      inst?.anioContingencia,
     usoInmueble: overrides?.usoInmueble ?? inm?.uso,
     notaBaseLiquidable: desgloseTitular?.nota,
     rendimientoNetoTrabajo: desgloseTitular

@@ -162,7 +162,21 @@ export function ExpedienteProvider({
         });
       };
 
-    const remove =
+    const upsertAndRecompute =
+      <T extends { id: string }>(key: keyof ExpedienteBag) =>
+      (item: T) => {
+        setBag((prev) => {
+          const list = [...(prev[key] as unknown as T[])];
+          const idx = list.findIndex((x) => x.id === item.id);
+          const nextList =
+            idx >= 0
+              ? list.map((x, i) => (i === idx ? item : x))
+              : [...list, item];
+          return recomputeFiscalBag({ ...prev, [key]: nextList });
+        });
+      };
+
+    const removeAndRecompute =
       (key: keyof ExpedienteBag) =>
       (id: string) => {
         setBag((prev) => {
@@ -171,7 +185,7 @@ export function ExpedienteProvider({
             ...prev,
             [key]: list.filter((x) => x.id !== id),
           };
-          return sinEventosDeTarget(next, id);
+          return recomputeFiscalBag(sinEventosDeTarget(next, id));
         });
       };
 
@@ -191,7 +205,7 @@ export function ExpedienteProvider({
         titularidadAgregadaFromBag(bag, personaId),
       eventosDeEscenario: (escenarioId) =>
         eventosDeEscenarioFromBag(bag, escenarioId),
-      upsertPersona: upsert("personas"),
+      upsertPersona: upsertAndRecompute("personas"),
       removePersona: (id) => {
         setBag((prev) => {
           const next: ExpedienteBag = {
@@ -215,27 +229,28 @@ export function ExpedienteProvider({
               titularidades: stripTitularidad(p.titularidades, id),
             })),
             sociedades: prev.sociedades.map((s) => {
-              const { [id]: _, ...rest } = s.participaciones;
-              return { ...s, participaciones: rest };
+              const participaciones = { ...s.participaciones };
+              delete participaciones[id];
+              return { ...s, participaciones };
             }),
           };
-          return sinEventosDeTarget(next, id);
+          return recomputeFiscalBag(sinEventosDeTarget(next, id));
         });
       },
-      upsertInstrumento: upsert("instrumentos"),
-      removeInstrumento: remove("instrumentos"),
-      upsertInmueble: upsert("inmuebles"),
-      removeInmueble: remove("inmuebles"),
-      upsertSociedad: upsert("sociedades"),
-      removeSociedad: remove("sociedades"),
-      upsertOtro: upsert("otrosActivos"),
-      removeOtro: remove("otrosActivos"),
-      upsertPasivo: upsert("pasivos"),
-      removePasivo: remove("pasivos"),
-      upsertIngreso: upsert("ingresos"),
-      removeIngreso: remove("ingresos"),
-      upsertGasto: upsert("gastos"),
-      removeGasto: remove("gastos"),
+      upsertInstrumento: upsertAndRecompute("instrumentos"),
+      removeInstrumento: removeAndRecompute("instrumentos"),
+      upsertInmueble: upsertAndRecompute("inmuebles"),
+      removeInmueble: removeAndRecompute("inmuebles"),
+      upsertSociedad: upsertAndRecompute("sociedades"),
+      removeSociedad: removeAndRecompute("sociedades"),
+      upsertOtro: upsertAndRecompute("otrosActivos"),
+      removeOtro: removeAndRecompute("otrosActivos"),
+      upsertPasivo: upsertAndRecompute("pasivos"),
+      removePasivo: removeAndRecompute("pasivos"),
+      upsertIngreso: upsertAndRecompute("ingresos"),
+      removeIngreso: removeAndRecompute("ingresos"),
+      upsertGasto: upsertAndRecompute("gastos"),
+      removeGasto: removeAndRecompute("gastos"),
       addEvento: (payload, opts) => {
         setBag((prev) => {
           const plan = planBaseFromBag(prev);
