@@ -13,11 +13,11 @@ import type { HistorialInforme, SeedData } from "./types";
  *   E — rescate capital Marta con DT 12ª (anioContingencia 2026)
  *
  * Los otros cinco expedientes cubren un caso de motor distinto cada uno:
- *   Beltrán — sociedad valorada · reparto de dividendo (regla 8: pendiente IS)
+ *   Beltrán — sociedad valorada · 2 hipotecas en el local (selector amortizar) · dividendo
  *   Navarro — Comunidad de Madrid (firewall §7) · capacidad negativa · líquidos que se agotan
- *   Requena — actividad económica (fuente no contemplada) · aportación a plan
+ *   Requena — autónomo · crédito personal · titular Madrid con fondo compartido
  *   Server  — patrimonio casi todo inmobiliario · >65 con uso alquiler (no exime)
- *   Tormo   — rescate en capital con DT 12ª · fraccionPre2007 45 %
+ *   Tormo   — rescate DT 12ª · Amparo a 2–3 años del umbral 65 (exención vivienda)
  */
 
 const CUENTA_ID = "cuenta-eaf-1";
@@ -41,6 +41,7 @@ const PERSONA_RAMON = "persona-ramon-navarro";
 const PERSONA_PILAR = "persona-pilar-sanchis";
 const PERSONA_NURIA = "persona-nuria-poveda";
 const PERSONA_CLARA = "persona-clara-requena";
+const PERSONA_ANDREU = "persona-andreu-requena";
 const PERSONA_CARMEN = "persona-carmen-server";
 const PERSONA_LLUIS = "persona-lluis-gisbert";
 
@@ -75,6 +76,8 @@ const INMUEBLE_BELTRAN_VIVIENDA = "inm-beltran-vivienda-valencia";
 const INMUEBLE_BELTRAN_LOCAL = "inm-beltran-local";
 const OTRO_BELTRAN_COCHE = "otro-beltran-coche";
 const PASIVO_BELTRAN_HIPOTECA = "pasivo-beltran-hipoteca";
+const PASIVO_BELTRAN_LOCAL = "pasivo-beltran-hipoteca-local";
+const PASIVO_BELTRAN_LOCAL_REFORMA = "pasivo-beltran-hipoteca-local-reforma";
 const ESC_BELTRAN_BASE = "esc-beltran-base";
 const ESC_BELTRAN_A = "esc-beltran-a-dividendo";
 
@@ -95,6 +98,7 @@ const FONDO_REQUENA_INDEXADO = "inst-requena-indexado";
 const PLAN_VICENT = "inst-requena-plan-vicent";
 const OTRO_REQUENA_COCHE = "otro-requena-coche";
 const PASIVO_REQUENA_HIPOTECA = "pasivo-requena-hipoteca";
+const PASIVO_REQUENA_CREDITO = "pasivo-requena-credito-coche";
 const ESC_REQUENA_BASE = "esc-requena-base";
 const ESC_REQUENA_A = "esc-requena-a-aportacion";
 
@@ -211,6 +215,15 @@ export const seed: SeedData = {
       birthYear: 2010,
       ccaa: "Comunitat Valenciana",
     },
+    // Andreu · hermano de Vicent · vive en Madrid · titular de fondo compartido.
+    // Cobertura mixta: calculable en base del ahorro; sin escala general CV.
+    {
+      id: PERSONA_ANDREU,
+      nombre: "Andreu",
+      apellidos: "Requena Soler",
+      birthYear: 1978,
+      ccaa: "Comunidad de Madrid",
+    },
     /* ── Server Alcaraz ── */
     // Carmen · titular única · 72 años en 2026 (umbral art. 33.4.b).
     {
@@ -221,11 +234,13 @@ export const seed: SeedData = {
       ccaa: "Comunitat Valenciana",
     },
     /* ── Tormo Gisbert ── */
+    // Amparo · 63 en 2026 · a 2 años del umbral art. 33.4.b (exención vivienda).
+    // Pensión anticipada; titular al 50 % de la vivienda habitual.
     {
       id: PERSONA_AMPARO,
       nombre: "Amparo",
       apellidos: "Tormo Gisbert",
-      birthYear: 1958,
+      birthYear: 1963,
       ccaa: "Comunitat Valenciana",
     },
     {
@@ -267,14 +282,15 @@ export const seed: SeedData = {
       ccaa: "Comunitat Valenciana",
       personaIds: [PERSONA_JORGE, PERSONA_ELENA],
       sociedadIds: [SOCIEDAD_BELTRAN],
-      // 3.020.000 activos − 180.000 hipoteca = 2.840.000
+      // 3.140.000 activos − 300.000 pasivos = 2.840.000
+      // (+120k valoración Holding = +120k hipotecas del local)
       patrimonioNeto: 2_840_000,
       composicion: {
-        // Brutos 3.020k: empresarial 1.760 · financiero 600 · inmobiliario 620 · otros 40
-        empresarial: 1_760_000 / 3_020_000,
-        financiero: 600_000 / 3_020_000,
-        inmobiliario: 620_000 / 3_020_000,
-        otros: 40_000 / 3_020_000,
+        // Brutos 3.140k: empresarial 1.880 · financiero 600 · inmobiliario 620 · otros 40
+        empresarial: 1_880_000 / 3_140_000,
+        financiero: 600_000 / 3_140_000,
+        inmobiliario: 620_000 / 3_140_000,
+        otros: 40_000 / 3_140_000,
       },
       ultimaRevisionMeses: 2,
       datosAFecha: "2026-05-15",
@@ -305,10 +321,10 @@ export const seed: SeedData = {
       nombre: "Familia Requena Poveda",
       segmento: "Alto ingreso",
       ccaa: "Comunitat Valenciana",
-      personaIds: [PERSONA_VICENT, PERSONA_NURIA, PERSONA_CLARA],
+      personaIds: [PERSONA_VICENT, PERSONA_NURIA, PERSONA_CLARA, PERSONA_ANDREU],
       sociedadIds: [],
-      // 750.000 activos − 140.000 hipoteca = 610.000
-      patrimonioNeto: 610_000,
+      // 750.000 activos − 140.000 hipoteca − 15.000 crédito coche = 595.000
+      patrimonioNeto: 595_000,
       composicion: {
         financiero: 430_000 / 750_000,
         inmobiliario: 280_000 / 750_000,
@@ -385,7 +401,8 @@ export const seed: SeedData = {
       },
       // Valoración introducida por el asesor · el cálculo societario sigue
       // pendiente de definir (firewall §8): no hay liquidador de IS.
-      valor: 1_760_000,
+      // Incluye +120.000 € para cuadrar las dos hipotecas del local.
+      valor: 1_880_000,
     },
   ],
 
@@ -628,8 +645,10 @@ export const seed: SeedData = {
       fechaAdquisicion: "2021-11-19",
       costeAdquisicion: 58_000,
       plusvaliaLatente: 22_000,
+      // Compartido con Andreu (Madrid) · demo cobertura mixta en reembolso.
       titularidades: [
-        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 1 },
+        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_ANDREU }, porcentaje: 0.5 },
       ],
     },
     {
@@ -732,6 +751,9 @@ export const seed: SeedData = {
       costeAdquisicion: 150_000,
       plusvaliaLatente: 70_000,
       uso: "local",
+      // Dos hipotecas asociadas (compra + reforma) · el selector de amortizar
+      // se ejercita desde esta ficha. pasivoId apunta a la principal.
+      pasivoId: PASIVO_BELTRAN_LOCAL,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
         { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 0.5 },
@@ -956,6 +978,34 @@ export const seed: SeedData = {
       ],
     },
     {
+      id: PASIVO_BELTRAN_LOCAL,
+      clienteId: CLIENTE_BELTRAN,
+      tipo: "hipoteca",
+      prestamista: "CaixaBank",
+      capitalPendiente: 90_000,
+      tipoInteres: 0.032,
+      cuotaMensual: 510,
+      inmuebleId: INMUEBLE_BELTRAN_LOCAL,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PASIVO_BELTRAN_LOCAL_REFORMA,
+      clienteId: CLIENTE_BELTRAN,
+      tipo: "hipoteca",
+      prestamista: "CaixaBank",
+      capitalPendiente: 30_000,
+      tipoInteres: 0.05,
+      cuotaMensual: 290,
+      inmuebleId: INMUEBLE_BELTRAN_LOCAL,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 0.5 },
+      ],
+    },
+    {
       id: PASIVO_REQUENA_HIPOTECA,
       clienteId: CLIENTE_REQUENA,
       tipo: "hipoteca",
@@ -967,6 +1017,19 @@ export const seed: SeedData = {
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 0.5 },
         { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PASIVO_REQUENA_CREDITO,
+      clienteId: CLIENTE_REQUENA,
+      tipo: "credito",
+      prestamista: "BBVA",
+      capitalPendiente: 15_000,
+      tipoInteres: 0.069,
+      cuotaMensual: 280,
+      // Sin inmueble · crédito del Cupra · demo interés derivado sin vínculo.
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 1 },
       ],
     },
     {
@@ -1107,6 +1170,20 @@ export const seed: SeedData = {
        */
       cotizacionesSS: 2_470,
     },
+    {
+      id: "ing-andreu-trabajo",
+      clienteId: CLIENTE_REQUENA,
+      personaId: PERSONA_ANDREU,
+      fuente: "trabajo",
+      importeAnual: 36_000,
+      descripcion: "Trabajo (Madrid)",
+      /**
+       * Sueldo 36.000 €/año (3.000 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 36.000 = 2.340 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 2_340,
+    },
 
     /* ── Server ── */
     {
@@ -1148,6 +1225,7 @@ export const seed: SeedData = {
       id: "gas-intereses",
       clienteId: CLIENTE_GL,
       categoria: "Intereses de deuda",
+      origenInteres: "derivado_pasivo",
       importeAnual: 5_220,
       vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_JAVEA },
     },
@@ -1192,8 +1270,18 @@ export const seed: SeedData = {
       id: "gas-beltran-intereses",
       clienteId: CLIENTE_BELTRAN,
       categoria: "Intereses de deuda",
+      origenInteres: "derivado_pasivo",
       importeAnual: 5_220,
       vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_BELTRAN_VIVIENDA },
+    },
+    {
+      id: "gas-beltran-intereses-local",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Intereses de deuda",
+      origenInteres: "derivado_pasivo",
+      // 90.000 × 3,2 % + 30.000 × 5 % = 2.880 + 1.500
+      importeAnual: 4_380,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_BELTRAN_LOCAL },
     },
     {
       id: "gas-beltran-suministros",
@@ -1273,8 +1361,18 @@ export const seed: SeedData = {
       id: "gas-requena-intereses",
       clienteId: CLIENTE_REQUENA,
       categoria: "Intereses de deuda",
+      origenInteres: "derivado_pasivo",
       importeAnual: 4_200,
       vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_REQUENA_VIVIENDA },
+    },
+    {
+      id: "gas-requena-intereses-credito",
+      clienteId: CLIENTE_REQUENA,
+      categoria: "Intereses de deuda",
+      origenInteres: "derivado_pasivo",
+      // 15.000 × 6,9 % · crédito sin inmueble
+      importeAnual: 1_035,
+      vinculadoA: null,
     },
     {
       id: "gas-requena-familiar",
@@ -1347,6 +1445,7 @@ export const seed: SeedData = {
       id: "gas-tormo-intereses",
       clienteId: CLIENTE_TORMO,
       categoria: "Intereses de deuda",
+      origenInteres: "derivado_pasivo",
       importeAnual: 2_100,
       vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_TORMO_VIVIENDA },
     },
@@ -1927,6 +2026,7 @@ export const ids = {
   personaPilar: PERSONA_PILAR,
   personaNuria: PERSONA_NURIA,
   personaClara: PERSONA_CLARA,
+  personaAndreu: PERSONA_ANDREU,
   personaCarmen: PERSONA_CARMEN,
   personaLluis: PERSONA_LLUIS,
 
@@ -1954,6 +2054,8 @@ export const ids = {
   inmuebleBeltranLocal: INMUEBLE_BELTRAN_LOCAL,
   otroBeltranCoche: OTRO_BELTRAN_COCHE,
   pasivoBeltranHipoteca: PASIVO_BELTRAN_HIPOTECA,
+  pasivoBeltranLocal: PASIVO_BELTRAN_LOCAL,
+  pasivoBeltranLocalReforma: PASIVO_BELTRAN_LOCAL_REFORMA,
 
   inmuebleNavarroVivienda: INMUEBLE_NAVARRO_VIVIENDA,
   inmuebleNavarroCosta: INMUEBLE_NAVARRO_COSTA,
@@ -1968,6 +2070,7 @@ export const ids = {
   planVicent: PLAN_VICENT,
   otroRequenaCoche: OTRO_REQUENA_COCHE,
   pasivoRequenaHipoteca: PASIVO_REQUENA_HIPOTECA,
+  pasivoRequenaCredito: PASIVO_REQUENA_CREDITO,
 
   inmuebleServerVivienda: INMUEBLE_SERVER_VIVIENDA,
   inmuebleServerRussafa: INMUEBLE_SERVER_RUSSAFA,
