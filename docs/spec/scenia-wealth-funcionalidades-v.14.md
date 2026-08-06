@@ -332,9 +332,9 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Grupo Inmuebles | 60 | Columnas: nombre · **uso** · valor · fecha de adquisición · hipoteca asociada · titularidad | CORE |
 | Grupo Inversiones empresariales | 61 | La participación en una Sociedad es un activo. Columnas: sociedad · % participación · valor | MVP |
 | Grupo Otros activos | 62 | Columnas: nombre · tipo · valor · titularidad. Captación 100 % manual, también en V2 | MVP |
-| Alta de activo por grupo | 63 | Botón «+ Añadir» con los campos propios del tipo. Nunca comparte botón con «⚡ Evento» | CORE |
+| Alta de activo por grupo | 63 | Botón «+ Añadir» con los campos propios del tipo. Nunca comparte botón con «⚡ Evento». En fondo e inmueble, el texto de ayuda recuerda que **coste y fecha de adquisición** son lo que permite liquidar plusvalía. Al editar, el encabezado pasa a «Editar …» (no se queda en «Alta de …») | CORE |
 | Edición y borrado | 64 | Modificar o eliminar cualquier línea. Al borrar, avisa de los eventos que la referencian y los elimina | MVP |
-| Lanzar evento desde la línea | 65 | Cada línea abre la plantilla de evento (CT1). **Diferencia con WA**, donde los monitores son de solo lectura | CORE |
+| Lanzar evento desde la línea | 65 | Cada línea abre la plantilla de evento (CT1) **con el id del elemento**, para que el motor lea coste, plusvalía y titularidad del bag. **Diferencia con WA**, donde los monitores son de solo lectura | CORE |
 | Drill-down a la ficha | 66 | Pinchar el nombre abre F2 / F3 / F4 / F5 | MVP |
 | Plusvalía latente calculada | 67 | Valor − coste de adquisición. No se teclea: se deriva. Único uso permitido del verde | CORE |
 | Semáforo de liquidez | 68 | Alta / media / baja, **derivado del tipo de activo**, no introducido. Hecho objetivo, compatible con el firewall | MVP |
@@ -350,7 +350,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 - **Uso del inmueble:** vivienda habitual · segunda residencia · en alquiler · local
 - **Tipo de otros activos:** vehículo · obra de arte · joyería · embarcación · otro
 - **Liquidez (derivada):** alta (portfolio líquido) · media (otros activos) · baja (plan de pensiones, inmuebles, participaciones)
-- **Titularidad:** reparto en % entre las Personas del expediente · debe sumar 100 %
+- **Titularidad:** reparto en % entre las Personas del expediente · debe sumar 100 %. **Por defecto 100 % al primer titular** (el asesor reparte si quiere); si se reparte a partes iguales, el decimal sobrante va al primero para que la suma sea exacta.
 - **Campos especiales:** `fraccionPre2007` y año de contingencia (planes) · `uso` (inmuebles)
 
 ### Cómo la usa el asesor
@@ -372,7 +372,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Alta de pasivo | 76 | Botón «+ Añadir» con sus campos | MVP |
 | Edición y borrado | 77 | Modificar o eliminar cualquier línea | MVP |
 | Lanzar evento desde la línea | 78 | Amortizar, cancelar | MVP |
-| **Separación interés / capital** | 79 | La cuota nunca va entera a un sitio: los intereses son gasto, la amortización es ahorro. **Nivel 1**: aproximación anual, orientativa | MVP |
+| **Separación interés / capital** | 79 | La cuota nunca va entera a un sitio: los intereses son gasto (**derivados de capital × tipo** del pasivo, no una línea fija eterna), la amortización es ahorro. **Nivel 1**: aproximación anual, orientativa | MVP |
 | Total de pasivos | 80 | En `tfoot`, alimenta el patrimonio neto | MVP |
 | Modalidad del tipo de interés | 81 | Fijo · variable · mixto. Cambia por completo la conversación de amortizar-vs-invertir | V2 |
 | Campo "fin de tipo fijo" | 82 | Para el nivel 2 de amortización y su alerta | V2 |
@@ -433,7 +433,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Alta de línea de gasto | 97 | Botón «+ Añadir»: categoría · importe anual · vincular a | MVP |
 | Edición y borrado | 98 | Modificar o eliminar cualquier línea | MVP |
 | **Campo "Vincular a"** | 99 | Persona · inmueble · sociedad · sin vincular. Permite ver el coste real de un activo sin repartir el gasto por siete fichas como hace WA | MVP |
-| Solo intereses como gasto | 100 | La amortización de capital no es gasto: es ahorro | MVP |
+| Solo intereses como gasto | 100 | La amortización de capital no es gasto: es ahorro. El importe de «Intereses de deuda» es **derivado** (capital × tipo del pasivo): no se teclea — como la plusvalía latente. Si el contrato no encaja (carencia, tipo cambiado), se corrige el pasivo | MVP |
 | Total de gastos | 101 | En `tfoot`, alimenta la capacidad de ahorro | MVP |
 | Evento genérico desde la pestaña | 102 | "A partir de 2030 baja el gasto familiar" | MVP |
 | Coste agregado por activo | 103 | La vuelta del "Vincular a": en la ficha (F3 · F4 · F5), total anual + % sobre valor + desglose por concepto | MVP |
@@ -454,7 +454,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 | Funcionalidad | Nº | Detalle | Fase |
 |---|---|---|---|
-| Capacidad de ahorro | 104 | Ingresos − gastos + amortización de capital. **Los ingresos suman todas las líneas de ingreso de todas las personas del expediente, con independencia de la cobertura fiscal de cada titular** — el expediente es una unidad económica; filtrar por CCAA mezclaría capacidad de ahorro con liquidación IRPF | MVP |
+| Capacidad de ahorro | 104 | Ingresos − gastos + amortización de capital. Los intereses de deuda son **capital × tipo** del pasivo (misma derivación que la proyección); la línea de gasto es foto del año base y no es editable. **Los ingresos suman todas las líneas de ingreso de todas las personas del expediente, con independencia de la cobertura fiscal de cada titular** — el expediente es una unidad económica; filtrar por CCAA mezclaría capacidad de ahorro con liquidación IRPF | MVP |
 | Desglose del cálculo | 105 | Las tres líneas visibles, para que la cifra sea auditable | MVP |
 | Tasa de ahorro | 106 | Capacidad sobre ingresos, en % | MVP |
 | Solo lectura | 107 | Es un resultado calculado. **No admite altas ni eventos** | MVP |
@@ -487,7 +487,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **CCAA por persona, con efecto real** | 110 | La comunidad vive en la persona, no en el expediente. **La cobertura se comprueba al liquidar a cada uno** | CORE |
 | Ingresos del año | 111 | Calculado desde la pestaña Ingresos. Input del motor para la base general | CORE |
 | **Estado de cálculo** | 112 | Con renta calculable · sin cálculo, con su motivo | CORE |
-| Jubilación prevista | 113 | Año/edad estimados, introducidos por el asesor y marcados como tales | MVP |
+| Jubilación prevista | 113 | Año/pensión del **evento del plan base** (misma verdad que Escenarios). Sin evento, estimación por edad (65). **F1 no elige escenario:** una hipótesis alternativa se monta en Escenarios. Al borrar el evento, la ficha vuelve a la estimación por edad | MVP |
 | Patrimonio atribuido | 114 | Desglose de qué parte de cada activo le corresponde según titularidad | MVP |
 | Identidad única entre expedientes | 115 | La misma Persona puede estar en varios Clientes | MVP (modelo) |
 | Lanzar evento desde la ficha | 116 | Jubilarse, evento genérico | MVP |
@@ -852,9 +852,9 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | **Rescatar plan** | 245 | Modalidad (capital/renta/mixto) · importe · años. Base general, apilado sobre los ingresos. Reducción del 40 % pre-2007 con control de plazos | CORE |
 | **Vender inmueble** | 246 | Importe · año · reinversión. Art. 33.4.b) si es vivienda habitual y el titular supera los 65, **evaluado por titular**; art. 38.3 solo como aviso | CORE |
 | Aportar a fondo | 247 | Importe · año. Sin consecuencia fiscal | MVP |
-| Comprar inmueble | 248 | Precio · año · hipoteca. Sin fiscalidad, pero crea el activo y descuenta liquidez | MVP |
-| **Jubilarse** | 249 | Año · pensión estimada. **Sustituye los ingresos de trabajo por la pensión** a partir de ese año, dentro del escenario | CORE |
-| Amortizar hipoteca | 250 | Importe · año. Se registra; el cálculo amortizar-vs-invertir no está construido | MVP |
+| Comprar inmueble | 248 | Precio · año · hipoteca. Sin fiscalidad, pero crea el activo y descuenta liquidez. Título del modal: solo «Comprar inmueble» (no arrastra el nombre del elemento de origen) | MVP |
+| **Jubilarse** | 249 | Año · pensión estimada. **Sustituye los ingresos de trabajo por la pensión** a partir de ese año, dentro del escenario. **Una sola por persona y escenario** (reemplaza al guardar). Desde F1 siempre toca el plan base | CORE |
+| Amortizar hipoteca | 250 | Importe · año · **targetId = pasivo** (si el inmueble tiene varias hipotecas, el modal pregunta cuál; sin pasivo no se registra). Mueve patrimonio. Interés futuro = capital × tipo. Comparación amortizar vs invertir: no construida | MVP |
 | Aportar a plan de pensiones | 251 | Importe · año. Reduce la base general con su límite; avisa del exceso | CORE |
 | Repartir dividendo / vender participación | 252 | **Sin cálculo** — el liquidador de IS no existe. El hueco se marca | MVP |
 | Evento genérico | 253 | Ingreso · gasto · movimiento libre. Sin cálculo. Si el asesor teclea un impacto, se marca como introducido | MVP |
@@ -957,7 +957,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Sello "datos a fecha de" | 290 | Visible en la cabecera del cliente | MVP |
 | Semáforo de liquidez | 291 | Componente reutilizable, derivado del tipo de activo | MVP |
 | Barra de titularidad | 292 | Componente reutilizable de reparto por porcentajes | MVP |
-| Control de reparto de titularidad | 293 | Reparte % entre las personas del expediente, con validación de que suma 100 % | MVP |
+| Control de reparto de titularidad | 293 | Reparte % entre las personas del expediente, con validación de que suma 100 %. Alta: **100 % al primer titular** por defecto. Si se parte a iguales, el resto decimal se asigna al primero | MVP |
 | Formato es-ES unificado | 294 | Toda cifra con separador de miles y símbolo de euro consistentes | MVP |
 
 ## Variables
@@ -996,7 +996,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Regla · Venta de vivienda habitual >65 | 306 | Exención art. 33.4.b), **evaluada por titular** | CORE |
 | Regla · Aportación a plan de pensiones | 307 | Reducción en base general con su límite; avisa del exceso | CORE |
 | Regla · Reinversión en renta vitalicia | 308 | Art. 38.3: avisa, no liquida la exención. Faltan los requisitos del art. 42 RIRPF | MVP (parcial) |
-| Regla · Amortizar vs invertir | 309 | Comparación entre interés ahorrado y rentabilidad esperada. Hoy es un stub | V2 |
+| Regla · Amortizar vs invertir | 309 | Comparación entre interés contractual ahorrado y rendimiento esperado (rentabilidad del escenario). **Hoy no construida**: el evento solo registra el movimiento patrimonial; el chip lo dice sin prometer la comparación. Prerrequisitos de modelo: modalidad del tipo y plazo restante | V2 |
 | Bloqueo de regímenes forales | 310 | País Vasco y Navarra: normativa propia, no una variante de la común | CORE |
 | FIFO por lotes | 311 | El art. 37.2 impone identificar por orden de compra. Hoy se usa un ratio único, declarado como no válido para autoliquidación | V2 |
 | Acumulación de periodo | 312 | Estado fiscal por ejercicio, con bases que cambian | V2 |
