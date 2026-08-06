@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { amortizacionCapitalAnual } from "./patrimonio";
+import {
+  amortizacionCapitalAnual,
+  gastosAnualesConInteresDerivado,
+  interesAnualPasivo,
+} from "./patrimonio";
 import type { Gasto, Pasivo, Titularidad } from "./types";
 
 function titularSoloPersona(personaId: string): Titularidad[] {
@@ -16,75 +20,106 @@ function hipoteca({
   id,
   inmuebleId,
   cuotaMensual,
+  capitalPendiente,
+  tipoInteres,
 }: {
   id: string;
   inmuebleId?: string;
   cuotaMensual: number;
+  capitalPendiente: number;
+  tipoInteres: number;
 }): Pasivo {
   return {
     id,
     clienteId: "c",
     tipo: "hipoteca",
     prestamista: "Banco demo",
-    capitalPendiente: 0,
-    tipoInteres: 0.03,
+    capitalPendiente,
+    tipoInteres,
     cuotaMensual,
     inmuebleId,
     titularidades: titularSoloPersona("p1"),
   };
 }
 
-function interesGasto({
-  id,
-  vinculadoInmuebleId,
-  importeAnual,
-}: {
-  id: string;
-  vinculadoInmuebleId?: string;
-  importeAnual: number;
-}): Gasto {
-  return {
-    id,
-    clienteId: "c",
-    categoria: "Intereses de deuda",
-    importeAnual,
-    vinculadoA:
-      vinculadoInmuebleId != null
-        ? { kind: "inmueble", inmuebleId: vinculadoInmuebleId }
-        : null,
-  };
-}
+describe("interesAnualPasivo / amortizacionCapitalAnual", () => {
+  it("interés = capital × tipo", () => {
+    const p = hipoteca({
+      id: "h1",
+      capitalPendiente: 180_000,
+      tipoInteres: 0.029,
+      cuotaMensual: 950,
+    });
+    assert.equal(interesAnualPasivo(p), 5_220);
+  });
 
-describe("amortizacionCapitalAnual (capacidad de ahorro)", () => {
   it("cliente sin hipoteca: amortización 0", () => {
-    const amort = amortizacionCapitalAnual(
-      [],
-      [interesGasto({ id: "g1", importeAnual: 2_000 })],
-    );
-    assert.equal(amort, 0);
+    assert.equal(amortizacionCapitalAnual([]), 0);
   });
 
-  it("dos hipotecas en inmuebles distintos: amortiza por hipoteca", () => {
+  it("dos hipotecas: amortiza con interés derivado por pasivo", () => {
     const pasivos = [
-      hipoteca({ id: "h1", inmuebleId: "inm1", cuotaMensual: 1_000 }), // 12.000
-      hipoteca({ id: "h2", inmuebleId: "inm2", cuotaMensual: 800 }), // 9.600
+      hipoteca({
+        id: "h1",
+        inmuebleId: "inm1",
+        cuotaMensual: 1_000,
+        capitalPendiente: 100_000,
+        tipoInteres: 0.02, // 2.000
+      }),
+      hipoteca({
+        id: "h2",
+        inmuebleId: "inm2",
+        cuotaMensual: 800,
+        capitalPendiente: 50_000,
+        tipoInteres: 0.02, // 1.000
+      }),
     ];
-    const gastos = [
-      interesGasto({ id: "gi1", vinculadoInmuebleId: "inm1", importeAnual: 2_000 }),
-      interesGasto({ id: "gi2", vinculadoInmuebleId: "inm2", importeAnual: 1_000 }),
-    ];
-    const amort = amortizacionCapitalAnual(pasivos, gastos);
     // (12.000 - 2.000) + (9.600 - 1.000) = 18.600
-    assert.equal(amort, 18_600);
+    assert.equal(amortizacionCapitalAnual(pasivos), 18_600);
   });
 
-  it("hipoteca sin inmueble vinculado (crédito personal): amortización descuenta intereses no asignados", () => {
-    const pasivos = [hipoteca({ id: "h1", cuotaMensual: 1_000 })]; // 12.000
-    const gastos = [interesGasto({ id: "gi1", importeAnual: 2_000 })]; // no vinculado
+  it("capital a cero → interés 0 → amortización 0 (cuota irrelevante)", () => {
+    const pasivos = [
+      hipoteca({
+        id: "h1",
+        cuotaMensual: 1_000,
+        capitalPendiente: 0,
+        tipoInteres: 0.03,
+      }),
+    ];
+    assert.equal(interesAnualPasivo(pasivos[0]!), 0);
+    assert.equal(amortizacionCapitalAnual(pasivos), 0);
+  });
 
-    const amort = amortizacionCapitalAnual(pasivos, gastos);
-    // 12.000 - 2.000 = 10.000
-    assert.equal(amort, 10_000);
+  it("gastosAnualesConInteresDerivado ignora líneas de interés tecleadas", () => {
+    const pasivos = [
+      hipoteca({
+        id: "h1",
+        inmuebleId: "inm1",
+        cuotaMensual: 950,
+        capitalPendiente: 180_000,
+        tipoInteres: 0.029,
+      }),
+    ];
+    const gastos: Gasto[] = [
+      {
+        id: "g1",
+        clienteId: "c",
+        categoria: "Intereses de deuda",
+        importeAnual: 99_999,
+        vinculadoA: { kind: "inmueble", inmuebleId: "inm1" },
+        origenInteres: "introducido_asesor",
+      },
+      {
+        id: "g2",
+        clienteId: "c",
+        categoria: "Familia",
+        importeAnual: 10_000,
+      },
+    ];
+    const r = gastosAnualesConInteresDerivado(pasivos, gastos);
+    assert.equal(r.gastosBaseSinIntereses, 10_000);
+    assert.equal(r.interesesDerivados, 5_220);
+    assert.equal(r.total, 15_220);
   });
 });
-

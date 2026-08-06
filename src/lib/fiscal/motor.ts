@@ -510,7 +510,7 @@ export function simularMotorEvento(
     case "amortizar_hipoteca":
       return {
         kind: "sin_calculo",
-        nota: "Regla ③ · la comparación amortizar vs invertir se muestra en el comparador, sin coronar ganador · orientativo",
+        nota: "El evento se registra y baja el pasivo y el efectivo · el interés ahorrado frente a la rentabilidad esperada no está calculado · no se inventan cifras",
       };
 
     case "vender_inmueble": {

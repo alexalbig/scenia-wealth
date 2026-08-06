@@ -1,5 +1,6 @@
 import {
   amortizacionCapitalAnual,
+  gastosAnualesConInteresDerivado,
   getGastos,
   getIngresos,
   getInmuebles,
@@ -7,6 +8,8 @@ import {
   getOtrosActivos,
   getPasivos,
   getSociedades,
+  interesDerivadoParaGasto,
+  esGastoInteresDeuda,
   personaLabel,
 } from "@/lib/patrimonio";
 import {
@@ -62,7 +65,7 @@ export interface ExpedienteBag {
  * Subir cuando el seed de un cliente demo cambia de forma incompatible
  * con bags cacheados (ingresos, personas, gastos…).
  */
-export const SEED_BAG_REVISION = 2;
+export const SEED_BAG_REVISION = 5;
 
 export type AltaKind =
   | "persona"
@@ -78,21 +81,32 @@ export function newId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
+/**
+ * Reparto por defecto al dar de alta: 100 % al primer titular.
+ * El asesor reparte si quiere — no presupone cotitularidad ni renta.
+ */
 export function defaultTitularidades(personas: Persona[]): Titularidad[] {
   if (personas.length === 0) return [];
-  if (personas.length === 1) {
-    return [
-      {
-        owner: { kind: "persona", personaId: personas[0].id },
-        porcentaje: 1,
-      },
-    ];
-  }
-  const pct = 1 / personas.length;
-  return personas.map((p) => ({
-    owner: { kind: "persona" as const, personaId: p.id },
-    porcentaje: pct,
-  }));
+  return [
+    {
+      owner: { kind: "persona", personaId: personas[0]!.id },
+      porcentaje: 1,
+    },
+  ];
+}
+
+/**
+ * Reparte `total` (normalmente 1) a partes iguales entre `n` titulares.
+ * El resto decimal va al primero para que la suma sea exacta.
+ */
+export function equalTitularidadShares(n: number, total = 1): number[] {
+  if (n <= 0) return [];
+  if (n === 1) return [total];
+  const base = Math.floor((total * 1000) / n) / 1000;
+  const shares = Array.from({ length: n }, () => base);
+  const assigned = base * n;
+  shares[0] = Math.round((total - assigned + base) * 1000) / 1000;
+  return shares;
 }
 
 /** Plan base obligatorio en todo expediente editable. */
@@ -263,14 +277,46 @@ export function mensajeConfirmacionCascada(
 
 export function capacidadFromBag(bag: ExpedienteBag) {
   const ingresos = bag.ingresos.reduce((s, i) => s + i.importeAnual, 0);
-  const gastosTotal = bag.gastos.reduce((s, g) => s + g.importeAnual, 0);
-  const amort = amortizacionCapitalAnual(bag.pasivos, bag.gastos);
+  const { total: gastosTotal } = gastosAnualesConInteresDerivado(
+    bag.pasivos,
+    bag.gastos,
+  );
+  const amort = amortizacionCapitalAnual(bag.pasivos);
   return {
     ingresos,
     gastos: gastosTotal,
     amortizacionCapital: amort,
     capacidad: ingresos - gastosTotal + amort,
   };
+}
+
+/**
+ * Sincroniza importes de gastos de interés marcados como derivados del pasivo.
+ * No toca los `introducido_asesor`.
+ */
+export function syncInteresesDerivadosBag(bag: ExpedienteBag): ExpedienteBag {
+  let changed = false;
+  const gastos = bag.gastos.map((g) => {
+    if (!esGastoInteresDeuda(g)) return g;
+    const derivado = interesDerivadoParaGasto(g, bag.pasivos);
+    if (derivado == null) return g;
+    const next = Math.round(derivado * 100) / 100;
+    // El importe es siempre derivado (capital × tipo). Un tecleo previo
+    // «introducido_asesor» se normaliza: no hay dos verdades.
+    if (
+      g.origenInteres === "derivado_pasivo" &&
+      Math.abs(g.importeAnual - next) < 0.005
+    ) {
+      return g;
+    }
+    changed = true;
+    return {
+      ...g,
+      importeAnual: next,
+      origenInteres: "derivado_pasivo",
+    };
+  });
+  return changed ? { ...bag, gastos } : bag;
 }
 
 export function ingresosPersonaFromBag(bag: ExpedienteBag, personaId: string) {
@@ -349,6 +395,76 @@ export function eventosDeEscenarioFromBag(
   return esc.eventoIds
     .map((id) => bag.eventos.find((e) => e.id === id))
     .filter((e): e is Evento => !!e);
+}
+
+/** Jubilación de una persona en un escenario (como máximo una tras dedupe). */
+export function jubilacionDePersonaEnEscenario(
+  bag: ExpedienteBag,
+  escenarioId: string,
+  personaId: string,
+): Evento | undefined {
+  return eventosDeEscenarioFromBag(bag, escenarioId).find(
+    (e) => e.tipo === "jubilarse" && e.targetId === personaId,
+  );
+}
+
+const SEED_EVENT_IDS = new Set(seed.eventos.map((e) => e.id));
+
+function isSeedEventId(id: string): boolean {
+  return SEED_EVENT_IDS.has(id);
+}
+
+/** Timestamp embebido en ids de sesión (`evt-1712345678901-abc`). */
+function eventRecency(id: string): number {
+  const m = id.match(/^evt-(\d{10,})-/);
+  return m ? Number(m[1]) : 0;
+}
+
+/**
+ * Una sola jubilación por persona+escenario.
+ * Conserva el del seed si existe; si no, el más reciente (id de sesión).
+ */
+export function dedupeJubilacionesBag(bag: ExpedienteBag): ExpedienteBag {
+  const keep = new Set<string>();
+  const drop = new Set<string>();
+
+  const byKey = new Map<string, Evento[]>();
+  for (const ev of bag.eventos) {
+    if (ev.tipo !== "jubilarse" || !ev.targetId) {
+      keep.add(ev.id);
+      continue;
+    }
+    const key = `${ev.escenarioId}::${ev.targetId}`;
+    const list = byKey.get(key) ?? [];
+    list.push(ev);
+    byKey.set(key, list);
+  }
+
+  for (const list of byKey.values()) {
+    if (list.length === 1) {
+      keep.add(list[0]!.id);
+      continue;
+    }
+    const fromSeed = list.find((e) => isSeedEventId(e.id));
+    const winner = fromSeed
+      ? fromSeed
+      : [...list].sort((a, b) => eventRecency(b.id) - eventRecency(a.id))[0]!;
+    keep.add(winner.id);
+    for (const e of list) {
+      if (e.id !== winner.id) drop.add(e.id);
+    }
+  }
+
+  if (drop.size === 0) return bag;
+
+  return {
+    ...bag,
+    eventos: bag.eventos.filter((e) => !drop.has(e.id)),
+    escenarios: bag.escenarios.map((esc) => ({
+      ...esc,
+      eventoIds: esc.eventoIds.filter((id) => !drop.has(id)),
+    })),
+  };
 }
 
 /** Menú CT1 desde el bag (no desde seed). */
@@ -452,12 +568,13 @@ export function syncClienteTotales(bag: ExpedienteBag): ExpedienteBag {
 
 /** Recalcula impuestosPeriodo de cada escenario vía rollup del motor (primer ejercicio, siempre fresco). */
 export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
+  const base = syncInteresesDerivadosBag(bag);
   const cuotaByEvento = new Map<string, number | undefined>();
   const sobreByEvento = new Map<string, string | undefined>();
-  const escenarios = bag.escenarios.map((esc) => {
-    const eventos = eventosDeEscenarioFromBag(bag, esc.id);
+  const escenarios = base.escenarios.map((esc) => {
+    const eventos = eventosDeEscenarioFromBag(base, esc.id);
     const rollup = rollupImpuestosEscenario(eventos, (ev) =>
-      buildContextoFiscalFromBag(bag, ev, undefined, eventos),
+      buildContextoFiscalFromBag(base, ev, undefined, eventos),
     );
     for (const d of rollup.desglose) {
       if (d.kind === "calculado" || d.kind === "neutro") {
@@ -480,7 +597,7 @@ export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
     };
   });
 
-  const eventos = bag.eventos.map((ev) => {
+  const eventos = base.eventos.map((ev) => {
     if (ev.introducidoPorAsesor) return ev;
     if (!cuotaByEvento.has(ev.id)) return ev;
     const cuota = cuotaByEvento.get(ev.id);
@@ -500,7 +617,7 @@ export function recomputeFiscalBag(bag: ExpedienteBag): ExpedienteBag {
     };
   });
 
-  return { ...bag, escenarios, eventos };
+  return { ...base, escenarios, eventos };
 }
 
 /** Asegura campos nuevos en bags antiguos guardados en storage. */
@@ -509,12 +626,14 @@ export function normalizeBag(bag: ExpedienteBag): ExpedienteBag {
     bag.escenarios?.length > 0
       ? bag.escenarios
       : [makePlanBase(bag.cliente.id)];
-  const normalized = syncClienteTotales({
+  const deduped = dedupeJubilacionesBag({
     ...bag,
     escenarios,
     eventos: bag.eventos ?? [],
     historial: bag.historial ?? [],
   });
+  const syncedIntereses = syncInteresesDerivadosBag(deduped);
+  const normalized = syncClienteTotales(syncedIntereses);
   return recomputeFiscalBag(normalized);
 }
 

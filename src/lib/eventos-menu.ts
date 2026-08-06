@@ -158,7 +158,7 @@ export function accionesParaElemento(
         {
           tipo: "amortizar_hipoteca",
           label: "Amortizar hipoteca",
-          hint: "Amortizar vs invertir",
+          hint: "Baja pasivo y efectivo · comparación pendiente",
         },
         {
           tipo: "comprar_inmueble",
@@ -171,7 +171,7 @@ export function accionesParaElemento(
         {
           tipo: "amortizar_hipoteca",
           label: "Amortizar hipoteca",
-          hint: "Amortizar vs invertir",
+          hint: "Baja pasivo y efectivo · comparación pendiente",
         },
       ];
     case "sociedad":
@@ -278,7 +278,7 @@ export function chipPreviewEvento(tipo: TipoEvento, reinvierte = true): string {
         ? "Exención por reinversión >65 · límite (a verificar) · sin cifra inventada · orientativo"
         : "Plusvalía → base del ahorro · cuota del motor · orientativo";
     case "amortizar_hipoteca":
-      return "Comparación amortizar vs invertir · sin cuota fiscal directa del motor · orientativo";
+      return "El evento se registra y baja el pasivo y el efectivo · el interés ahorrado frente a la rentabilidad esperada no está calculado · no se inventan cifras";
     case "comprar_inmueble":
       return "Sin fiscalidad en IRPF · crea el activo y descuenta liquidez";
     default:

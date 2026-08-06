@@ -5,6 +5,7 @@
 
 import { parsePensionJubilacion } from "./fiscal/contexto";
 import type { ExpedienteBag } from "./expediente";
+import { esGastoInteresDeuda } from "./patrimonio";
 import type { Evento, Instrumento } from "./types";
 
 /** Año de referencia "hoy" del mockup. */
@@ -141,11 +142,38 @@ interface ProjState {
   jubilados: Set<string>;
   /** inmuebles vendidos */
   vendidos: Set<string>;
-  /** gastos anuales vivos (se reducen al vender inmueble con intereses) */
-  gastosAnuales: number;
-  /** intereses por inmuebleId (para quitar al vender) */
-  interesesPorInmueble: Map<string, number>;
-  pasivoByInmueble: Map<string, string>;
+  /** Gastos anuales sin intereses de deuda (los intereses se derivan del capital). */
+  gastosBaseSinIntereses: number;
+  /** tipo de interés por pasivoId (decimal). */
+  tipoInteresByPasivo: Map<string, number>;
+  /** inmuebleId → pasivoIds vinculados (puede haber varios). */
+  pasivosByInmueble: Map<string, string[]>;
+}
+
+function interesPasivoEnState(
+  s: ProjState,
+  pasivoId: string,
+  capital: number,
+): number {
+  if (capital <= 0 || pasivoId.startsWith("pignoracion-")) return 0;
+  const rate = s.tipoInteresByPasivo.get(pasivoId) ?? 0;
+  return Math.max(0, capital * rate);
+}
+
+function interesesDerivadosState(s: ProjState): number {
+  let total = 0;
+  for (const [id, capital] of s.pasivos) {
+    total += interesPasivoEnState(s, id, capital);
+  }
+  return total;
+}
+
+function unlinkPasivoFromInmuebles(s: ProjState, pasivoId: string) {
+  for (const [inmId, ids] of [...s.pasivosByInmueble.entries()]) {
+    const next = ids.filter((id) => id !== pasivoId);
+    if (next.length === 0) s.pasivosByInmueble.delete(inmId);
+    else s.pasivosByInmueble.set(inmId, next);
+  }
 }
 
 /** Líquidos sin recortar — puede ser negativo. */
@@ -217,18 +245,14 @@ function applyEvent(s: ProjState, ev: Evento, year: number): number {
       const venta = importe ?? s.inmuebles.get(id) ?? 0;
       s.inmuebles.delete(id);
       s.vendidos.add(id);
-      const pasivoId = s.pasivoByInmueble.get(id);
+      const pasivoIds = s.pasivosByInmueble.get(id) ?? [];
       let deuda = 0;
-      if (pasivoId) {
-        deuda = s.pasivos.get(pasivoId) ?? 0;
+      for (const pasivoId of pasivoIds) {
+        deuda += s.pasivos.get(pasivoId) ?? 0;
         s.pasivos.delete(pasivoId);
-        s.pasivoByInmueble.delete(id);
+        s.tipoInteresByPasivo.delete(pasivoId);
       }
-      const intereses = s.interesesPorInmueble.get(id) ?? 0;
-      if (intereses > 0) {
-        s.gastosAnuales = Math.max(0, s.gastosAnuales - intereses);
-        s.interesesPorInmueble.delete(id);
-      }
+      s.pasivosByInmueble.delete(id);
       // Importe neto a líquidos; patrimonio ≈ invariante si venta ≈ libro.
       s.efectivo += venta - deuda;
       break;
@@ -267,16 +291,19 @@ function applyEvent(s: ProjState, ev: Evento, year: number): number {
       if (year !== ev.anio) return 0;
       const amount = importe ?? 0;
       if (amount <= 0) return 0;
-      const target =
-        (ev.targetId && s.pasivos.has(ev.targetId)
-          ? ev.targetId
-          : [...s.pasivos.keys()][0]) ?? null;
-      if (!target) return 0;
+      // Sin fallback: si falta el pasivo o no está en el estado, no se inventa otro.
+      const target = ev.targetId;
+      if (!target || !s.pasivos.has(target)) return 0;
       const cur = s.pasivos.get(target) ?? 0;
       const pay = Math.min(cur, amount, Math.max(0, s.efectivo));
-      s.pasivos.set(target, cur - pay);
+      const next = cur - pay;
+      s.pasivos.set(target, next);
       s.efectivo -= pay;
-      if ((s.pasivos.get(target) ?? 0) <= 0) s.pasivos.delete(target);
+      if (next <= 0) {
+        s.pasivos.delete(target);
+        s.tipoInteresByPasivo.delete(target);
+        unlinkPasivoFromInmuebles(s, target);
+      }
       break;
     }
     case "jubilarse": {
@@ -370,29 +397,23 @@ function initState(bag: ExpedienteBag): {
   }
 
   const pasivos = new Map<string, number>();
-  const pasivoByInmueble = new Map<string, string>();
+  const pasivosByInmueble = new Map<string, string[]>();
+  const tipoInteresByPasivo = new Map<string, number>();
   const cuotaByPasivo = new Map<string, number>();
   for (const p of bag.pasivos) {
     pasivos.set(p.id, p.capitalPendiente);
     cuotaByPasivo.set(p.id, p.cuotaMensual * 12);
-    if (p.inmuebleId) pasivoByInmueble.set(p.inmuebleId, p.id);
-  }
-
-  const interesesPorInmueble = new Map<string, number>();
-  let gastosAnuales = 0;
-  for (const g of bag.gastos) {
-    gastosAnuales += g.importeAnual;
-    const esInteres =
-      g.categoria.toLowerCase().includes("interés") ||
-      g.categoria.toLowerCase().includes("interes");
-    if (esInteres && g.vinculadoA?.kind === "inmueble") {
-      interesesPorInmueble.set(
-        g.vinculadoA.inmuebleId,
-        (interesesPorInmueble.get(g.vinculadoA.inmuebleId) ?? 0) +
-          g.importeAnual,
-      );
+    tipoInteresByPasivo.set(p.id, p.tipoInteres);
+    if (p.inmuebleId) {
+      const list = pasivosByInmueble.get(p.inmuebleId) ?? [];
+      list.push(p.id);
+      pasivosByInmueble.set(p.inmuebleId, list);
     }
   }
+
+  const gastosBaseSinIntereses = bag.gastos
+    .filter((g) => !esGastoInteresDeuda(g))
+    .reduce((s, g) => s + g.importeAnual, 0);
 
   return {
     state: {
@@ -406,9 +427,9 @@ function initState(bag: ExpedienteBag): {
       pensionByPersona: new Map(),
       jubilados: new Set(),
       vendidos: new Set(),
-      gastosAnuales,
-      interesesPorInmueble,
-      pasivoByInmueble,
+      gastosBaseSinIntereses,
+      tipoInteresByPasivo,
+      pasivosByInmueble,
     },
     cuotaByPasivo,
   };
@@ -439,28 +460,30 @@ export function buildProyeccionSeriesFromBag(
   let impuestoAcumulado = 0;
 
   for (let year = PROYECCION_START_YEAR; year <= PROYECCION_END_YEAR; year++) {
+    // Interés del año = capital vivo al inicio × tipo (antes de amortizar este año).
+    const interesesAno = interesesDerivadosState(s);
+    const gastos = s.gastosBaseSinIntereses + interesesAno;
+
     let impuestoAnual = 0;
     for (const ev of sorted) impuestoAnual += applyEvent(s, ev, year);
     impuestoAcumulado += impuestoAnual;
 
     const ingresos = ingresosAnuales(bag, s);
-    const gastos = s.gastosAnuales;
     // Amortización ordinaria de hipotecas restantes
     let amort = 0;
     for (const [id, capital] of [...s.pasivos.entries()]) {
       if (capital <= 0 || id.startsWith("pignoracion-")) continue;
       const cuota = cuotaByPasivo.get(id) ?? 0;
-      const inmId = [...s.pasivoByInmueble.entries()].find(
-        ([, pid]) => pid === id,
-      )?.[0];
-      const intereses = inmId ? (s.interesesPorInmueble.get(inmId) ?? 0) : 0;
+      const intereses = interesPasivoEnState(s, id, capital);
       const a = Math.max(0, Math.min(capital, Math.max(0, cuota - intereses)));
       if (a > 0) {
-        s.pasivos.set(id, capital - a);
+        const next = capital - a;
+        s.pasivos.set(id, next);
         amort += a;
-        if ((s.pasivos.get(id) ?? 0) <= 0) {
+        if (next <= 0) {
           s.pasivos.delete(id);
-          if (inmId) s.pasivoByInmueble.delete(inmId);
+          s.tipoInteresByPasivo.delete(id);
+          unlinkPasivoFromInmuebles(s, id);
         }
       }
     }

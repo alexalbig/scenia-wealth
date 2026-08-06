@@ -45,21 +45,59 @@ export function personaLabel(persona: Persona) {
   return `${persona.nombre} ${persona.apellidos}`.trim();
 }
 
+/**
+ * Porcentajes de titularidad para UI (un decimal).
+ * El resto de décimas va al primero para que siempre sumen 100,0.
+ */
+export function displayTitularidadPercents(
+  titularidades: Titularidad[],
+): number[] {
+  if (titularidades.length === 0) return [];
+  const tenths = titularidades.map((t) =>
+    Math.round(t.porcentaje * 1000),
+  );
+  const sum = tenths.reduce((a, b) => a + b, 0);
+  const target = 1000;
+  if (sum !== target && tenths.length > 0) {
+    tenths[0] = tenths[0]! + (target - sum);
+  }
+  return tenths.map((t) => t / 10);
+}
+
+/** Una sola cuota en % con un decimal (p. ej. ficha de persona). */
+export function formatPctLabel(porcentaje: number): string {
+  const tenths = Math.round(porcentaje * 1000) / 10;
+  return `${tenths.toLocaleString("es-ES", {
+    minimumFractionDigits: Number.isInteger(tenths) ? 0 : 1,
+    maximumFractionDigits: 1,
+  })} %`;
+}
+
+function formatDisplayPct(tenthsOfPercent: number): string {
+  const n = tenthsOfPercent;
+  return `${n.toLocaleString("es-ES", {
+    minimumFractionDigits: Number.isInteger(n) ? 0 : 1,
+    maximumFractionDigits: 1,
+  })}`;
+}
+
 export function formatTitularidades(
   titularidades: Titularidad[],
   personas: Persona[],
 ): string {
+  const pcts = displayTitularidadPercents(titularidades);
   return titularidades
-    .map((t) => {
+    .map((t, i) => {
+      const pct = formatDisplayPct(pcts[i] ?? 0);
       if (t.owner.kind === "persona") {
         const personaId = t.owner.personaId;
         const p = personas.find((x) => x.id === personaId);
         const name = p ? p.nombre : personaId;
-        return `${name} ${Math.round(t.porcentaje * 100)}%`;
+        return `${name} ${pct}%`;
       }
       const sociedadId = t.owner.sociedadId;
       const s = seed.sociedades.find((x) => x.id === sociedadId);
-      return `${s?.nombre ?? "Sociedad"} ${Math.round(t.porcentaje * 100)}%`;
+      return `${s?.nombre ?? "Sociedad"} ${pct}%`;
     })
     .join(" · ");
 }
@@ -69,8 +107,9 @@ const TIT_COLORS = ["var(--blue)", "#8FA0BE", "var(--faintest)"];
 export function titularidadSegments(
   titularidades: Titularidad[],
 ): Array<{ pct: number; color: string }> {
-  return titularidades.map((t, i) => ({
-    pct: Math.round(t.porcentaje * 100),
+  const pcts = displayTitularidadPercents(titularidades);
+  return titularidades.map((_, i) => ({
+    pct: pcts[i] ?? 0,
     color: TIT_COLORS[i % TIT_COLORS.length],
   }));
 }
@@ -153,15 +192,17 @@ export function titTxtCorto(
   titularidades: Titularidad[],
   personas: Persona[],
 ): string {
+  const pcts = displayTitularidadPercents(titularidades);
   return titularidades
-    .map((t) => {
+    .map((t, i) => {
+      const pct = formatDisplayPct(pcts[i] ?? 0);
       const owner = t.owner;
       if (owner.kind === "persona") {
         const p = personas.find((x) => x.id === owner.personaId);
         const name = p?.nombre ?? owner.personaId;
-        return `${name} ${Math.round(t.porcentaje * 100)} %`;
+        return `${name} ${pct} %`;
       }
-      return `Sociedad ${Math.round(t.porcentaje * 100)} %`;
+      return `Sociedad ${pct} %`;
     })
     .join(" · ");
 }
@@ -227,54 +268,89 @@ export function resumenGastosVinculados(
   return { total, lineas, pctValor };
 }
 
-/** Nivel 1: cuota anual ≈ cuota×12 − intereses (orientativo). */
-export function amortizacionCapitalAnual(pasivos: Pasivo[], gastos: Gasto[]) {
-  // Intereses: asignamos por inmueble cuando hay vinculación;
-  // y si no hay inmueble vinculado (crédito personal / hipoteca sin inmueble),
-  // repartimos los intereses no asignados entre los pasivos sin inmueble.
-  const interesesPorInmueble = new Map<string, number>();
-  let interesesNoAsignados = 0;
+/** Nivel 1: cuota anual ≈ cuota×12 − interés derivado (capital × tipo). */
+export function esGastoInteresDeuda(g: Gasto): boolean {
+  const c = g.categoria.toLowerCase();
+  return c.includes("interés") || c.includes("interes");
+}
 
-  for (const g of gastos) {
-    const esInteres =
-      g.categoria.toLowerCase().includes("interés") ||
-      g.categoria.toLowerCase().includes("interes");
-    if (!esInteres) continue;
+/** Interés anual orientativo del pasivo · capital pendiente × tipo. */
+export function interesAnualPasivo(p: Pasivo): number {
+  if (p.capitalPendiente <= 0 || p.tipoInteres <= 0) return 0;
+  return p.capitalPendiente * p.tipoInteres;
+}
 
-    if (g.vinculadoA?.kind === "inmueble") {
-      const id = g.vinculadoA.inmuebleId;
-      interesesPorInmueble.set(
-        id,
-        (interesesPorInmueble.get(id) ?? 0) + g.importeAnual,
-      );
-    } else {
-      interesesNoAsignados += g.importeAnual;
-    }
-  }
+export function interesesAnualesDerivados(pasivos: Pasivo[]): number {
+  return pasivos.reduce((s, p) => s + interesAnualPasivo(p), 0);
+}
 
-  const pasivosSinInmueble = pasivos.filter(
-    (p) => !(p.tipo === "hipoteca" && p.inmuebleId),
-  );
-  const interesesSinInmueblePorPasivo =
-    pasivosSinInmueble.length > 0
-      ? interesesNoAsignados / pasivosSinInmueble.length
-      : 0;
+/**
+ * Pasivos candidatos a un evento de amortizar.
+ * Por id de pasivo, o hipotecas ligadas a un inmueble. Nunca inventa uno.
+ */
+export function pasivosParaAmortizar(
+  pasivos: Pasivo[],
+  elementoId: string | undefined,
+): Pasivo[] {
+  if (!elementoId) return [];
+  const asPasivo = pasivos.find((p) => p.id === elementoId);
+  if (asPasivo) return [asPasivo];
+  return pasivos.filter((p) => p.inmuebleId === elementoId);
+}
 
+export function amortizacionCapitalAnual(pasivos: Pasivo[]): number {
   return pasivos.reduce((sum, p) => {
+    if (p.capitalPendiente <= 0) return sum;
     const cuotaAnual = p.cuotaMensual * 12;
-    const intereses =
-      p.tipo === "hipoteca" && p.inmuebleId
-        ? interesesPorInmueble.get(p.inmuebleId) ?? 0
-        : interesesSinInmueblePorPasivo;
-    return sum + Math.max(0, cuotaAnual - intereses);
+    const intereses = interesAnualPasivo(p);
+    const amort = Math.max(0, cuotaAnual - intereses);
+    return sum + Math.min(p.capitalPendiente, amort);
   }, 0);
+}
+
+/**
+ * Gastos para capacidad / proyección: líneas no-interés + derivados del capital vivo.
+ * El importe tecleado en «Intereses de deuda» no cuenta: manda capital × tipo.
+ */
+export function gastosAnualesConInteresDerivado(
+  pasivos: Pasivo[],
+  gastos: Gasto[],
+): { gastosBaseSinIntereses: number; interesesDerivados: number; total: number } {
+  const gastosBaseSinIntereses = gastos
+    .filter((g) => !esGastoInteresDeuda(g))
+    .reduce((s, g) => s + g.importeAnual, 0);
+  const interesesDerivados = interesesAnualesDerivados(pasivos);
+  return {
+    gastosBaseSinIntereses,
+    interesesDerivados,
+    total: gastosBaseSinIntereses + interesesDerivados,
+  };
+}
+
+/** Importe derivado que corresponde a un gasto de intereses (por inmueble o suma). */
+export function interesDerivadoParaGasto(
+  g: Gasto,
+  pasivos: Pasivo[],
+): number | null {
+  if (!esGastoInteresDeuda(g)) return null;
+  if (g.vinculadoA?.kind === "inmueble") {
+    const id = g.vinculadoA.inmuebleId;
+    return pasivos
+      .filter((p) => p.inmuebleId === id)
+      .reduce((s, p) => s + interesAnualPasivo(p), 0);
+  }
+  // Sin vínculo a inmueble: intereses de pasivos sin inmueble.
+  return pasivos
+    .filter((p) => !p.inmuebleId)
+    .reduce((s, p) => s + interesAnualPasivo(p), 0);
 }
 
 export function capacidadAhorro(clienteId: string) {
   const ingresos = getIngresos(clienteId).reduce((s, i) => s + i.importeAnual, 0);
+  const pasivos = getPasivos(clienteId);
   const gastos = getGastos(clienteId);
-  const gastosTotal = gastos.reduce((s, g) => s + g.importeAnual, 0);
-  const amort = amortizacionCapitalAnual(getPasivos(clienteId), gastos);
+  const { total: gastosTotal } = gastosAnualesConInteresDerivado(pasivos, gastos);
+  const amort = amortizacionCapitalAnual(pasivos);
   return {
     ingresos,
     gastos: gastosTotal,
@@ -362,7 +438,7 @@ export function patrimonioAtribuidoFilas(
     rows.push({
       id: i.id,
       nombre: i.nombre,
-      pctLabel: `${Math.round(pct * 100)} %`,
+      pctLabel: formatPctLabel(pct),
       valor: i.valor * pct,
     });
   }
@@ -372,7 +448,7 @@ export function patrimonioAtribuidoFilas(
     rows.push({
       id: inm.id,
       nombre: inm.nombre,
-      pctLabel: `${Math.round(pct * 100)} %`,
+      pctLabel: formatPctLabel(pct),
       valor: inm.valor * pct,
     });
   }
@@ -382,7 +458,7 @@ export function patrimonioAtribuidoFilas(
     rows.push({
       id: a.id,
       nombre: a.nombre,
-      pctLabel: `${Math.round(pct * 100)} %`,
+      pctLabel: formatPctLabel(pct),
       valor: a.valor * pct,
     });
   }
@@ -392,7 +468,7 @@ export function patrimonioAtribuidoFilas(
     rows.push({
       id: s.id,
       nombre: s.nombre,
-      pctLabel: `${Math.round(pct * 100)} %`,
+      pctLabel: formatPctLabel(pct),
       valor: null, // F4 sin valoración
     });
   }

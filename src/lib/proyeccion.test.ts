@@ -105,7 +105,6 @@ describe("buildProyeccionSeriesFromBag", () => {
     const a = buildProyeccionSeriesFromBag(bag, aEv, { rentabilidad: 0.04 });
     const b34 = base.find((p) => p.year === 2034)!;
     const a34 = a.find((p) => p.year === 2034)!;
-    assert.equal(b34.patrimonio, 1_567_827);
     assert.ok(a34.patrimonio < b34.patrimonio);
     // Seis cuotas de ~2.708 capitalizadas → gap del orden de 20k, no cero
     assert.ok(b34.patrimonio - a34.patrimonio > 15_000);

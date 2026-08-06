@@ -237,6 +237,12 @@ export interface Gasto {
     | { kind: "inmueble"; inmuebleId: string }
     | { kind: "otro"; otroId: string }
     | null;
+  /**
+   * Solo gastos de intereses de deuda.
+   * Foto del año base: siempre derivado (capital × tipo).
+   * `introducido_asesor` queda como valor legacy y se normaliza al sync.
+   */
+  origenInteres?: "derivado_pasivo" | "introducido_asesor";
 }
 
 export type TipoEventoGenerico = "ingreso" | "gasto" | "movimiento";

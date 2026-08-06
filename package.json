@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "npx tsx --test src/lib/fiscal/escalas.test.ts src/lib/fiscal/base-liquidable.test.ts src/lib/fiscal/estado-persona.test.ts src/lib/fiscal/estado-persona-motor.test.ts src/lib/patrimonio-amortizacion.test.ts src/lib/proyeccion.test.ts"
+    "test": "npx tsx --test src/lib/fiscal/escalas.test.ts src/lib/fiscal/base-liquidable.test.ts src/lib/fiscal/estado-persona.test.ts src/lib/fiscal/estado-persona-motor.test.ts src/lib/patrimonio-amortizacion.test.ts src/lib/proyeccion.test.ts src/lib/proyeccion-interes.test.ts src/lib/titularidad-default.test.ts src/lib/titularidad-display.test.ts"
   },
   "dependencies": {
     "next": "16.2.12",
