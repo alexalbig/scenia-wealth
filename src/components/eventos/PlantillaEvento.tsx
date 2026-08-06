@@ -5,7 +5,10 @@ import { Button, Modal } from "@/components/ui";
 import { useExpedienteOptional } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR, formatIntegerES, ageFromBirthYear } from "@/lib/format";
 import { simularMotorEvento } from "@/lib/fiscal/motor";
-import { buildContextoFiscalFromBag } from "@/lib/fiscal/contexto";
+import {
+  buildContextoFiscalFromBag,
+  parsePensionJubilacion,
+} from "@/lib/fiscal/contexto";
 import { estadoFiscalPersona } from "@/lib/fiscal/estado-persona";
 import {
   accionesParaElemento,
@@ -21,9 +24,11 @@ import {
   getInmuebles,
   getInstrumentos,
   getOtrosActivos,
+  pasivosParaAmortizar,
 } from "@/lib/patrimonio";
 import { getPersonasDeCliente } from "@/lib/seed";
-import type { Evento, TipoEvento } from "@/lib/types";
+import { jubilacionDePersonaEnEscenario } from "@/lib/expediente";
+import type { Evento, Pasivo, TipoEvento } from "@/lib/types";
 import type { EventoCreadoPayload } from "@/lib/eventos-types";
 
 export type { EventoCreadoPayload } from "@/lib/eventos-types";
@@ -54,8 +59,10 @@ interface PlantillaEventoProps {
   tipoFiscal?: string;
   /** Id del elemento (ficha) para titularidad multi-titular. */
   elementoId?: string;
-  /** Año preseleccionado (p. ej. clic en año en Proyección). */
+  /** Año preseleccionado (p. ej. clic en año en Proyección o jubilación existente). */
   anioInicial?: number;
+  /** Pensión precargada al editar una jubilación existente. */
+  pensionInicial?: number;
   escenarios?: Array<{ id: string; nombre: string }>;
   escenarioInicialId?: string;
   /** Menú CT1 desde el expediente (bag). Si falta, cae a seed. */
@@ -76,6 +83,7 @@ export function PlantillaEvento({
   tipoFiscal,
   elementoId: elementoIdProp,
   anioInicial,
+  pensionInicial,
   escenarios,
   escenarioInicialId,
   elementosOverride,
@@ -113,6 +121,7 @@ export function PlantillaEvento({
     "ingreso" | "gasto" | "movimiento"
   >("ingreso");
   const [escenarioId, setEscenarioId] = useState(escenarioInicialId ?? "");
+  const [pasivoTargetId, setPasivoTargetId] = useState("");
 
   const opciones = useMemo(() => {
     if (menuCompleto && elemento) {
@@ -133,17 +142,43 @@ export function PlantillaEvento({
   const nombreEl = menuCompleto ? (elemento?.nombre ?? "") : elementoNombre;
   const elementoId = menuCompleto ? elemento?.id : elementoIdProp;
 
+  const pasivosAmortizar = useMemo((): Pasivo[] => {
+    if (!exp?.bag) return [];
+    return pasivosParaAmortizar(exp.bag.pasivos, elementoId);
+  }, [exp?.bag, elementoId]);
+
+  useEffect(() => {
+    if (tipo !== "amortizar_hipoteca") return;
+    if (pasivosAmortizar.length === 1) {
+      setPasivoTargetId(pasivosAmortizar[0]!.id);
+    } else if (
+      pasivosAmortizar.length > 1 &&
+      !pasivosAmortizar.some((p) => p.id === pasivoTargetId)
+    ) {
+      setPasivoTargetId("");
+    } else if (pasivosAmortizar.length === 0) {
+      setPasivoTargetId("");
+    }
+  }, [tipo, pasivosAmortizar, pasivoTargetId]);
+
   const titLinea = useMemo(() => {
     if (!clienteId || !elementoId) return null;
-    const personas = getPersonasDeCliente(clienteId);
-    const inst = getInstrumentos(clienteId).find((i) => i.id === elementoId);
-    const inm = getInmuebles(clienteId).find((i) => i.id === elementoId);
-    const otro = getOtrosActivos(clienteId).find((a) => a.id === elementoId);
+    const fromBag = exp?.bag;
+    const inst =
+      fromBag?.instrumentos.find((i) => i.id === elementoId) ??
+      getInstrumentos(clienteId).find((i) => i.id === elementoId);
+    const inm =
+      fromBag?.inmuebles.find((i) => i.id === elementoId) ??
+      getInmuebles(clienteId).find((i) => i.id === elementoId);
+    const otro =
+      fromBag?.otrosActivos.find((a) => a.id === elementoId) ??
+      getOtrosActivos(clienteId).find((a) => a.id === elementoId);
+    const personas = fromBag?.personas ?? getPersonasDeCliente(clienteId);
     const tits =
       inst?.titularidades ?? inm?.titularidades ?? otro?.titularidades;
     if (!tits || tits.length < 2) return null;
     return formatTitularidades(tits, personas).replace(/%/g, " %");
-  }, [clienteId, elementoId]);
+  }, [clienteId, elementoId, exp?.bag]);
 
   function applyDefaults(t: TipoEvento) {
     const d = defaultsParaEvento(t);
@@ -157,7 +192,11 @@ export function PlantillaEvento({
     setHastaAnio(String(Math.max(hastaDefault, yearN)));
     setImporte(d.importe ?? "");
     setDestino(d.destino ?? "");
-    setPension(d.pension ?? "");
+    setPension(
+      pensionInicial != null && Number.isFinite(pensionInicial)
+        ? String(Math.round(pensionInicial))
+        : (d.pension ?? ""),
+    );
     if (d.reinvierte != null) setReinvierte(d.reinvierte);
     setConHipoteca(false);
     setImpactoManual("");
@@ -176,6 +215,27 @@ export function PlantillaEvento({
         ? String(planTarget.anioContingencia)
         : yearPref,
     );
+
+    // Precarga jubilación existente del escenario (reemplazar, no duplicar).
+    if (t === "jubilarse" && targetId && exp?.bag) {
+      const escId =
+        escenarioId ||
+        escenarioInicialId ||
+        exp.planBase?.id ||
+        "";
+      if (escId) {
+        const existing = jubilacionDePersonaEnEscenario(
+          exp.bag,
+          escId,
+          targetId,
+        );
+        if (existing) {
+          setAnio(String(existing.anio));
+          const p = parsePensionJubilacion(existing);
+          if (p != null) setPension(String(Math.round(p)));
+        }
+      }
+    }
   }
 
   useEffect(() => {
@@ -259,6 +319,7 @@ export function PlantillaEvento({
     setTituloGenerico("");
     setTipoGenerico("ingreso");
     setEscenarioId(escenarioInicialId ?? "");
+    setPasivoTargetId("");
     setFormError(null);
   }
 
@@ -433,6 +494,17 @@ export function PlantillaEvento({
       return;
     }
 
+    if (tipo === "amortizar_hipoteca") {
+      if (!pasivoTargetId || !pasivosAmortizar.some((p) => p.id === pasivoTargetId)) {
+        setFormError(
+          pasivosAmortizar.length === 0
+            ? "No hay hipoteca asociada a este elemento · no se registra la amortización"
+            : "Elige la hipoteca a amortizar",
+        );
+        return;
+      }
+    }
+
     const ctx = buildMotorCtx(tipo);
     const motor = simularMotorEvento(tipo, ctx);
 
@@ -460,7 +532,11 @@ export function PlantillaEvento({
     } else if (tipo === "vender_inmueble") {
       etiqueta = `Vender ${nombreEl} · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "amortizar_hipoteca") {
-      etiqueta = `Amortizar hipoteca · ${formatEUR(Number(importe) || 0)}`;
+      const pasivo = pasivosAmortizar.find((p) => p.id === pasivoTargetId);
+      const hipLabel = pasivo
+        ? `Hipoteca ${pasivo.prestamista}`
+        : "hipoteca";
+      etiqueta = `Amortizar ${hipLabel} · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "comprar_inmueble") {
       etiqueta = `Comprar inmueble · ${formatEUR(Number(importe) || 0)}`;
     } else if (tipo === "rescatar_plan") {
@@ -516,7 +592,10 @@ export function PlantillaEvento({
           : undefined,
       notas: notasExtra,
       escenarioId: escenarioId || undefined,
-      targetId: elemento?.id ?? elementoIdProp,
+      targetId:
+        tipo === "amortizar_hipoteca"
+          ? pasivoTargetId
+          : (elemento?.id ?? elementoIdProp),
     });
     handleClose();
   }
@@ -541,7 +620,9 @@ export function PlantillaEvento({
       ? "¿Sobre qué elemento?"
       : step === "menu"
         ? "¿Qué decisión?"
-        : `${tipoLabel} · ${nombreEl}`;
+        : tipo === "comprar_inmueble"
+          ? tipoLabel
+          : `${tipoLabel} · ${nombreEl}`;
 
   const showEscenarioSelect =
     !menuCompleto && escenarios && escenarios.length > 0;
@@ -550,8 +631,17 @@ export function PlantillaEvento({
     tipo && tipo !== "jubilarse" && tipo !== "generico"
       ? simularMotorEvento(tipo, buildMotorCtx(tipo))
       : null;
+  const chipAmortizarSinPasivo =
+    tipo === "amortizar_hipoteca" &&
+    (pasivosAmortizar.length === 0 ||
+      (pasivosAmortizar.length > 1 && !pasivoTargetId))
+      ? pasivosAmortizar.length === 0
+        ? "No hay hipoteca asociada · no se registra la amortización · no se inventa un pasivo"
+        : "Elige la hipoteca a amortizar · sin pasivo no se registra el evento"
+      : null;
   const chip =
-    chipMotor == null
+    chipAmortizarSinPasivo ??
+    (chipMotor == null
       ? ""
       : chipMotor.kind === "calculado" || chipMotor.kind === "neutro"
         ? chipMotor.nota +
@@ -561,8 +651,9 @@ export function PlantillaEvento({
             : "")
         : chipMotor.kind === "pendiente_is" || chipMotor.kind === "sin_calculo"
           ? chipMotor.nota
-          : chipPreviewEvento(tipo!, reinvierte);
+          : chipPreviewEvento(tipo!, reinvierte));
   const chipSobreDato =
+    !chipAmortizarSinPasivo &&
     chipMotor &&
     (chipMotor.kind === "calculado" || chipMotor.kind === "neutro")
       ? chipMotor.sobreDatoIntroducido
@@ -874,6 +965,31 @@ export function PlantillaEvento({
 
       {step === "form" && tipo === "amortizar_hipoteca" && (
         <>
+          {pasivosAmortizar.length > 1 && (
+            <div className="field">
+              <label className="lbl">Hipoteca</label>
+              <select
+                value={pasivoTargetId}
+                onChange={(e) => {
+                  setPasivoTargetId(e.target.value);
+                  setFormError(null);
+                }}
+              >
+                <option value="">Elegir hipoteca…</option>
+                {pasivosAmortizar.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.prestamista} · {formatEUR(p.capitalPendiente)}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {pasivosAmortizar.length === 1 && (
+            <div className="tiny" style={{ marginBottom: 8 }}>
+              Hipoteca: <b>{pasivosAmortizar[0]!.prestamista}</b> ·{" "}
+              {formatEUR(pasivosAmortizar[0]!.capitalPendiente)} pendiente
+            </div>
+          )}
           <div className="grid2">
             <div className="field">
               <label className="lbl">Importe a amortizar</label>
@@ -892,6 +1008,11 @@ export function PlantillaEvento({
               />
             </div>
           </div>
+          {formError && (
+            <div className="err-msg on" style={{ marginBottom: 8 }}>
+              {formError}
+            </div>
+          )}
           <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
         </>
       )}
@@ -1202,6 +1323,8 @@ export function EventoModal({
   tipoFiscal,
   elementoId,
   clienteId,
+  anioInicial,
+  pensionInicial,
   escenarios,
   escenarioInicialId,
   onCreated,
@@ -1213,7 +1336,13 @@ export function EventoModal({
   tipoFiscal?: string;
   elementoId?: string;
   clienteId?: string;
-  /** Si el expediente ya tiene escenarios propios, se ofrece el selector de destino. */
+  anioInicial?: number;
+  pensionInicial?: number;
+  /**
+   * Si se pasa, se ofrece selector de escenario.
+   * F1 Persona no lo pasa: la jubilación de la ficha siempre va al plan base;
+   * una hipótesis alternativa se monta desde Escenarios.
+   */
   escenarios?: Array<{ id: string; nombre: string }>;
   escenarioInicialId?: string;
   onCreated?: (payload: EventoCreadoPayload) => void;
@@ -1227,6 +1356,8 @@ export function EventoModal({
       tipoFiscal={tipoFiscal}
       elementoId={elementoId}
       clienteId={clienteId}
+      anioInicial={anioInicial}
+      pensionInicial={pensionInicial}
       escenarios={escenarios}
       escenarioInicialId={escenarioInicialId}
       onCreated={onCreated}

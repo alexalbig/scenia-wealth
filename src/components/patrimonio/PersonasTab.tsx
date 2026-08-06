@@ -1,5 +1,6 @@
 "use client";
 
+import { useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
   Avatar,
@@ -13,9 +14,24 @@ import {
   TR,
 } from "@/components/ui";
 import { RowCrud } from "@/components/patrimonio/RowCrud";
+import { useExpediente } from "@/components/expediente/ExpedienteProvider";
+import { estadoFiscalPersona } from "@/lib/fiscal/estado-persona";
 import { ageFromBirthYear, formatEUR } from "@/lib/format";
 import { personaLabel } from "@/lib/patrimonio";
 import type { Persona } from "@/lib/types";
+
+function motivoCorto(
+  motivo: "ccaa_sin_cobertura" | "fuente_no_contemplada" | "sin_ingresos",
+): string {
+  switch (motivo) {
+    case "sin_ingresos":
+      return "sin ingresos";
+    case "ccaa_sin_cobertura":
+      return "CCAA sin cobertura";
+    case "fuente_no_contemplada":
+      return "fuente no contemplada";
+  }
+}
 
 export function PersonasTab({
   clienteId,
@@ -35,6 +51,18 @@ export function PersonasTab({
   onDelete: (id: string) => void;
 }) {
   const router = useRouter();
+  const { bag } = useExpediente();
+
+  const estados = useMemo(() => {
+    const map: Record<string, ReturnType<typeof estadoFiscalPersona>> = {};
+    for (const p of personas) {
+      map[p.id] = estadoFiscalPersona(
+        p,
+        bag.ingresos.filter((i) => i.personaId === p.id),
+      );
+    }
+    return map;
+  }, [personas, bag.ingresos]);
 
   return (
     <>
@@ -57,6 +85,7 @@ export function PersonasTab({
             <TH>Persona</TH>
             <TH>Edad</TH>
             <TH>CCAA</TH>
+            <TH>Estado</TH>
             <TH className="right">Ingresos del año</TH>
             <TH className="right">Patrimonio atribuido</TH>
             <TH />
@@ -65,13 +94,14 @@ export function PersonasTab({
         <TBody>
           {personas.length === 0 && (
             <TR>
-              <TD colSpan={6} className="mut">
+              <TD colSpan={7} className="mut">
                 Sin personas. Usa «+ Añadir» para cargar la primera.
               </TD>
             </TR>
           )}
           {personas.map((p) => {
             const label = personaLabel(p);
+            const est = estados[p.id];
             return (
               <TR
                 key={p.id}
@@ -90,6 +120,16 @@ export function PersonasTab({
                 </TD>
                 <TD className="num">{ageFromBirthYear(p.birthYear)}</TD>
                 <TD className="slt">{p.ccaa}</TD>
+                <TD>
+                  {est?.kind === "calculable" ? (
+                    <span className="pill">Calculable</span>
+                  ) : (
+                    <span className="pill" title={est?.aviso}>
+                      Sin cálculo
+                      {est ? ` · ${motivoCorto(est.motivo)}` : ""}
+                    </span>
+                  )}
+                </TD>
                 <TD className="right num strong">
                   {formatEUR(ingresosOf(p.id))}
                 </TD>
@@ -108,7 +148,7 @@ export function PersonasTab({
         </TBody>
       </Table>
       <div className="tiny" style={{ marginTop: 10 }}>
-        Los ingresos alimentan el motor fiscal (regla del rescate del plan).
+        El estado de cálculo alimenta Fiscalidad y las guardas del motor.
       </div>
     </>
   );

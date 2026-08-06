@@ -18,7 +18,7 @@ export function PasivosTab({
   personas: Persona[];
   pasivos: Pasivo[];
   inmuebles: Inmueble[];
-  onEvento: (nombre: string) => void;
+  onEvento: (nombre: string, elementoId: string) => void;
   onAdd: () => void;
   onEdit: (p: Pasivo) => void;
   onDelete: (id: string) => void;
@@ -101,7 +101,7 @@ export function PasivosTab({
                       onEdit={() => onEdit(p)}
                       onDelete={() => onDelete(p.id)}
                     />
-                    <Button size="sm" onClick={() => onEvento(label)}>
+                    <Button size="sm" onClick={() => onEvento(label, p.id)}>
                       ⚡ Evento
                     </Button>
                   </span>

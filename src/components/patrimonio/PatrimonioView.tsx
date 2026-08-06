@@ -102,6 +102,8 @@ export function PatrimonioView() {
       | "ingreso"
       | "gasto";
     nombre: string;
+    elementoId?: string;
+    tipoFiscal?: string;
   } | null>(null);
   const [alta, setAlta] = useState<AltaTarget | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -249,7 +251,7 @@ export function PatrimonioView() {
             sociedades={bag.sociedades}
             otros={bag.otrosActivos}
             pasivos={bag.pasivos}
-            onEvento={(contexto, nombre) => setEvento({ contexto, nombre })}
+            onEvento={(payload) => setEvento(payload)}
             onAdd={(kind) => setAlta({ kind })}
             onEditInstrumento={(i) => setAlta({ kind: "instrumento", item: i })}
             onEditInmueble={(i) => setAlta({ kind: "inmueble", item: i })}
@@ -292,7 +294,9 @@ export function PatrimonioView() {
             personas={bag.personas}
             pasivos={bag.pasivos}
             inmuebles={bag.inmuebles}
-            onEvento={(nombre) => setEvento({ contexto: "pasivo", nombre })}
+            onEvento={(nombre, elementoId) =>
+              setEvento({ contexto: "pasivo", nombre, elementoId })
+            }
             onAdd={() => setAlta({ kind: "pasivo" })}
             onEdit={(p) => setAlta({ kind: "pasivo", item: p })}
             onDelete={(id) => {
@@ -334,6 +338,7 @@ export function PatrimonioView() {
             inmuebles={bag.inmuebles}
             sociedades={bag.sociedades}
             otros={bag.otrosActivos}
+            pasivos={bag.pasivos}
             onEvento={() => setEvento({ contexto: "gasto", nombre: "Gastos" })}
             onAdd={() => setAlta({ kind: "gasto" })}
             onEdit={(g) => setAlta({ kind: "gasto", item: g })}
@@ -374,6 +379,8 @@ export function PatrimonioView() {
         onClose={() => setEvento(null)}
         contexto={evento?.contexto ?? "instrumento"}
         elementoNombre={evento?.nombre ?? ""}
+        elementoId={evento?.elementoId}
+        tipoFiscal={evento?.tipoFiscal}
         clienteId={cliente.id}
         escenarios={bag.escenarios.map((e) => ({
           id: e.id,
@@ -381,7 +388,10 @@ export function PatrimonioView() {
         }))}
         escenarioInicialId={planBase?.id}
         onCreated={(payload) => {
-          addEvento(payload, { escenarioId: planBase?.id });
+          addEvento(payload, {
+            escenarioId: planBase?.id,
+            targetId: evento?.elementoId,
+          });
           flash("Evento añadido al plan base — se refleja en Proyección");
         }}
       />

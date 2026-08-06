@@ -13,11 +13,15 @@ import {
 } from "@/components/ui";
 import { RowCrud } from "@/components/patrimonio/RowCrud";
 import { formatEUR } from "@/lib/format";
-import { labelVinculo } from "@/lib/patrimonio";
+import {
+  esGastoInteresDeuda,
+  labelVinculo,
+} from "@/lib/patrimonio";
 import type {
   Gasto,
   Inmueble,
   OtroActivo,
+  Pasivo,
   Persona,
   Sociedad,
 } from "@/lib/types";
@@ -29,6 +33,7 @@ export function GastosTab({
   inmuebles,
   sociedades,
   otros,
+  pasivos: _pasivos,
   onEvento,
   onAdd,
   onEdit,
@@ -39,6 +44,7 @@ export function GastosTab({
   inmuebles: Inmueble[];
   sociedades: Sociedad[];
   otros: OtroActivo[];
+  pasivos: Pasivo[];
   onEvento: () => void;
   onAdd: () => void;
   onEdit: (g: Gasto) => void;
@@ -91,10 +97,16 @@ export function GastosTab({
               sociedades,
               otros,
             );
+            const esInteres = esGastoInteresDeuda(g);
             return (
               <TR key={g.id}>
                 <TD>
                   <b>{g.categoria}</b>
+                  {esInteres && (
+                    <div className="tiny" style={{ marginTop: 2 }}>
+                      Derivado del pasivo (capital × tipo) · foto del año base
+                    </div>
+                  )}
                 </TD>
                 <TD className="right num strong">
                   {formatEUR(g.importeAnual)}
@@ -126,7 +138,8 @@ export function GastosTab({
       </Table>
       <div className="tiny" style={{ marginTop: 10 }}>
         Solo los <b>intereses</b> de la deuda cuentan como gasto; la amortización
-        de capital es ahorro.
+        de capital es ahorro. El importe de «Intereses de deuda» no se teclea:
+        sale de capital × tipo del pasivo (misma cifra que P3.7 y la proyección).
       </div>
     </>
   );

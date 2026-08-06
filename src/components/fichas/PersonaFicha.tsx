@@ -17,9 +17,13 @@ import {
 } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
+import { parsePensionJubilacion } from "@/lib/fiscal/contexto";
+import { estadoFiscalPersona } from "@/lib/fiscal/estado-persona";
+import { avisoCoberturaCcaa, ccaaConCoberturaGeneral } from "@/lib/fiscal";
+import { jubilacionDePersonaEnEscenario } from "@/lib/expediente";
 import { ageFromBirthYear, formatEUR } from "@/lib/format";
-import { personaLabel } from "@/lib/patrimonio";
-import type { Persona, Titularidad } from "@/lib/types";
+import { formatPctLabel, personaLabel } from "@/lib/patrimonio";
+import type { CCAA, Persona, Titularidad } from "@/lib/types";
 
 const RETIREMENT_AGE = 65;
 
@@ -46,7 +50,7 @@ function filasAtribuidas(
       rows.push({
         id,
         nombre,
-        pctLabel: `${Math.round(t.porcentaje * 100)} %`,
+        pctLabel: formatPctLabel(t.porcentaje),
         valor: valor * t.porcentaje,
       });
     }
@@ -64,7 +68,9 @@ function filasAtribuidas(
 }
 
 /**
- * F1 · Ficha Persona — marcado literal del mockup `fPersona`.
+ * F1 · Ficha Persona.
+ * La jubilación de la ficha es el evento del plan base (misma verdad).
+ * Una hipótesis alternativa («¿y si en 2029?») se monta desde Escenarios.
  */
 export function PersonaFicha({
   clienteId,
@@ -73,17 +79,19 @@ export function PersonaFicha({
   clienteId: string;
   persona: Persona;
 }) {
-  const { bag, ingresosPersona, patrimonioAtribuido, planBase, addEvento } =
-    useExpediente();
-  const escenariosOpts = bag.escenarios.map((e) => ({
-    id: e.id,
-    nombre: e.nombre,
-  }));
+  const {
+    bag,
+    ingresosPersona,
+    patrimonioAtribuido,
+    planBase,
+    addEvento,
+    desgloseBasePersona,
+  } = useExpediente();
   const [eventoOpen, setEventoOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
 
   const edad = ageFromBirthYear(persona.birthYear);
-  const jubilacionAnio = persona.birthYear + RETIREMENT_AGE;
+  const estimacionEdad = persona.birthYear + RETIREMENT_AGE;
   const label = personaLabel(persona);
   const iniciales = initialsFromName(label);
   const ingresos = ingresosPersona(persona.id);
@@ -92,6 +100,28 @@ export function PersonaFicha({
     () => filasAtribuidas(bag, persona.id),
     [bag, persona.id],
   );
+
+  const ingresosPersonaBag = useMemo(
+    () => bag.ingresos.filter((i) => i.personaId === persona.id),
+    [bag.ingresos, persona.id],
+  );
+  const estado = useMemo(
+    () => estadoFiscalPersona(persona, ingresosPersonaBag),
+    [persona, ingresosPersonaBag],
+  );
+  const desglose = useMemo(
+    () => desgloseBasePersona(persona.id),
+    [desgloseBasePersona, persona.id],
+  );
+
+  const jubEvento = planBase
+    ? jubilacionDePersonaEnEscenario(bag, planBase.id, persona.id)
+    : undefined;
+  const jubAnio = jubEvento?.anio ?? estimacionEdad;
+  const jubPension = jubEvento
+    ? parsePensionJubilacion(jubEvento)
+    : null;
+  const jubDesdeEvento = !!jubEvento;
 
   function flash(msg: string) {
     setToast(msg);
@@ -144,20 +174,126 @@ export function PersonaFicha({
           <div className="v" style={{ fontSize: 12.5 }}>
             {persona.ccaa}
           </div>
+          {!ccaaConCoberturaGeneral(persona.ccaa) && (
+            <div className="tiny" style={{ marginTop: 4 }}>
+              {avisoCoberturaCcaa(persona.ccaa as CCAA) ||
+                "Base general sin escala autonómica cargada"}
+            </div>
+          )}
         </div>
         <div>
           <div className="lbl">Ingresos del año</div>
-          <div className="v">{formatEUR(ingresos)}</div>
-          <div className="tiny">alimenta el motor fiscal</div>
+          {estado.kind === "sin_calculo" &&
+          estado.motivo === "sin_ingresos" ? (
+            <>
+              <div className="v" style={{ fontSize: 14 }}>
+                Sin ingresos informados
+              </div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                <Link
+                  href={`/clientes/${clienteId}/patrimonio?tab=ingresos`}
+                  style={{
+                    color: "var(--ink)",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    textUnderlineOffset: 2,
+                  }}
+                >
+                  Ir a Ingresos
+                </Link>
+              </div>
+            </>
+          ) : estado.kind === "calculable" && desglose.bruto > 0 ? (
+            <>
+              <div className="v">{formatEUR(desglose.baseLiquidable)}</div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                base liquidable · orientativo
+              </div>
+              <div
+                className="tiny"
+                style={{ marginTop: 8, color: "var(--ink-3)" }}
+              >
+                {desglose.conceptos.map((c) => (
+                  <div
+                    key={c.etiqueta}
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      gap: 8,
+                      padding: "1px 0",
+                    }}
+                  >
+                    <span>{c.etiqueta}</span>
+                    <span className="num">{formatEUR(c.importe)}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="v">{formatEUR(ingresos)}</div>
+              <div className="tiny">bruto del año</div>
+            </>
+          )}
         </div>
         <div>
           <div className="lbl">Jubilación prevista</div>
           <div className="v">
-            {jubilacionAnio} ({RETIREMENT_AGE})
+            {jubAnio}
+            {!jubDesdeEvento ? ` (${RETIREMENT_AGE})` : ""}
+            {jubPension != null ? ` · ${formatEUR(jubPension)}/año` : ""}
           </div>
           <div className="tag-manual" style={{ marginTop: 4 }}>
-            ✎ estimación del asesor
+            ✎{" "}
+            {jubDesdeEvento
+              ? "estimación del asesor · plan base"
+              : "estimación por edad · sin evento en el plan base"}
           </div>
+          <div className="tiny" style={{ marginTop: 6 }}>
+            La ficha describe la vida real (plan base). Una jubilación
+            alternativa se monta en Escenarios.
+          </div>
+        </div>
+        <div>
+          <div className="lbl">Estado de cálculo</div>
+          {estado.kind === "calculable" ? (
+            <>
+              <div className="v" style={{ fontSize: 14 }}>
+                Con renta calculable
+              </div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                Perfil {estado.perfil}
+                {!ccaaConCoberturaGeneral(persona.ccaa)
+                  ? " · base del ahorro disponible"
+                  : ""}
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="v" style={{ fontSize: 14 }}>
+                Sin cálculo
+              </div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                {estado.aviso}
+                {estado.motivo === "sin_ingresos" && (
+                  <>
+                    {" · "}
+                    <Link
+                      href={`/clientes/${clienteId}/patrimonio?tab=ingresos`}
+                      style={{
+                        color: "var(--ink)",
+                        fontWeight: 600,
+                        textDecoration: "underline",
+                        textUnderlineOffset: 2,
+                      }}
+                    >
+                      Ir a Ingresos
+                    </Link>
+                  </>
+                )}
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -205,14 +341,19 @@ export function PersonaFicha({
         elementoNombre={label}
         elementoId={persona.id}
         clienteId={clienteId}
-        escenarios={escenariosOpts}
         escenarioInicialId={planBase?.id}
+        anioInicial={jubAnio}
+        pensionInicial={jubPension ?? undefined}
         onCreated={(payload) => {
           addEvento(payload, {
             escenarioId: planBase?.id,
             targetId: persona.id,
           });
-          flash("Evento añadido al plan base — se refleja en Proyección");
+          flash(
+            jubDesdeEvento
+              ? "Jubilación del plan base actualizada"
+              : "Jubilación anotada en el plan base",
+          );
         }}
       />
       <Toast message={toast} />

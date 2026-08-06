@@ -29,6 +29,7 @@ import type {
   Pasivo,
   Persona,
   Sociedad,
+  Titularidad,
 } from "@/lib/types";
 
 function EvBtn({ onClick }: { onClick: () => void }) {
@@ -86,10 +87,12 @@ export function ActivosTab({
   sociedades: Sociedad[];
   otros: OtroActivo[];
   pasivos: Pasivo[];
-  onEvento: (
-    contexto: "instrumento" | "inmueble" | "sociedad" | "otro",
-    nombre: string,
-  ) => void;
+  onEvento: (payload: {
+    contexto: "instrumento" | "inmueble" | "sociedad" | "otro";
+    nombre: string;
+    elementoId: string;
+    tipoFiscal?: string;
+  }) => void;
   onAdd: (kind: "instrumento" | "inmueble" | "sociedad" | "otro") => void;
   onEditInstrumento: (i: Instrumento) => void;
   onEditInmueble: (i: Inmueble) => void;
@@ -108,12 +111,13 @@ export function ActivosTab({
   const yearOf = (iso: string) => iso.slice(0, 4);
 
   function participacionLabel(s: Sociedad) {
-    return Object.entries(s.participaciones)
-      .map(([pid, pct]) => {
-        const p = personas.find((x) => x.id === pid);
-        return `${p ? p.nombre : pid} ${Math.round(pct * 100)} %`;
-      })
-      .join(" · ");
+    const tits: Titularidad[] = Object.entries(s.participaciones).map(
+      ([pid, pct]) => ({
+        owner: { kind: "persona" as const, personaId: pid },
+        porcentaje: pct,
+      }),
+    );
+    return formatTitularidades(tits, personas).replace(/%/g, " %");
   }
 
   return (
@@ -210,7 +214,14 @@ export function ActivosTab({
                             onDelete={() => onDeleteInstrumento(i.id)}
                           />
                           <EvBtn
-                            onClick={() => onEvento("instrumento", i.nombre)}
+                            onClick={() =>
+                              onEvento({
+                                contexto: "instrumento",
+                                nombre: i.nombre,
+                                elementoId: i.id,
+                                tipoFiscal: i.tipoFiscal,
+                              })
+                            }
                           />
                         </span>
                       </TD>
@@ -310,7 +321,13 @@ export function ActivosTab({
                               onDelete={() => onDeleteInmueble(inm.id)}
                             />
                             <EvBtn
-                              onClick={() => onEvento("inmueble", inm.nombre)}
+                              onClick={() =>
+                                onEvento({
+                                  contexto: "inmueble",
+                                  nombre: inm.nombre,
+                                  elementoId: inm.id,
+                                })
+                              }
                             />
                           </span>
                         </TD>
@@ -398,7 +415,13 @@ export function ActivosTab({
                             onDelete={() => onDeleteSociedad(s.id)}
                           />
                           <EvBtn
-                            onClick={() => onEvento("sociedad", s.nombre)}
+                            onClick={() =>
+                              onEvento({
+                                contexto: "sociedad",
+                                nombre: s.nombre,
+                                elementoId: s.id,
+                              })
+                            }
                           />
                         </span>
                       </TD>
@@ -482,7 +505,15 @@ export function ActivosTab({
                             onEdit={() => onEditOtro(a)}
                             onDelete={() => onDeleteOtro(a.id)}
                           />
-                          <EvBtn onClick={() => onEvento("otro", a.nombre)} />
+                          <EvBtn
+                            onClick={() =>
+                              onEvento({
+                                contexto: "otro",
+                                nombre: a.nombre,
+                                elementoId: a.id,
+                              })
+                            }
+                          />
                         </span>
                       </TD>
                     </TR>

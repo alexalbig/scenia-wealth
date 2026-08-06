@@ -14,6 +14,7 @@ import {
   eventosDeEscenarioFromBag,
   ingresosPersonaFromBag,
   baseLiquidablePersonaFromBag,
+  jubilacionDePersonaEnEscenario,
   newId,
   planBaseFromBag,
   recomputeFiscalBag,
@@ -259,8 +260,35 @@ export function ExpedienteProvider({
             opts?.escenarioId ||
             plan?.id;
           if (!escenarioId) return prev;
+          const targetId = payload.targetId || opts?.targetId;
           const cuotaAnual =
             payload.cuotaAnual ?? payload.impuestosPeriodo;
+
+          // Jubilarse: una por persona+escenario → reemplaza, no añade.
+          if (payload.tipo === "jubilarse" && targetId) {
+            const existing = jubilacionDePersonaEnEscenario(
+              prev,
+              escenarioId,
+              targetId,
+            );
+            if (existing) {
+              const updated: Evento = {
+                ...existing,
+                anio: payload.anio,
+                etiqueta: payload.etiqueta,
+                notas: payload.notas,
+                introducidoPorAsesor: payload.introducidoPorAsesor,
+                targetId,
+              };
+              return recomputeFiscalBag({
+                ...prev,
+                eventos: prev.eventos.map((e) =>
+                  e.id === existing.id ? updated : e,
+                ),
+              });
+            }
+          }
+
           const ev: Evento = {
             id: newId("evt"),
             escenarioId,
@@ -268,7 +296,7 @@ export function ExpedienteProvider({
             anio: payload.anio,
             hastaAnio: payload.hastaAnio,
             etiqueta: payload.etiqueta,
-            targetId: payload.targetId || opts?.targetId,
+            targetId,
             importe: payload.importe,
             tipoGenerico: payload.tipoGenerico,
             cuotaAnual,

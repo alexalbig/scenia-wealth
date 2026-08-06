@@ -18,6 +18,8 @@ import {
   newId,
   type AltaKind,
 } from "@/lib/expediente";
+import { esGastoInteresDeuda, interesDerivadoParaGasto } from "@/lib/patrimonio";
+import { formatEUR } from "@/lib/format";
 import {
   CCAAS,
   CCAA_CON_COBERTURA_FISCAL,
@@ -77,6 +79,43 @@ const TITLES: Record<AltaKind, string> = {
   ingreso: "Ingreso",
   gasto: "Gasto",
 };
+
+function eyebrowFor(kind: AltaKind, editing: boolean): string {
+  const noun = TITLES[kind].toLowerCase();
+  if (kind === "instrumento") {
+    return editing ? "Editar activos financieros" : "Alta de activos financieros";
+  }
+  if (kind === "sociedad") {
+    return editing
+      ? "Editar inversión empresarial"
+      : "Alta de inversión empresarial";
+  }
+  if (kind === "otro") {
+    return editing ? "Editar otro activo" : "Alta de otro activo";
+  }
+  return editing ? `Editar ${noun}` : `Alta de ${noun}`;
+}
+
+function helpFor(kind: AltaKind): string {
+  switch (kind) {
+    case "persona":
+      return "La fecha de nacimiento es necesaria para calcular edades y plazos fiscales (exención de vivienda a los 65, jubilación, DT 12ª).";
+    case "instrumento":
+      return "El coste y la fecha de adquisición permiten calcular la plusvalía. Sin ellos, el motor no podrá liquidar una venta o un reembolso.";
+    case "inmueble":
+      return "El coste y la fecha de adquisición permiten calcular la plusvalía. Sin ellos, el motor no podrá liquidar una venta.";
+    case "sociedad":
+      return "La participación y el valor orientan el patrimonio atribuido. El cálculo de Impuesto de Sociedades queda pendiente de definir.";
+    case "otro":
+      return "Valor y titularidad alimentan el patrimonio. Si más adelante hay venta, harán falta coste y fecha de adquisición.";
+    case "pasivo":
+      return "Capital pendiente e intereses separan gasto (intereses) de ahorro (amortización de capital).";
+    case "ingreso":
+      return "La fuente y el importe anual construyen la base liquidable del titular. Las cotizaciones SS solo cuentan si las introduces.";
+    case "gasto":
+      return "Los gastos restan de la capacidad de ahorro. Vincularlos a un inmueble o sociedad ayuda a leer el flujo. Los intereses de deuda se derivan del pasivo (capital × tipo): el importe no se teclea.";
+  }
+}
 
 function yearFromBirthDate(iso: string) {
   const y = Number(iso.slice(0, 4));
@@ -168,6 +207,37 @@ export function AltaElementoModal({
   const [gCat, setGCat] = useState<string>(GASTO_CATEGORIAS[0]);
   const [gImporte, setGImporte] = useState("");
   const [gVinc, setGVinc] = useState("ninguno");
+
+  const gastoInteresDraft = useMemo((): Gasto | null => {
+    if (kind !== "gasto") return null;
+    let vinculadoA: Gasto["vinculadoA"] = null;
+    if (gVinc.startsWith("persona:")) {
+      vinculadoA = { kind: "persona", personaId: gVinc.slice(8) };
+    } else if (gVinc.startsWith("inmueble:")) {
+      vinculadoA = { kind: "inmueble", inmuebleId: gVinc.slice(9) };
+    } else if (gVinc.startsWith("sociedad:")) {
+      vinculadoA = { kind: "sociedad", sociedadId: gVinc.slice(9) };
+    }
+    const draft: Gasto = {
+      id: "draft",
+      clienteId: "",
+      categoria: gCat,
+      importeAnual: 0,
+      vinculadoA,
+    };
+    return esGastoInteresDeuda(draft) ? draft : null;
+  }, [kind, gCat, gVinc]);
+
+  const interesDerivadoImporte =
+    gastoInteresDraft != null
+      ? interesDerivadoParaGasto(gastoInteresDraft, pasivos)
+      : null;
+  const importeInteresBloqueado = interesDerivadoImporte != null;
+
+  useEffect(() => {
+    if (interesDerivadoImporte == null) return;
+    setGImporte(String(Math.round(interesDerivadoImporte * 100) / 100));
+  }, [interesDerivadoImporte]);
 
   useEffect(() => {
     if (!open || !target) return;
@@ -493,12 +563,26 @@ export function AltaElementoModal({
           sociedadId: gVinc.slice(9),
         };
       }
-      onSaveGasto({
+      const draftInteres: Gasto = {
         id: idOf(target.item, "gas"),
         clienteId: "",
         categoria: gCat.trim(),
-        importeAnual: Number(gImporte) || 0,
+        importeAnual: 0,
         vinculadoA,
+      };
+      const esInteres = esGastoInteresDeuda(draftInteres);
+      const derivado = esInteres
+        ? interesDerivadoParaGasto(draftInteres, pasivos)
+        : null;
+      const importeGasto =
+        derivado != null ? Math.round(derivado * 100) / 100 : Number(gImporte) || 0;
+      onSaveGasto({
+        id: draftInteres.id,
+        clienteId: "",
+        categoria: gCat.trim(),
+        importeAnual: importeGasto,
+        vinculadoA,
+        ...(esInteres ? { origenInteres: "derivado_pasivo" as const } : {}),
       });
     }
     onClose();
@@ -514,7 +598,7 @@ export function AltaElementoModal({
     <Modal
       open={open}
       onClose={onClose}
-      eyebrow="Alta de elemento"
+      eyebrow={eyebrowFor(kind, editing)}
       title={`${editing ? "Editar" : "Nuevo"} · ${TITLES[kind]}`}
       size="lg"
       footer={
@@ -527,8 +611,7 @@ export function AltaElementoModal({
       }
     >
       <div className="tiny" style={{ marginBottom: 4 }}>
-        Carga por capas: lo mínimo ahora; el detalle se completa después desde
-        su ficha. El alta no dispara cálculo fiscal.
+        {helpFor(kind)}
       </div>
 
       {kind === "persona" && (
@@ -1055,7 +1138,20 @@ export function AltaElementoModal({
                 value={gImporte}
                 onChange={(e) => setGImporte(e.target.value)}
                 className={err("gImporte") ? "err" : undefined}
+                readOnly={importeInteresBloqueado}
+                disabled={importeInteresBloqueado}
               />
+              {importeInteresBloqueado && (
+                <div className="tiny" style={{ marginTop: 4 }}>
+                  Derivado del pasivo (capital × tipo)
+                  {interesDerivadoImporte != null
+                    ? ` · ${formatEUR(interesDerivadoImporte)}`
+                    : ""}
+                  . No se teclea — como la plusvalía latente. Si el tipo o la
+                  cuota no reflejan el contrato (carencia, cambio a mitad de
+                  año), corrige el pasivo.
+                </div>
+              )}
             </div>
           </div>
           <div className="field">

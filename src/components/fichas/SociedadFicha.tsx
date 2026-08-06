@@ -17,7 +17,7 @@ import { EventoModal } from "@/components/patrimonio/EventoModal";
 import { GastosVinculadosBlock } from "@/components/fichas/GastosVinculadosBlock";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR } from "@/lib/format";
-import { gastosVinculadosA, yearFromIso } from "@/lib/patrimonio";
+import { formatPctLabel, gastosVinculadosA, yearFromIso } from "@/lib/patrimonio";
 import { personaLabel } from "@/lib/patrimonio";
 import type { Inmueble, Instrumento, Persona, Sociedad } from "@/lib/types";
 
@@ -167,7 +167,7 @@ export function SociedadFicha({
                     <b>{row.label}</b>
                   </TD>
                   <TD className="right num">
-                    {Math.round(row.porcentaje * 100)} %
+                    {formatPctLabel(row.porcentaje)}
                   </TD>
                 </TR>
               ))}
