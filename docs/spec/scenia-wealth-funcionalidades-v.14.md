@@ -374,14 +374,16 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Lanzar evento desde la línea | 78 | Amortizar, cancelar | MVP |
 | **Separación interés / capital** | 79 | La cuota nunca va entera a un sitio: los intereses son gasto (**derivados de capital × tipo** del pasivo, no una línea fija eterna), la amortización es ahorro. **Nivel 1**: aproximación anual, orientativa | MVP |
 | Total de pasivos | 80 | En `tfoot`, alimenta el patrimonio neto | MVP |
-| Modalidad del tipo de interés | 81 | Fijo · variable · mixto. Cambia por completo la conversación de amortizar-vs-invertir | V2 |
-| Campo "fin de tipo fijo" | 82 | Para el nivel 2 de amortización y su alerta | V2 |
-| Tabla de amortización francesa | 83 | Nivel 2: cálculo mes a mes. Requiere el plazo del préstamo | V2 |
+| Modalidad del tipo de interés | 81 | Fijo · variable · mixto. Prerrequisito de la regla ③: solo fijo compara | MVP |
+| Plazo restante | 82 | Campo explícito en años (no inferido). El n efectivo de la regla ③ se acorta si la amortización anticipada mantiene la cuota | MVP |
+| Campo "fin de tipo fijo" | 83 | Para mixtas · nivel 2 | V2 |
+| Tabla de amortización francesa | 84 | Nivel 2: cálculo mes a mes | V2 |
 
 ### Variables
 
 - **Tipo de pasivo:** hipoteca · crédito personal
-- **Modalidad de interés (V2):** fijo · variable · mixto *(hoy solo se guarda el porcentaje)*
+- **Modalidad de interés:** fijo · variable · mixto
+- **Plazo restante:** años enteros, declarados por el asesor
 - **Inmueble asociado:** cualquiera del expediente · ninguno
 
 ### Cómo la usa el asesor
@@ -854,7 +856,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Aportar a fondo | 247 | Importe · año. Sin consecuencia fiscal | MVP |
 | Comprar inmueble | 248 | Precio · año · hipoteca. Sin fiscalidad, pero crea el activo y descuenta liquidez. Título del modal: solo «Comprar inmueble» (no arrastra el nombre del elemento de origen) | MVP |
 | **Jubilarse** | 249 | Año · pensión estimada. **Sustituye los ingresos de trabajo por la pensión** a partir de ese año, dentro del escenario. **Una sola por persona y escenario** (reemplaza al guardar). Desde F1 siempre toca el plan base | CORE |
-| Amortizar hipoteca | 250 | Importe · año · **targetId = pasivo** (si el inmueble tiene varias hipotecas, el modal pregunta cuál; sin pasivo no se registra). Mueve patrimonio. Interés futuro = capital × tipo. Comparación amortizar vs invertir: no construida | MVP |
+| Amortizar hipoteca | 250 | Importe · año · **targetId = pasivo**. Mueve patrimonio. Interés futuro = capital × tipo. Regla ③: comparación en modal y tabla de hechos si modalidad fija + plazo + rentabilidad del escenario | MVP |
 | Aportar a plan de pensiones | 251 | Importe · año. Reduce la base general con su límite; avisa del exceso | CORE |
 | Repartir dividendo / vender participación | 252 | **Sin cálculo** — el liquidador de IS no existe. El hueco se marca | MVP |
 | Evento genérico | 253 | Ingreso · gasto · movimiento libre. Sin cálculo. Si el asesor teclea un impacto, se marca como introducido | MVP |
@@ -996,7 +998,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Regla · Venta de vivienda habitual >65 | 306 | Exención art. 33.4.b), **evaluada por titular** | CORE |
 | Regla · Aportación a plan de pensiones | 307 | Reducción en base general con su límite; avisa del exceso | CORE |
 | Regla · Reinversión en renta vitalicia | 308 | Art. 38.3: avisa, no liquida la exención. Faltan los requisitos del art. 42 RIRPF | MVP (parcial) |
-| Regla · Amortizar vs invertir | 309 | Comparación entre interés contractual ahorrado y rendimiento esperado (rentabilidad del escenario). **Hoy no construida**: el evento solo registra el movimiento patrimonial; el chip lo dice sin prometer la comparación. Prerrequisitos de modelo: modalidad del tipo y plazo restante | V2 |
+| Regla · Amortizar vs invertir | 309 | Dos patas capitalizadas X×((1+tasa)^n−1): interés contractual (tipo del pasivo) vs rendimiento esperado (rentabilidad **del escenario**). Solo hipoteca fija. n = plazo efectivo tras amortizar (cuota constante); el modal explica el acortamiento (p. ej. de 21 a 13,9 años). Sin fiscalidad de lo invertido (hueco declarado). Sin coronar ganador. Varios pasivos en un camino → no agrega en silencio | MVP |
 | Bloqueo de regímenes forales | 310 | País Vasco y Navarra: normativa propia, no una variante de la común | CORE |
 | FIFO por lotes | 311 | El art. 37.2 impone identificar por orden de compra. Hoy se usa un ratio único, declarado como no válido para autoliquidación | V2 |
 | Acumulación de periodo | 312 | Estado fiscal por ejercicio, con bases que cambian | V2 |

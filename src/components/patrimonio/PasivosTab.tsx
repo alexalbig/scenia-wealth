@@ -49,6 +49,8 @@ export function PasivosTab({
             <TH>Prestamista</TH>
             <TH className="right">Capital pendiente</TH>
             <TH className="right">Tipo</TH>
+            <TH>Modalidad</TH>
+            <TH className="right">Plazo</TH>
             <TH className="right">Cuota</TH>
             <TH>Inmueble</TH>
             <TH>Titularidad</TH>
@@ -58,7 +60,7 @@ export function PasivosTab({
         <TBody>
           {pasivos.length === 0 && (
             <TR>
-              <TD colSpan={8} className="mut">
+              <TD colSpan={10} className="mut">
                 Sin pasivos.
               </TD>
             </TR>
@@ -69,6 +71,14 @@ export function PasivosTab({
               p.tipo === "hipoteca"
                 ? `Hipoteca ${p.prestamista}`
                 : `Crédito ${p.prestamista}`;
+            const modalidadLabel =
+              p.modalidadInteres === "fijo"
+                ? "Fijo"
+                : p.modalidadInteres === "variable"
+                  ? "Variable"
+                  : p.modalidadInteres === "mixto"
+                    ? "Mixto"
+                    : "—";
             return (
               <TR key={p.id}>
                 <TD>
@@ -80,6 +90,12 @@ export function PasivosTab({
                 </TD>
                 <TD className="right num">
                   {(p.tipoInteres * 100).toLocaleString("es-ES")} %
+                </TD>
+                <TD className="slt">{modalidadLabel}</TD>
+                <TD className="right num">
+                  {p.plazoRestanteAnios != null
+                    ? `${p.plazoRestanteAnios} años`
+                    : "—"}
                 </TD>
                 <TD className="right num">{formatEUR(p.cuotaMensual)}/mes</TD>
                 <TD className="slt">{inm?.nombre ?? "—"}</TD>
@@ -114,7 +130,7 @@ export function PasivosTab({
           <TR>
             <TD colSpan={2}>Total pasivos</TD>
             <TD className="right num">{formatEUR(total)}</TD>
-            <TD colSpan={5} />
+            <TD colSpan={7} />
           </TR>
         </TFoot>
       </Table>

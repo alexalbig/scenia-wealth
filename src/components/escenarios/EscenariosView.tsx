@@ -25,8 +25,10 @@ import {
   type CaminoLectura,
   type ComparadorMetrica,
 } from "@/lib/escenarios";
+import { compararAmortizarDeCamino } from "@/lib/amortizar-vs-invertir";
 import {
   buildProyeccionSeriesFromBag,
+  PROYECCION_START_YEAR,
   toEuroHoy,
   type EuroMode,
 } from "@/lib/proyeccion";
@@ -148,15 +150,23 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
       if (mode === "hoy") {
         liquidos = toEuroHoy(liquidos, anioFijado, e.inflacion ?? 0.02);
       }
+      const eventos = eventosDeEscenario(e.id);
       return {
         id: e.id,
         nombre: e.nombre,
         esPlanBase: e.esPlanBase,
-        eventos: eventosDeEscenario(e.id),
+        eventos,
         impactoFiscal: e.esPlanBase ? null : (e.impuestosPeriodo ?? 0),
         liquidosEnAnio: Math.round(liquidos),
         patrimonioFinal: Math.round(pFin?.patrimonio ?? 0),
         sostenibilidad: sostenibilidadDeCamino(points),
+        amortizarVsInvertir: compararAmortizarDeCamino({
+          eventos,
+          pasivos: bag.pasivos,
+          anioDatos: PROYECCION_START_YEAR,
+          // Sin fallback: solo rentabilidad declarada en el escenario.
+          rentabilidadEsperada: e.rentabilidadEsperada,
+        }),
         impuestosParcial: e.impuestosParcial,
         impuestosMotivosParcial: e.impuestosMotivosParcial,
         impuestosSobreDatoIntroducido: e.impuestosSobreDatoIntroducido,
@@ -168,6 +178,7 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
     anioFijado,
     mode,
     eventosDeEscenario,
+    bag.pasivos,
   ]);
 
   const chartSeries = compareEscenarios.map((e) => ({

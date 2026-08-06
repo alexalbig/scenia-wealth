@@ -73,6 +73,9 @@ export type TipoOtroActivo =
 
 export type TipoPasivo = "hipoteca" | "credito";
 
+/** Modalidad del tipo de interés del pasivo (regla ③). */
+export type ModalidadInteres = "fijo" | "variable" | "mixto";
+
 export type FuenteIngreso =
   | "trabajo"
   | "alquiler"
@@ -209,6 +212,17 @@ export interface Pasivo {
   capitalPendiente: number;
   tipoInteres: number; // decimal, ej. 0.025
   cuotaMensual: number;
+  /**
+   * Modalidad del tipo · prerrequisito de la regla ③.
+   * Sin ella no se compara amortizar vs invertir.
+   */
+  modalidadInteres?: ModalidadInteres;
+  /**
+   * Plazo restante en años (entero), declarado por el asesor · no inferido.
+   * La comparación usa un n efectivo que puede ser menor si la amortización
+   * anticipada acorta la hipoteca manteniendo la cuota.
+   */
+  plazoRestanteAnios?: number;
   inmuebleId?: string;
   titularidades: Titularidad[];
 }

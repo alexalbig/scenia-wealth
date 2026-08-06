@@ -9,6 +9,7 @@ import {
 import {
   FUENTE_INGRESO_OPTIONS,
   GASTO_CATEGORIAS,
+  MODALIDAD_INTERES_OPTIONS,
   TIPO_FISCAL_OPTIONS,
   TIPO_OTRO_OPTIONS,
   TIPO_PASIVO_OPTIONS,
@@ -29,6 +30,7 @@ import {
   type Ingreso,
   type Inmueble,
   type Instrumento,
+  type ModalidadInteres,
   type OtroActivo,
   type Pasivo,
   type Persona,
@@ -194,6 +196,8 @@ export function AltaElementoModal({
   const [paCapital, setPaCapital] = useState("");
   const [paInteres, setPaInteres] = useState("");
   const [paCuota, setPaCuota] = useState("");
+  const [paModalidad, setPaModalidad] = useState<ModalidadInteres | "">("");
+  const [paPlazo, setPaPlazo] = useState("");
   const [paInmuebleId, setPaInmuebleId] = useState("");
   const [paTit, setPaTit] = useState<Titularidad[]>([]);
 
@@ -309,6 +313,10 @@ export function AltaElementoModal({
       setPaCapital(it ? String(it.capitalPendiente) : "");
       setPaInteres(it ? String(it.tipoInteres * 100) : "");
       setPaCuota(it ? String(it.cuotaMensual) : "");
+      setPaModalidad(it?.modalidadInteres ?? "");
+      setPaPlazo(
+        it?.plazoRestanteAnios != null ? String(it.plazoRestanteAnios) : "",
+      );
       setPaInmuebleId(it?.inmuebleId ?? "");
       setPaTit(it?.titularidades ?? defs);
     }
@@ -514,6 +522,7 @@ export function AltaElementoModal({
       });
     }
     if (kind === "pasivo" && target?.kind === "pasivo") {
+      const plazoN = Number(paPlazo);
       onSavePasivo({
         id: idOf(target.item, "pas"),
         clienteId: "",
@@ -522,6 +531,11 @@ export function AltaElementoModal({
         capitalPendiente: Number(paCapital) || 0,
         tipoInteres: (Number(paInteres) || 0) / 100,
         cuotaMensual: Number(paCuota) || 0,
+        modalidadInteres: paModalidad || undefined,
+        plazoRestanteAnios:
+          paPlazo !== "" && Number.isFinite(plazoN) && plazoN > 0
+            ? Math.round(plazoN)
+            : undefined,
         inmuebleId:
           paTipo === "hipoteca" && paInmuebleId ? paInmuebleId : undefined,
         titularidades: paTit,
@@ -1041,6 +1055,43 @@ export function AltaElementoModal({
                 </select>
               </div>
             )}
+          </div>
+          <div className="grid2">
+            <div className="field">
+              <label className="lbl">Modalidad del tipo</label>
+              <select
+                value={paModalidad}
+                onChange={(e) =>
+                  setPaModalidad(
+                    (e.target.value || "") as ModalidadInteres | "",
+                  )
+                }
+              >
+                <option value="">Sin informar</option>
+                {MODALIDAD_INTERES_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>
+                    {o.label}
+                  </option>
+                ))}
+              </select>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                Sin modalidad fija no hay comparación amortizar vs invertir.
+              </div>
+            </div>
+            <div className="field">
+              <label className="lbl">Plazo restante (años)</label>
+              <input
+                type="number"
+                min={1}
+                step={1}
+                value={paPlazo}
+                onChange={(e) => setPaPlazo(e.target.value)}
+                placeholder="Ej.: 21"
+              />
+              <div className="tiny" style={{ marginTop: 4 }}>
+                Declarado por el asesor · no se infiere de la cuota.
+              </div>
+            </div>
           </div>
           <TitularidadEditor
             personas={personas}

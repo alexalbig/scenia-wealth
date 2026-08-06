@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Modal } from "@/components/ui";
 import { useExpedienteOptional } from "@/components/expediente/ExpedienteProvider";
-import { formatEUR, formatIntegerES, ageFromBirthYear } from "@/lib/format";
+import {
+  compararAmortizarVsInvertir,
+  textoMotivoComparacion,
+  type ComparacionAmortizarVsInvertir,
+} from "@/lib/amortizar-vs-invertir";
+import { formatEUR, formatIntegerES, ageFromBirthYear, formatPercent } from "@/lib/format";
+import { PROYECCION_START_YEAR } from "@/lib/proyeccion";
 import { simularMotorEvento } from "@/lib/fiscal/motor";
 import {
   buildContextoFiscalFromBag,
@@ -160,6 +166,34 @@ export function PlantillaEvento({
       setPasivoTargetId("");
     }
   }, [tipo, pasivosAmortizar, pasivoTargetId]);
+
+  const comparacionAmortizar = useMemo((): ComparacionAmortizarVsInvertir | null => {
+    if (tipo !== "amortizar_hipoteca" || !pasivoTargetId || !exp?.bag) {
+      return null;
+    }
+    const pasivo = pasivosAmortizar.find((p) => p.id === pasivoTargetId);
+    if (!pasivo) return null;
+    const escId = escenarioId || escenarioInicialId;
+    const esc = exp.bag.escenarios.find((e) => e.id === escId);
+    // Sin fallback al 4 % del producto: solo si el escenario la declara.
+    const r = esc?.rentabilidadEsperada;
+    return compararAmortizarVsInvertir({
+      pasivo,
+      importe: Number(importe) || 0,
+      anioEvento: Number(anio) || PROYECCION_START_YEAR,
+      anioDatos: PROYECCION_START_YEAR,
+      rentabilidadEsperada: r,
+    });
+  }, [
+    tipo,
+    pasivoTargetId,
+    pasivosAmortizar,
+    importe,
+    anio,
+    escenarioId,
+    escenarioInicialId,
+    exp?.bag,
+  ]);
 
   const titLinea = useMemo(() => {
     if (!clienteId || !elementoId) return null;
@@ -639,21 +673,37 @@ export function PlantillaEvento({
         ? "No hay hipoteca asociada · no se registra la amortización · no se inventa un pasivo"
         : "Elige la hipoteca a amortizar · sin pasivo no se registra el evento"
       : null;
+  const chipAmortizarComparacion =
+    tipo === "amortizar_hipoteca" &&
+    !chipAmortizarSinPasivo &&
+    comparacionAmortizar &&
+    comparacionAmortizar.kind !== "comparacion"
+      ? textoMotivoComparacion(comparacionAmortizar)
+      : null;
   const chip =
     chipAmortizarSinPasivo ??
-    (chipMotor == null
+    chipAmortizarComparacion ??
+    (tipo === "amortizar_hipoteca" &&
+    comparacionAmortizar?.kind === "comparacion"
       ? ""
-      : chipMotor.kind === "calculado" || chipMotor.kind === "neutro"
-        ? chipMotor.nota +
-          (chipMotor.kind === "calculado" &&
-          chipMotor.estimacionNoAutoliquidable
-            ? " · ⚠ no válida para autoliquidación"
-            : "")
-        : chipMotor.kind === "pendiente_is" || chipMotor.kind === "sin_calculo"
-          ? chipMotor.nota
-          : chipPreviewEvento(tipo!, reinvierte));
+      : chipMotor == null
+        ? ""
+        : chipMotor.kind === "calculado" || chipMotor.kind === "neutro"
+          ? chipMotor.nota +
+            (chipMotor.kind === "calculado" &&
+            chipMotor.estimacionNoAutoliquidable
+              ? " · ⚠ no válida para autoliquidación"
+              : "")
+          : chipMotor.kind === "pendiente_is" || chipMotor.kind === "sin_calculo"
+            ? chipMotor.nota
+            : chipPreviewEvento(tipo!, reinvierte));
   const chipSobreDato =
     !chipAmortizarSinPasivo &&
+    !chipAmortizarComparacion &&
+    !(
+      tipo === "amortizar_hipoteca" &&
+      comparacionAmortizar?.kind === "comparacion"
+    ) &&
     chipMotor &&
     (chipMotor.kind === "calculado" || chipMotor.kind === "neutro")
       ? chipMotor.sobreDatoIntroducido
@@ -1013,7 +1063,11 @@ export function PlantillaEvento({
               {formError}
             </div>
           )}
-          <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
+          {comparacionAmortizar?.kind === "comparacion" ? (
+            <ComparacionAmortizarBlock c={comparacionAmortizar} />
+          ) : chip ? (
+            <ChipMotorResult texto={chip} sobreDato={chipSobreDato} />
+          ) : null}
         </>
       )}
 
@@ -1277,6 +1331,86 @@ export function PlantillaEvento({
         </>
       )}
     </Modal>
+  );
+}
+
+function formatAniosComparacion(n: number): string {
+  return n.toLocaleString("es-ES", { maximumFractionDigits: 1 });
+}
+
+function ComparacionAmortizarBlock({
+  c,
+}: {
+  c: Extract<ComparacionAmortizarVsInvertir, { kind: "comparacion" }>;
+}) {
+  const pctTipo = formatPercent(c.tipoInteres);
+  const pctR = formatPercent(c.rentabilidadEscenario);
+  const nLabel = formatAniosComparacion(c.nEfectivoAnios);
+  const nDeclaradoLabel = formatAniosComparacion(c.nDeclaradoAnios);
+  const acorta =
+    c.nEfectivoAnios < c.nDeclaradoAnios - 0.05;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 10,
+          border: "1px solid var(--line-2)",
+          borderRadius: 8,
+          padding: 10,
+          background: "var(--paper)",
+        }}
+      >
+        <div>
+          <div className="lbl">Amortizar</div>
+          <div className="num strong" style={{ fontSize: 16, marginTop: 4 }}>
+            {formatEUR(Math.round(c.interesContractualAhorrado))}
+          </div>
+          <div className="tiny" style={{ marginTop: 6 }}>
+            Interés contractual que deja de pagarse · orientativo
+          </div>
+          <div className="tiny" style={{ marginTop: 4 }}>
+            <b>Hecho contractual</b> · tipo {pctTipo} · plazo efectivo {nLabel}{" "}
+            años
+          </div>
+          <div className="tiny mut" style={{ marginTop: 4 }}>
+            Dato del pasivo
+          </div>
+        </div>
+        <div>
+          <div className="lbl">Invertir la misma cantidad</div>
+          <div className="num strong" style={{ fontSize: 16, marginTop: 4 }}>
+            {formatEUR(Math.round(c.rendimientoEsperado))}
+          </div>
+          <div className="tiny" style={{ marginTop: 6 }}>
+            Rendimiento esperado · orientativo
+          </div>
+          <div className="tiny" style={{ marginTop: 4 }}>
+            <b>Expectativa</b> · rentabilidad del escenario {pctR} · mismo plazo
+          </div>
+          <div className="tiny mut" style={{ marginTop: 4 }}>
+            Supuesto del asesor · como la pensión estimada
+          </div>
+        </div>
+      </div>
+      {acorta ? (
+        <div className="tiny" style={{ marginTop: 8 }}>
+          La hipoteca pasa de {nDeclaradoLabel} a {nLabel} años al amortizar{" "}
+          {formatEUR(Math.round(c.importe))}. La comparación se hace sobre ese
+          plazo.
+        </div>
+      ) : null}
+      <div className="tiny" style={{ marginTop: acorta ? 6 : 8 }}>
+        No se señala ganador: una pata es certeza del contrato; la otra es la
+        hipótesis que tú has puesto en el escenario.
+      </div>
+      <div className="tiny mut" style={{ marginTop: 4 }}>
+        Antes de impuestos sobre el rendimiento · la fiscalidad al realizar la
+        inversión no está liquidada · capitalización X×((1+tasa)^n−1) · n = plazo
+        efectivo tras amortizar ({nLabel} años, cuota constante).
+      </div>
+    </div>
   );
 }
 

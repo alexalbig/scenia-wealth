@@ -65,7 +65,7 @@ export interface ExpedienteBag {
  * Subir cuando el seed de un cliente demo cambia de forma incompatible
  * con bags cacheados (ingresos, personas, gastos…).
  */
-export const SEED_BAG_REVISION = 5;
+export const SEED_BAG_REVISION = 6;
 
 export type AltaKind =
   | "persona"
@@ -313,7 +313,7 @@ export function syncInteresesDerivadosBag(bag: ExpedienteBag): ExpedienteBag {
     return {
       ...g,
       importeAnual: next,
-      origenInteres: "derivado_pasivo",
+      origenInteres: "derivado_pasivo" as const,
     };
   });
   return changed ? { ...bag, gastos } : bag;

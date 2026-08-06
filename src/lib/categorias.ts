@@ -70,3 +70,12 @@ export const TIPO_PASIVO_OPTIONS: Array<{
   { value: "hipoteca", label: "Hipoteca" },
   { value: "credito", label: "Crédito personal" },
 ];
+
+export const MODALIDAD_INTERES_OPTIONS: Array<{
+  value: import("@/lib/types").ModalidadInteres;
+  label: string;
+}> = [
+  { value: "fijo", label: "Fijo" },
+  { value: "variable", label: "Variable" },
+  { value: "mixto", label: "Mixto" },
+];

@@ -510,7 +510,7 @@ export function simularMotorEvento(
     case "amortizar_hipoteca":
       return {
         kind: "sin_calculo",
-        nota: "El evento se registra y baja el pasivo y el efectivo · el interés ahorrado frente a la rentabilidad esperada no está calculado · no se inventan cifras",
+        nota: "Sin cuota IRPF · la comparación amortizar vs invertir (si el pasivo es fijo y declara plazo) se muestra en el modal y en la tabla de hechos · orientativo",
       };
 
     case "vender_inmueble": {

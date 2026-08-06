@@ -59,6 +59,7 @@ const ESC_B = "esc-gl-b-pignoracion";
 const ESC_C = "esc-gl-c-javea-2033";
 const ESC_D = "esc-gl-d-javea-2036";
 const ESC_E = "esc-gl-e-rescate-marta";
+const ESC_F = "esc-gl-f-amortizar";
 
 /* ── Beltrán Ortiz ── */
 const SOCIEDAD_BELTRAN = "sociedad-beltran-holding";
@@ -957,6 +958,8 @@ export const seed: SeedData = {
       capitalPendiente: 180_000,
       tipoInteres: 0.029,
       cuotaMensual: 950,
+      modalidadInteres: "fijo",
+      plazoRestanteAnios: 21,
       inmuebleId: INMUEBLE_JAVEA,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 0.5 },
@@ -971,6 +974,8 @@ export const seed: SeedData = {
       capitalPendiente: 180_000,
       tipoInteres: 0.029,
       cuotaMensual: 950,
+      modalidadInteres: "fijo",
+      plazoRestanteAnios: 21,
       inmuebleId: INMUEBLE_BELTRAN_VIVIENDA,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
@@ -985,6 +990,8 @@ export const seed: SeedData = {
       capitalPendiente: 90_000,
       tipoInteres: 0.032,
       cuotaMensual: 510,
+      modalidadInteres: "fijo",
+      plazoRestanteAnios: 18,
       inmuebleId: INMUEBLE_BELTRAN_LOCAL,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
@@ -999,6 +1006,9 @@ export const seed: SeedData = {
       capitalPendiente: 30_000,
       tipoInteres: 0.05,
       cuotaMensual: 290,
+      // Variable · demo regla ③ no aplicable
+      modalidadInteres: "variable",
+      plazoRestanteAnios: 10,
       inmuebleId: INMUEBLE_BELTRAN_LOCAL,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
@@ -1013,6 +1023,8 @@ export const seed: SeedData = {
       capitalPendiente: 140_000,
       tipoInteres: 0.03,
       cuotaMensual: 665,
+      modalidadInteres: "fijo",
+      plazoRestanteAnios: 22,
       inmuebleId: INMUEBLE_REQUENA_VIVIENDA,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 0.5 },
@@ -1027,6 +1039,8 @@ export const seed: SeedData = {
       capitalPendiente: 15_000,
       tipoInteres: 0.069,
       cuotaMensual: 280,
+      modalidadInteres: "fijo",
+      plazoRestanteAnios: 5,
       // Sin inmueble · crédito del Cupra · demo interés derivado sin vínculo.
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 1 },
@@ -1040,6 +1054,8 @@ export const seed: SeedData = {
       capitalPendiente: 75_000,
       tipoInteres: 0.028,
       cuotaMensual: 720,
+      modalidadInteres: "fijo",
+      plazoRestanteAnios: 9,
       inmuebleId: INMUEBLE_TORMO_VIVIENDA,
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_AMPARO }, porcentaje: 0.5 },
@@ -1560,6 +1576,19 @@ export const seed: SeedData = {
         "evt-e-rescate-capital",
       ],
     },
+    {
+      id: ESC_F,
+      clienteId: CLIENTE_GL,
+      nombre: "F · Amortizar 50.000",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-f-jubilacion-carlos",
+        "evt-f-jubilacion-marta",
+        "evt-f-amortizar",
+      ],
+    },
 
     /* ── Beltrán ── */
     {
@@ -1858,6 +1887,36 @@ export const seed: SeedData = {
       notas: "DT 12ª · fraccionPre2007 55 % · contingencia 2026",
     },
 
+    {
+      id: "evt-f-jubilacion-carlos",
+      escenarioId: ESC_F,
+      tipo: "jubilarse",
+      anio: 2033,
+      etiqueta: "Jubilación de Carlos (65)",
+      targetId: PERSONA_CARLOS,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 32.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-f-jubilacion-marta",
+      escenarioId: ESC_F,
+      tipo: "jubilarse",
+      anio: 2036,
+      etiqueta: "Jubilación de Marta (65)",
+      targetId: PERSONA_MARTA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 14.500 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-f-amortizar",
+      escenarioId: ESC_F,
+      tipo: "amortizar_hipoteca",
+      anio: 2026,
+      etiqueta: "Amortizar Hipoteca Banco Levante · 50.000 €",
+      targetId: PASIVO_HIPOTECA,
+      importe: 50_000,
+    },
+
     /* ── Beltrán ── */
     {
       id: "evt-beltran-base-jubilacion-jorge",
@@ -2091,6 +2150,7 @@ export const ids = {
   escC: ESC_C,
   escD: ESC_D,
   escE: ESC_E,
+  escF: ESC_F,
   escBeltranBase: ESC_BELTRAN_BASE,
   escBeltranA: ESC_BELTRAN_A,
   escNavarroBase: ESC_NAVARRO_BASE,
