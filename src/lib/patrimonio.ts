@@ -183,6 +183,50 @@ export function formatFechaDMY(iso: string) {
   return `${d.padStart(2, "0")}/${m.padStart(2, "0")}/${y}`;
 }
 
+/** Gastos asociados a un elemento vía «Vincular a». */
+export function gastosVinculadosA(
+  gastos: Gasto[],
+  ref:
+    | { kind: "inmueble"; inmuebleId: string }
+    | { kind: "otro"; otroId: string }
+    | { kind: "sociedad"; sociedadId: string },
+): Gasto[] {
+  return gastos.filter((g) => {
+    const v = g.vinculadoA;
+    if (!v) return false;
+    if (ref.kind === "inmueble" && v.kind === "inmueble") {
+      return v.inmuebleId === ref.inmuebleId;
+    }
+    if (ref.kind === "otro" && v.kind === "otro") {
+      return v.otroId === ref.otroId;
+    }
+    if (ref.kind === "sociedad" && v.kind === "sociedad") {
+      return v.sociedadId === ref.sociedadId;
+    }
+    return false;
+  });
+}
+
+export function resumenGastosVinculados(
+  gastos: Gasto[],
+  valorElemento: number | null | undefined,
+): {
+  total: number;
+  lineas: Array<{ categoria: string; importeAnual: number }>;
+  pctValor: number | null;
+} {
+  const lineas = gastos.map((g) => ({
+    categoria: g.categoria,
+    importeAnual: g.importeAnual,
+  }));
+  const total = lineas.reduce((s, l) => s + l.importeAnual, 0);
+  const pctValor =
+    valorElemento != null && valorElemento > 0
+      ? (total / valorElemento) * 100
+      : null;
+  return { total, lineas, pctValor };
+}
+
 /** Nivel 1: cuota anual ≈ cuota×12 − intereses (orientativo). */
 export function amortizacionCapitalAnual(pasivos: Pasivo[], gastos: Gasto[]) {
   // Intereses: asignamos por inmueble cuando hay vinculación;

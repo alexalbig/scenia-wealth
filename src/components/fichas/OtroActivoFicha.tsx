@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button, LiqBadge, SheetPad, Toast } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
+import { GastosVinculadosBlock } from "@/components/fichas/GastosVinculadosBlock";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR } from "@/lib/format";
 import {
+  gastosVinculadosA,
   titTxtCorto,
   tipoOtroLabel,
   yearFromIso,
@@ -32,6 +34,10 @@ export function OtroActivoFicha({
   }));
   const [eventoOpen, setEventoOpen] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const gastosOtro = gastosVinculadosA(bag.gastos, {
+    kind: "otro",
+    otroId: activo.id,
+  });
 
   return (
     <SheetPad>
@@ -93,6 +99,11 @@ export function OtroActivoFicha({
           </div>
         </div>
       </div>
+
+      <GastosVinculadosBlock
+        gastos={gastosOtro}
+        valorElemento={activo.valor}
+      />
 
       <div className="tiny" style={{ marginTop: 14 }}>
         La venta de este activo va por el <b>evento genérico</b> (sin cálculo

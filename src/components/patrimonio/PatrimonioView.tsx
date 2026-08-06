@@ -193,17 +193,6 @@ export function PatrimonioView() {
   return (
     <>
       <Tabs items={[...TABS]} value={tab} onChange={setTab} />
-      {!cliente.completo && (
-        <div className="hint-info" style={{ margin: "0 22px 0" }}>
-          <b>ⓘ</b>
-          <span>
-            Cliente de cartera (foto ligera). Puedes explorar las pestañas; el
-            expediente editable completo y el motor demo están en{" "}
-            <b>Familia García-Llorente</b>, o crea uno nuevo con «+ Nuevo
-            cliente».
-          </span>
-        </div>
-      )}
       <SheetPad>
         {tab === "resumen" && (
           <ResumenTab
@@ -212,6 +201,7 @@ export function PatrimonioView() {
             capacidad={ahorro.capacidad}
             onTab={setTab}
             onInforme={() => setInformeOpen(true)}
+            datosAFecha={datosDMY}
             onAdd={(cat) => {
               const kind = RESUMEN_KIND[cat];
               if (kind) setAlta({ kind });
@@ -230,13 +220,6 @@ export function PatrimonioView() {
               otros: bag.otrosActivos.map((a) => a.nombre).join(" · ") || "—",
             }}
             sociedadId={bag.sociedades[0]?.id}
-            fotoLigera={
-              !cliente.completo &&
-              totales.bruto === 0 &&
-              totales.pasivos === 0
-                ? { patrimonioNeto: cliente.patrimonioNeto }
-                : undefined
-            }
           />
         )}
 

@@ -34,7 +34,6 @@ function bagDelgado(): ExpedienteBag {
         otros: 0,
       },
       ultimaRevisionMeses: 0,
-      completo: true,
       datosAFecha: "2026-01-01",
     },
     personas: [

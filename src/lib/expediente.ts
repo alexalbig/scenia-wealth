@@ -51,7 +51,18 @@ export interface ExpedienteBag {
   escenarios: Escenario[];
   eventos: Evento[];
   historial: HistorialInforme[];
+  /**
+   * Clientes del seed: si no coincide con `SEED_BAG_REVISION`,
+   * `resolveExpediente` descarta el localStorage y reclona.
+   */
+  seedRevision?: number;
 }
+
+/**
+ * Subir cuando el seed de un cliente demo cambia de forma incompatible
+ * con bags cacheados (ingresos, personas, gastos…).
+ */
+export const SEED_BAG_REVISION = 2;
 
 export type AltaKind =
   | "persona"
@@ -112,11 +123,9 @@ export function cloneExpedienteFromSeed(
     getEventosDeEscenario(e.id).map((ev) => ({ ...ev })),
   );
 
-  // Clientes ligeros: sin plan en seed → no inventar escenarios editables
+  // Sin escenarios en seed → plan base vacío (expediente editable).
   const bagEscenarios =
-    cliente.completo && escenarios.length === 0
-      ? [makePlanBase(clienteId)]
-      : escenarios;
+    escenarios.length === 0 ? [makePlanBase(clienteId)] : escenarios;
 
   return {
     cliente: { ...cliente, composicion: { ...cliente.composicion } },
@@ -178,7 +187,6 @@ export function emptyExpediente(
         empresarial: 0,
         otros: 0,
       },
-      completo: true,
     },
     personas,
     instrumentos: [],
@@ -419,28 +427,9 @@ export function elementosMenuFromBag(bag: ExpedienteBag): ElementoMenuItem[] {
 }
 
 /**
- * Recalcula patrimonio neto + composición (fracciones 0–1).
- * Clientes ligeros (Cartera): no machacar cifras seed al abrir el expediente.
+ * Recalcula patrimonio neto + composición (fracciones 0–1) desde los elementos.
  */
 export function syncClienteTotales(bag: ExpedienteBag): ExpedienteBag {
-  const hasEditableAssets =
-    bag.instrumentos.length +
-      bag.inmuebles.length +
-      bag.otrosActivos.length +
-      bag.pasivos.length >
-    0;
-
-  if (!bag.cliente.completo && !hasEditableAssets) {
-    return {
-      ...bag,
-      cliente: {
-        ...bag.cliente,
-        personaIds: bag.personas.map((p) => p.id),
-        sociedadIds: bag.sociedades.map((s) => s.id),
-      },
-    };
-  }
-
   const t = totalesFromBag(bag);
   const denom = t.bruto > 0 ? t.bruto : 1;
   return {
@@ -519,9 +508,7 @@ export function normalizeBag(bag: ExpedienteBag): ExpedienteBag {
   const escenarios =
     bag.escenarios?.length > 0
       ? bag.escenarios
-      : bag.cliente.completo
-        ? [makePlanBase(bag.cliente.id)]
-        : [];
+      : [makePlanBase(bag.cliente.id)];
   const normalized = syncClienteTotales({
     ...bag,
     escenarios,

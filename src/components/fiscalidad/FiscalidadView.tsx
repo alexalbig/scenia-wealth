@@ -61,17 +61,7 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
               <span>{avisoCoberturaCcaa(cliente.ccaa)}</span>
             </div>
           )}
-          {!cliente.completo && (
-            <div className="nrow">
-              <span className="lbl">Expediente</span>
-              <span>
-                Este expediente solo puebla la Cartera. Faltan ingresos y datos
-                suficientes para liquidar el ejercicio — hueco, sin cifra
-                inventada.
-              </span>
-            </div>
-          )}
-          {ccaaConCobertura(cliente.ccaa) && cliente.completo && (
+          {ccaaConCobertura(cliente.ccaa) && (
             <div className="nrow">
               <span className="lbl">Personas</span>
               <span>No hay personas en el expediente.</span>
@@ -123,18 +113,6 @@ export function FiscalidadView({ cliente }: { cliente: Cliente }) {
           desgloseBasePersona={desgloseBasePersona}
           perfil={estado.perfil}
         />
-      )}
-
-      {!cliente.completo && (
-        <section className="notes" style={{ marginTop: 14 }}>
-          <div className="nrow">
-            <span className="lbl">Expediente</span>
-            <span>
-              Este expediente solo puebla la Cartera. La foto fiscal se limita a
-              las personas cargadas — sin inventar el resto.
-            </span>
-          </div>
-        </section>
       )}
     </SheetPad>
   );

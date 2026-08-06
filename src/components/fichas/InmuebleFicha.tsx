@@ -4,9 +4,11 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button, LiqBadge, SheetPad, Toast } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
+import { GastosVinculadosBlock } from "@/components/fichas/GastosVinculadosBlock";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR, formatPercent } from "@/lib/format";
 import {
+  gastosVinculadosA,
   titTxtCorto,
   titularidadSegments,
   yearFromIso,
@@ -37,6 +39,10 @@ export function InmuebleFicha({
   const adq = yearFromIso(inmueble.fechaAdquisicion);
   const coste = inmueble.costeAdquisicion;
   const plusv = inmueble.plusvaliaLatente;
+  const gastosInmueble = gastosVinculadosA(bag.gastos, {
+    kind: "inmueble",
+    inmuebleId: inmueble.id,
+  });
 
   return (
     <SheetPad>
@@ -173,6 +179,11 @@ export function InmuebleFicha({
           </div>
         </div>
       </div>
+
+      <GastosVinculadosBlock
+        gastos={gastosInmueble}
+        valorElemento={inmueble.valor}
+      />
 
       <EventoModal
         open={eventoOpen}

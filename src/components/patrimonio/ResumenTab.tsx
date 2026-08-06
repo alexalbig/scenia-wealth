@@ -34,16 +34,12 @@ interface ResumenTabProps {
     otros?: string;
   };
   sociedadId?: string;
-  /**
-   * Cliente de cartera sin desglose: muestra el neto agregado del seed
-   * en lugar de ceros contradictorios.
-   */
-  fotoLigera?: { patrimonioNeto: number };
+  /** Fecha de los datos (dd/mm/aaaa), también en la foto patrimonial. */
+  datosAFecha?: string;
 }
 
 /**
- * Mockup `tplResumen` — `.grid3` + `.treemap` + `.darkcard` + neto.
- * Marcado idéntico al HTML de referencia.
+ * Mockup `tplResumen` — foto + treemap de activos + pasivos debajo + capacidad.
  */
 export function ResumenTab({
   clienteId,
@@ -55,83 +51,32 @@ export function ResumenTab({
   ahorroDetalle,
   labels = {},
   sociedadId,
-  fotoLigera,
+  datosAFecha,
 }: ResumenTabProps) {
   const router = useRouter();
   const a = ahorroDetalle;
 
-  if (fotoLigera) {
-    return (
-      <div className="grid3">
-        <div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 10,
-            }}
-          >
-            <div>
-              <div className="lbl">Foto del patrimonio</div>
-              <div className="h2">Foto ligera · sin detalle cargado</div>
-            </div>
-            <Button variant="primary" onClick={onInforme}>
-              Generar informe
-            </Button>
-          </div>
-          <div
-            className="chartbox"
-            style={{
-              padding: "22px 18px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            <div className="lbl">Patrimonio neto (agregado)</div>
-            <div
-              style={{
-                fontSize: 22,
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-              }}
-              className="num"
-            >
-              {formatEUR(fotoLigera.patrimonioNeto)}
-            </div>
-            <p className="tiny" style={{ margin: 0, maxWidth: 420 }}>
-              Este expediente solo tiene el total de cartera. No hay activos,
-              pasivos ni flujos desglosados — por eso no se muestra un treemap
-              a 0 €. El desglose editable está en un expediente completo.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="grid3">
       <div>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 10,
-          }}
-        >
-          <div>
+        <div className="scr-head" style={{ padding: "0 0 14px" }}>
+          <div className="grow">
             <div className="lbl">Foto del patrimonio</div>
             <div className="h2">
               Activos {formatEUR(totales.bruto)} · Pasivos{" "}
               {formatEUR(totales.pasivos)}
             </div>
+            {datosAFecha && (
+              <div className="tiny" style={{ marginTop: 4 }}>
+                Datos a fecha de <b>{datosAFecha}</b>
+              </div>
+            )}
           </div>
-          <Button variant="primary" onClick={onInforme}>
-            Generar informe
-          </Button>
+          <div className="toolbar">
+            <Button variant="primary" onClick={onInforme}>
+              Generar informe
+            </Button>
+          </div>
         </div>
 
         <div className="treemap">
@@ -300,22 +245,25 @@ export function ResumenTab({
                 </button>
               </div>
             </div>
+          </div>
+        </div>
 
-            <div
-              className="tm-block tm-pas"
-              style={{ flex: 0.65 }}
-              role="button"
-              tabIndex={0}
-              onClick={() => onTab("pasivos")}
-              onKeyDown={(e) => e.key === "Enter" && onTab("pasivos")}
-            >
-              <div className="lbl" style={{ color: "inherit" }}>
-                Pasivos
-              </div>
-              <div className="tm-v num" style={{ fontSize: 14 }}>
-                −{formatEUR(totales.pasivos)}
-              </div>
+        {/* Pasivos fuera del treemap de activos: restan del neto. */}
+        <div
+          className="tm-pasivos"
+          role="button"
+          tabIndex={0}
+          onClick={() => onTab("pasivos")}
+          onKeyDown={(e) => e.key === "Enter" && onTab("pasivos")}
+        >
+          <div>
+            <div className="lbl">Pasivos</div>
+            <div className="tiny" style={{ marginTop: 2 }}>
+              Restan del patrimonio neto
             </div>
+          </div>
+          <div className="tm-v num" style={{ fontSize: 16 }}>
+            −{formatEUR(totales.pasivos)}
           </div>
         </div>
 

@@ -254,8 +254,10 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Tarjeta de capacidad de ahorro | 41 | Superficie oscura destacada; viene calculada de la pestaña Ahorro | MVP |
 | Tarjeta de patrimonio neto | 42 | Activos − pasivos, con el desglose de la resta explícito | MVP |
 | **Elementos sin valorar** | 43 | Una sociedad sin valorar aparece como "no valorada", **nunca como 0 €**: un cero se lee como cifra | CORE |
-| Sello "datos a fecha de" | 44 | Los valores no se actualizan solos en MVP: la fecha lo dice sin ambigüedad | CORE |
-| Estado de expediente ligero | 45 | Un cliente que solo puebla la Cartera muestra "foto ligera · sin detalle cargado" con su total agregado, no un treemap a cero | MVP |
+| Sello "datos a fecha de" | 44 | Visible en la cabecera del cliente **y dentro del bloque de la foto patrimonial** | CORE |
+| Botón Generar informe | 44b | En la cabecera del bloque de la foto (no flotando entre título y capacidad) | MVP |
+| Pasivos fuera del treemap de activos | 44c | Debajo del treemap, como resta del neto — no como una categoría más de activos | MVP |
+| Estado de expediente | 45 | Todos los clientes de la cartera son expedientes completos (personas, activos, flujos, escenarios). No existe el estado «ligero» | MVP |
 | Botón de informe | 46 | Genera el PDF de la foto patrimonial (ver CT3) | MVP |
 | Agrupación de bloques minoritarios | 47 | Con quince activos pequeños el treemap se vuelve confeti. Falta decidir el umbral por debajo del cual se agrupan en "otros" | V2 |
 | Mapa radial | 48 | Representación alternativa al treemap | V2 |
@@ -265,12 +267,13 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 ### Variables
 
-- **Categorías del treemap:** financiero · inmobiliario · empresarial · otros · pasivos
+- **Categorías del treemap (activos):** financiero · inmobiliario · empresarial · otros
+- **Pasivos:** fila aparte bajo el treemap (restan del neto; no son categoría de activos)
 - **Paleta de categorías (de más líquido a menos):** financiero `--blue` · inmobiliario `--ink-3` · empresarial `--slate` · otros `--faintest`. El coral no se usa en categorías (reservado a acción principal).
 - **Capacidad de ahorro:** cifra a tinta (sin verde/ámbar de valoración)
 - **Estado de valoración:** valorado · no valorado
-- **Estado del expediente:** completo · ligero (solo puebla la Cartera)
-- **Fecha de los datos:** siempre visible, formato es-ES
+- **Estado del expediente:** siempre completo (el seed y el alta producen el mismo tipo de expediente)
+- **Fecha de los datos:** siempre visible (cabecera del cliente + bloque de la foto), formato es-ES
 
 ### Cómo la usa el asesor
 
@@ -433,7 +436,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Solo intereses como gasto | 100 | La amortización de capital no es gasto: es ahorro | MVP |
 | Total de gastos | 101 | En `tfoot`, alimenta la capacidad de ahorro | MVP |
 | Evento genérico desde la pestaña | 102 | "A partir de 2030 baja el gasto familiar" | MVP |
-| Coste agregado por activo | 103 | La vuelta del "Vincular a": ver en la ficha del inmueble lo que cuesta al año | V2 |
+| Coste agregado por activo | 103 | La vuelta del "Vincular a": en la ficha (F3 · F4 · F5), total anual + % sobre valor + desglose por concepto | MVP |
 
 ### Variables
 
@@ -555,7 +558,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Plusvalía latente | 137 | Valor actual − coste | MVP |
 | Hipoteca asociada | 138 | Capital pendiente · tipo · cuota, traída del pasivo vinculado | MVP |
 | Menú de eventos | 139 | Comprar · vender · amortizar | MVP |
-| Estructura de gastos del inmueble | 140 | IBI, comunidad, suministros, seguro — agregados vía "Vincular a" | V2 |
+| Estructura de gastos del inmueble | 140 | IBI, comunidad, suministros, seguro — agregados vía "Vincular a" en la ficha (MVP vía nº 103) | MVP |
 | Renta potencial | 141 | Ingreso teórico por alquiler y rentabilidad neta | V2 |
 | Información catastral | 142 | Referencia, superficie, valor catastral. Requiere integración con Catastro | Futura |
 | Valoración de mercado | 143 | Referencia de idealista o Tinsa | Futura |
@@ -650,7 +653,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Parámetros no editables | 171 | Tramos y tipos viven en la tabla verificada, con candado visible. **Es firewall** | CORE |
 | Sello "orientativo" | 172 | Acompaña a toda cifra fiscal, sin excepción | CORE |
 | Marca "(a verificar)" | 173 | Cada parámetro no confirmado por el fiscalista va marcado | CORE |
-| Aviso de cobertura por CCAA | 174 | **Se evalúa antes que cualquier otro estado**, incluido el de expediente ligero. Texto matizado: plusvalías OK en régimen común; base general solo CV; forales fuera | CORE |
+| Aviso de cobertura por CCAA | 174 | **Se evalúa antes que cualquier otro estado**. Texto matizado: plusvalías OK en régimen común; base general solo CV; forales fuera | CORE |
 | Aviso de simplificación del mínimo autonómico | 175 | El motor usa el mínimo estatal en ambas mitades y lo declara | MVP |
 | Aviso de cálculo individual | 176 | La tributación conjunta no está contemplada y se dice | MVP |
 | Vista comparada de titulares | 177 | Ver dos o más personas en paralelo. **Capa opcional cuando hay dos o más calculables**, nunca el fundamento de la pantalla | V2 |

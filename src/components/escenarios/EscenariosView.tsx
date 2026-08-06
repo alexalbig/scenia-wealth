@@ -281,20 +281,6 @@ export function EscenariosView({ cliente }: { cliente: Cliente }) {
     setCmpYear((prev) => (prev === y ? null : y));
   }
 
-  if (!cliente.completo) {
-    return (
-      <SheetPad>
-        <div className="lbl">Escenarios</div>
-        <div className="h2">Espacio de trabajo · sin pasos guiados</div>
-        <div className="chartbox" style={{ marginTop: 14 }}>
-          <p className="tiny" style={{ margin: 0 }}>
-            El comparador completo está en Familia García-Llorente.
-          </p>
-        </div>
-      </SheetPad>
-    );
-  }
-
   if (escenarios.length === 0 || !selected) {
     return (
       <SheetPad>

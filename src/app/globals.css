@@ -144,6 +144,11 @@ tfoot td{border-top:1px solid var(--line-2);border-bottom:none;font-weight:700;b
 .tm-emp{background:var(--paper-2);color:var(--ink-3);border-color:var(--line-2)}
 .tm-otr{background:#F0F2F6;color:var(--slate);border-color:var(--line-2)}
 .tm-pas{background:#fff;color:var(--ink-3);border:1px dashed var(--faintest)}
+/* Pasivos bajo el treemap: restan del neto, no son una categoría de activos. */
+.tm-pasivos{margin-top:8px;display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 14px;border-radius:10px;background:#fff;border:1px dashed var(--faintest);
+  color:var(--ink-3);cursor:pointer;transition:filter .12s}
+.tm-pasivos:hover{filter:brightness(.97);background:var(--paper-2)}
 .tm-v{font-size:16px;font-weight:700;letter-spacing:-0.01em}
 .tm-add{align-self:flex-end;width:20px;height:20px;border-radius:6px;background:rgba(255,255,255,.65);
   font-weight:700;font-size:12px;display:flex;align-items:center;justify-content:center;color:inherit}

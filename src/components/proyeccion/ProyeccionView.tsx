@@ -84,21 +84,6 @@ export function ProyeccionView({ cliente }: { cliente: Cliente }) {
     flash("Evento eliminado");
   }
 
-  if (!cliente.completo) {
-    return (
-      <SheetPad>
-        <div className="lbl">Proyección · plan base</div>
-        <div className="h2">Las series año a año</div>
-        <div className="chartbox" style={{ marginTop: 14 }}>
-          <p className="tiny" style={{ margin: 0 }}>
-            Este expediente solo puebla la Cartera. La proyección completa
-            está en Familia García-Llorente.
-          </p>
-        </div>
-      </SheetPad>
-    );
-  }
-
   if (!planBase) {
     return (
       <SheetPad>

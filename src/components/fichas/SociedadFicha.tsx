@@ -14,9 +14,10 @@ import {
   TR,
 } from "@/components/ui";
 import { EventoModal } from "@/components/patrimonio/EventoModal";
+import { GastosVinculadosBlock } from "@/components/fichas/GastosVinculadosBlock";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR } from "@/lib/format";
-import { yearFromIso } from "@/lib/patrimonio";
+import { gastosVinculadosA, yearFromIso } from "@/lib/patrimonio";
 import { personaLabel } from "@/lib/patrimonio";
 import type { Inmueble, Instrumento, Persona, Sociedad } from "@/lib/types";
 
@@ -73,6 +74,12 @@ export function SociedadFicha({
         valor: i.valor,
       })),
   ];
+  const gastosSociedad = gastosVinculadosA(bag.gastos, {
+    kind: "sociedad",
+    sociedadId: sociedad.id,
+  });
+  const valorSociedad =
+    activosSociedad.reduce((s, a) => s + (a.valor ?? 0), 0) || null;
 
   return (
     <SheetPad>
@@ -206,6 +213,11 @@ export function SociedadFicha({
           )}
         </div>
       </div>
+
+      <GastosVinculadosBlock
+        gastos={gastosSociedad}
+        valorElemento={valorSociedad}
+      />
 
       <div
         style={{

@@ -2,7 +2,8 @@ import type { HistorialInforme, SeedData } from "./types";
 
 /**
  * Seed ANEXO F — un asesor/EAF con seis clientes.
- * García-Llorente es el único completo; el resto solo pobla la Cartera.
+ * Los seis son expedientes completos: personas, activos, pasivos,
+ * ingresos, gastos y escenarios con eventos reales.
  *
  * impuestosPeriodo: rollup del motor (primer ejercicio), no cifras fijas.
  *
@@ -10,19 +11,40 @@ import type { HistorialInforme, SeedData } from "./types";
  *   A vs B — misma liquidez ≈35k · reembolso vs pignoración
  *   C vs D — misma venta Jávea · 2033 vs 2036 (art. 33.4.b)
  *   E — rescate capital Marta con DT 12ª (anioContingencia 2026)
+ *
+ * Los otros cinco expedientes cubren un caso de motor distinto cada uno:
+ *   Beltrán — sociedad valorada · reparto de dividendo (regla 8: pendiente IS)
+ *   Navarro — Comunidad de Madrid (firewall §7) · capacidad negativa · líquidos que se agotan
+ *   Requena — actividad económica (fuente no contemplada) · aportación a plan
+ *   Server  — patrimonio casi todo inmobiliario · >65 con uso alquiler (no exime)
+ *   Tormo   — rescate en capital con DT 12ª · fraccionPre2007 45 %
  */
 
 const CUENTA_ID = "cuenta-eaf-1";
 const CLIENTE_GL = "cliente-garcia-llorente";
+const CLIENTE_BELTRAN = "cliente-beltran";
 const CLIENTE_NAVARRO = "cliente-navarro";
 const CLIENTE_REQUENA = "cliente-requena";
+const CLIENTE_SERVER = "cliente-server";
 const CLIENTE_TORMO = "cliente-tormo";
+
+/* ── Personas ── */
 const PERSONA_CARLOS = "persona-carlos";
 const PERSONA_MARTA = "persona-marta";
 const PERSONA_LUCIA = "persona-lucia";
 const PERSONA_HUGO = "persona-hugo";
 const PERSONA_AMPARO = "persona-amparo";
 const PERSONA_VICENT = "persona-vicent";
+const PERSONA_JORGE = "persona-jorge-beltran";
+const PERSONA_ELENA = "persona-elena-ortiz";
+const PERSONA_RAMON = "persona-ramon-navarro";
+const PERSONA_PILAR = "persona-pilar-sanchis";
+const PERSONA_NURIA = "persona-nuria-poveda";
+const PERSONA_CLARA = "persona-clara-requena";
+const PERSONA_CARMEN = "persona-carmen-server";
+const PERSONA_LLUIS = "persona-lluis-gisbert";
+
+/* ── García-Llorente ── */
 const SOCIEDAD_GC = "sociedad-garcia-consulting";
 const FONDO_A = "inst-fondo-a";
 const PLAN_CARLOS = "inst-plan-carlos";
@@ -36,6 +58,64 @@ const ESC_B = "esc-gl-b-pignoracion";
 const ESC_C = "esc-gl-c-javea-2033";
 const ESC_D = "esc-gl-d-javea-2036";
 const ESC_E = "esc-gl-e-rescate-marta";
+
+/* ── Beltrán Ortiz ── */
+const SOCIEDAD_BELTRAN = "sociedad-beltran-holding";
+const FONDO_BELTRAN_CAIXA_RV = "inst-beltran-caixa-rv-global";
+const FONDO_BELTRAN_CAIXA_MIXTO = "inst-beltran-caixa-mixto";
+const FONDO_BELTRAN_CAIXA_RF = "inst-beltran-caixa-rf-euro";
+const FONDO_BELTRAN_CAIXA_EMERGENTES = "inst-beltran-caixa-emergentes";
+const FONDO_BELTRAN_CAIXA_MONETARIO = "inst-beltran-caixa-monetario";
+const FONDO_BELTRAN_SANT_RV_USA = "inst-beltran-santander-rv-usa";
+const FONDO_BELTRAN_SANT_SMALL = "inst-beltran-santander-small-caps";
+const FONDO_BELTRAN_SANT_RF = "inst-beltran-santander-rf-corporate";
+const FONDO_BELTRAN_SANT_INDEXADO = "inst-beltran-santander-indexado";
+const FONDO_BELTRAN_SANT_LIQUIDEZ = "inst-beltran-santander-liquidez";
+const INMUEBLE_BELTRAN_VIVIENDA = "inm-beltran-vivienda-valencia";
+const INMUEBLE_BELTRAN_LOCAL = "inm-beltran-local";
+const OTRO_BELTRAN_COCHE = "otro-beltran-coche";
+const PASIVO_BELTRAN_HIPOTECA = "pasivo-beltran-hipoteca";
+const ESC_BELTRAN_BASE = "esc-beltran-base";
+const ESC_BELTRAN_A = "esc-beltran-a-dividendo";
+
+/* ── Navarro Sanchís ── */
+const INMUEBLE_NAVARRO_VIVIENDA = "inm-navarro-vivienda-madrid";
+const INMUEBLE_NAVARRO_COSTA = "inm-navarro-costa";
+const FONDO_NAVARRO = "inst-navarro-fondo-mixto";
+const PLAN_RAMON = "inst-navarro-plan-ramon";
+const OTRO_NAVARRO_EFECTIVO = "otro-navarro-efectivo";
+const ESC_NAVARRO_BASE = "esc-navarro-base";
+const ESC_NAVARRO_A = "esc-navarro-a-venta-costa";
+
+/* ── Requena Poveda ── */
+const INMUEBLE_REQUENA_VIVIENDA = "inm-requena-vivienda";
+const FONDO_REQUENA_RV = "inst-requena-rv-global";
+const FONDO_REQUENA_RF = "inst-requena-rf-mixta";
+const FONDO_REQUENA_INDEXADO = "inst-requena-indexado";
+const PLAN_VICENT = "inst-requena-plan-vicent";
+const OTRO_REQUENA_COCHE = "otro-requena-coche";
+const PASIVO_REQUENA_HIPOTECA = "pasivo-requena-hipoteca";
+const ESC_REQUENA_BASE = "esc-requena-base";
+const ESC_REQUENA_A = "esc-requena-a-aportacion";
+
+/* ── Server Alcaraz ── */
+const INMUEBLE_SERVER_VIVIENDA = "inm-server-vivienda-valencia";
+const INMUEBLE_SERVER_RUSSAFA = "inm-server-russafa";
+const INMUEBLE_SERVER_PUEBLO = "inm-server-casa-pueblo";
+const INMUEBLE_SERVER_LOCAL = "inm-server-local";
+const FONDO_SERVER = "inst-server-fondo";
+const ESC_SERVER_BASE = "esc-server-base";
+const ESC_SERVER_A = "esc-server-a-venta-russafa";
+
+/* ── Tormo Gisbert ── */
+const INMUEBLE_TORMO_VIVIENDA = "inm-tormo-vivienda";
+const FONDO_TORMO = "inst-tormo-fondo";
+const PLAN_LLUIS = "inst-tormo-plan-lluis";
+const OTRO_TORMO_COCHE = "otro-tormo-coche";
+const OTRO_TORMO_COLECCION = "otro-tormo-coleccion";
+const PASIVO_TORMO_HIPOTECA = "pasivo-tormo-hipoteca";
+const ESC_TORMO_BASE = "esc-tormo-base";
+const ESC_TORMO_A = "esc-tormo-a-rescate";
 
 export const seed: SeedData = {
   cuenta: {
@@ -67,16 +147,80 @@ export const seed: SeedData = {
       birthYear: 2004,
       ccaa: "Comunitat Valenciana",
     },
-    // Hugo · Madrid · demo cobertura matizada (ahorro sí, base general no).
-    // No en García-Llorente: sus ingresos ensuciaban capacidad/proyección del caso demo.
+    /* ── Beltrán Ortiz ── */
+    {
+      id: PERSONA_JORGE,
+      nombre: "Jorge",
+      apellidos: "Beltrán Ortiz",
+      birthYear: 1975,
+      ccaa: "Comunitat Valenciana",
+    },
+    {
+      id: PERSONA_ELENA,
+      nombre: "Elena",
+      apellidos: "Ortiz Ruiz",
+      birthYear: 1977,
+      ccaa: "Comunitat Valenciana",
+    },
+    /* ── Navarro Sanchís ── */
+    {
+      id: PERSONA_RAMON,
+      nombre: "Ramón",
+      apellidos: "Navarro Sanchís",
+      birthYear: 1954,
+      ccaa: "Comunidad de Madrid",
+    },
+    {
+      id: PERSONA_PILAR,
+      nombre: "Pilar",
+      apellidos: "Sanchís Mora",
+      birthYear: 1957,
+      ccaa: "Comunidad de Madrid",
+    },
+    // Hugo · hijo · vive con Ramón y Pilar en Madrid.
+    // Demo de la cobertura matizada del firewall §7 dentro de un hogar entero:
+    // la base del ahorro sí se liquida en Madrid; la base general, no.
     {
       id: PERSONA_HUGO,
       nombre: "Hugo",
-      apellidos: "García Llorente",
+      apellidos: "Navarro Sanchís",
       birthYear: 2001,
       ccaa: "Comunidad de Madrid",
     },
-    // Amparo · Tormo · pensionista · titular único. Sin titularidad.
+    /* ── Requena Poveda ── */
+    // Vicent · actividad económica · fuente no contemplada por el motor.
+    {
+      id: PERSONA_VICENT,
+      nombre: "Vicent",
+      apellidos: "Requena Poveda",
+      birthYear: 1980,
+      ccaa: "Comunitat Valenciana",
+    },
+    {
+      id: PERSONA_NURIA,
+      nombre: "Núria",
+      apellidos: "Poveda Llopis",
+      birthYear: 1983,
+      ccaa: "Comunitat Valenciana",
+    },
+    // Clara · menor sin ingresos · sin titularidad sobre activos (igual que Lucía).
+    {
+      id: PERSONA_CLARA,
+      nombre: "Clara",
+      apellidos: "Requena Poveda",
+      birthYear: 2010,
+      ccaa: "Comunitat Valenciana",
+    },
+    /* ── Server Alcaraz ── */
+    // Carmen · titular única · 72 años en 2026 (umbral art. 33.4.b).
+    {
+      id: PERSONA_CARMEN,
+      nombre: "Carmen",
+      apellidos: "Server Alcaraz",
+      birthYear: 1954,
+      ccaa: "Comunitat Valenciana",
+    },
+    /* ── Tormo Gisbert ── */
     {
       id: PERSONA_AMPARO,
       nombre: "Amparo",
@@ -84,12 +228,11 @@ export const seed: SeedData = {
       birthYear: 1958,
       ccaa: "Comunitat Valenciana",
     },
-    // Vicent · Requena · actividad económica · sin cálculo. Sin titularidad.
     {
-      id: PERSONA_VICENT,
-      nombre: "Vicent",
-      apellidos: "Requena Poveda",
-      birthYear: 1980,
+      id: PERSONA_LLUIS,
+      nombre: "Lluís",
+      apellidos: "Gisbert Ferrer",
+      birthYear: 1961,
       ccaa: "Comunitat Valenciana",
     },
   ],
@@ -114,26 +257,26 @@ export const seed: SeedData = {
         otros: 45_000 / 970_000,
       },
       ultimaRevisionMeses: 1.5,
-      completo: true,
       datosAFecha: "2026-07-27",
     },
     {
-      id: "cliente-beltran",
+      id: CLIENTE_BELTRAN,
       cuentaId: CUENTA_ID,
       nombre: "Familia Beltrán Ortiz",
       segmento: "Empresario",
       ccaa: "Comunitat Valenciana",
-      personaIds: [],
-      sociedadIds: [],
+      personaIds: [PERSONA_JORGE, PERSONA_ELENA],
+      sociedadIds: [SOCIEDAD_BELTRAN],
+      // 3.020.000 activos − 180.000 hipoteca = 2.840.000
       patrimonioNeto: 2_840_000,
       composicion: {
-        empresarial: 0.62,
-        financiero: 0.21,
-        inmobiliario: 0.15,
-        otros: 0.02,
+        // Brutos 3.020k: empresarial 1.760 · financiero 600 · inmobiliario 620 · otros 40
+        empresarial: 1_760_000 / 3_020_000,
+        financiero: 600_000 / 3_020_000,
+        inmobiliario: 620_000 / 3_020_000,
+        otros: 40_000 / 3_020_000,
       },
       ultimaRevisionMeses: 2,
-      completo: false,
       datosAFecha: "2026-05-15",
     },
     {
@@ -141,19 +284,19 @@ export const seed: SeedData = {
       cuentaId: CUENTA_ID,
       nombre: "Familia Navarro Sanchís",
       segmento: "Jubilado",
-      // Demo firewall §7 · aviso de cobertura (resto de ligeros = CV)
+      // Demo firewall §7 · aviso de cobertura (resto de clientes = CV)
       ccaa: "Comunidad de Madrid",
-      personaIds: [PERSONA_HUGO],
+      personaIds: [PERSONA_RAMON, PERSONA_PILAR, PERSONA_HUGO],
       sociedadIds: [],
+      // 1.150.000 activos − 0 pasivos = 1.150.000
       patrimonioNeto: 1_150_000,
       composicion: {
-        inmobiliario: 0.58,
-        financiero: 0.39,
+        inmobiliario: 800_000 / 1_150_000,
+        financiero: 310_000 / 1_150_000,
         empresarial: 0,
-        otros: 0.03,
+        otros: 40_000 / 1_150_000,
       },
       ultimaRevisionMeses: 5,
-      completo: false,
       datosAFecha: "2026-02-20",
     },
     {
@@ -162,36 +305,36 @@ export const seed: SeedData = {
       nombre: "Familia Requena Poveda",
       segmento: "Alto ingreso",
       ccaa: "Comunitat Valenciana",
-      personaIds: [PERSONA_VICENT],
+      personaIds: [PERSONA_VICENT, PERSONA_NURIA, PERSONA_CLARA],
       sociedadIds: [],
+      // 750.000 activos − 140.000 hipoteca = 610.000
       patrimonioNeto: 610_000,
       composicion: {
-        financiero: 0.71,
-        inmobiliario: 0.26,
+        financiero: 430_000 / 750_000,
+        inmobiliario: 280_000 / 750_000,
         empresarial: 0,
-        otros: 0.03,
+        otros: 40_000 / 750_000,
       },
       ultimaRevisionMeses: 0.75, // ~3 semanas
-      completo: false,
       datosAFecha: "2026-07-01",
     },
     {
-      id: "cliente-server",
+      id: CLIENTE_SERVER,
       cuentaId: CUENTA_ID,
       nombre: "Familia Server Alcaraz",
       segmento: "Herencia en curso",
       ccaa: "Comunitat Valenciana",
-      personaIds: [],
+      personaIds: [PERSONA_CARMEN],
       sociedadIds: [],
+      // 1.930.000 activos − 0 pasivos = 1.930.000
       patrimonioNeto: 1_930_000,
       composicion: {
-        inmobiliario: 0.64,
-        financiero: 0.28,
-        empresarial: 0.08,
+        inmobiliario: 1_730_000 / 1_930_000,
+        financiero: 200_000 / 1_930_000,
+        empresarial: 0,
         otros: 0,
       },
       ultimaRevisionMeses: 8,
-      completo: false,
       datosAFecha: "2025-11-10",
     },
     {
@@ -200,17 +343,17 @@ export const seed: SeedData = {
       nombre: "Familia Tormo Gisbert",
       segmento: "Pre-jubilado",
       ccaa: "Comunitat Valenciana",
-      personaIds: [PERSONA_AMPARO],
+      personaIds: [PERSONA_AMPARO, PERSONA_LLUIS],
       sociedadIds: [],
+      // 950.000 activos − 75.000 hipoteca = 875.000
       patrimonioNeto: 875_000,
       composicion: {
-        financiero: 0.46,
-        inmobiliario: 0.44,
+        financiero: 400_000 / 950_000,
+        inmobiliario: 420_000 / 950_000,
         empresarial: 0,
-        otros: 0.1,
+        otros: 130_000 / 950_000,
       },
       ultimaRevisionMeses: 1,
-      completo: false,
       datosAFecha: "2026-06-20",
     },
   ],
@@ -226,6 +369,23 @@ export const seed: SeedData = {
       situacion: "Activa",
       objetoSocial: "Servicios de consultoría",
       participaciones: { [PERSONA_CARLOS]: 1 },
+    },
+    {
+      id: SOCIEDAD_BELTRAN,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Beltrán Holding SL",
+      nif: "B-97··· (demo)",
+      capitalSocial: 60_000,
+      fechaConstitucion: "2006-09-18",
+      situacion: "Activa",
+      objetoSocial: "Tenencia de participaciones y arrendamiento",
+      participaciones: {
+        [PERSONA_JORGE]: 0.6,
+        [PERSONA_ELENA]: 0.4,
+      },
+      // Valoración introducida por el asesor · el cálculo societario sigue
+      // pendiente de definir (firewall §8): no hay liquidador de IS.
+      valor: 1_760_000,
     },
   ],
 
@@ -268,6 +428,266 @@ export const seed: SeedData = {
         { owner: { kind: "persona", personaId: PERSONA_MARTA }, porcentaje: 1 },
       ],
     },
+
+    /* ── Beltrán · cartera CaixaBank (a nombre de Jorge) ── */
+    {
+      id: FONDO_BELTRAN_CAIXA_RV,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "CaixaBank · RV global",
+      tipoFiscal: "fondo",
+      valor: 95_000,
+      fechaAdquisicion: "2013-03-11",
+      costeAdquisicion: 62_000,
+      plusvaliaLatente: 33_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_CAIXA_MIXTO,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "CaixaBank · Mixto moderado",
+      tipoFiscal: "fondo",
+      valor: 80_000,
+      fechaAdquisicion: "2017-05-02",
+      costeAdquisicion: 66_000,
+      plusvaliaLatente: 14_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_CAIXA_RF,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "CaixaBank · RF euro",
+      tipoFiscal: "fondo",
+      valor: 70_000,
+      fechaAdquisicion: "2021-01-20",
+      costeAdquisicion: 68_000,
+      plusvaliaLatente: 2_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_CAIXA_EMERGENTES,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "CaixaBank · Emergentes",
+      tipoFiscal: "fondo",
+      valor: 55_000,
+      fechaAdquisicion: "2019-09-30",
+      costeAdquisicion: 48_000,
+      plusvaliaLatente: 7_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_CAIXA_MONETARIO,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "CaixaBank · Monetario",
+      tipoFiscal: "fondo",
+      valor: 40_000,
+      fechaAdquisicion: "2024-02-14",
+      costeAdquisicion: 39_000,
+      plusvaliaLatente: 1_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 1 },
+      ],
+    },
+
+    /* ── Beltrán · cartera Santander (a nombre de Elena) ── */
+    {
+      id: FONDO_BELTRAN_SANT_RV_USA,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Santander · RV Estados Unidos",
+      tipoFiscal: "fondo",
+      valor: 90_000,
+      fechaAdquisicion: "2012-11-05",
+      costeAdquisicion: 51_000,
+      plusvaliaLatente: 39_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_SANT_SMALL,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Santander · Small caps Europa",
+      tipoFiscal: "fondo",
+      valor: 65_000,
+      fechaAdquisicion: "2018-07-23",
+      costeAdquisicion: 52_000,
+      plusvaliaLatente: 13_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_SANT_RF,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Santander · RF corporativa",
+      tipoFiscal: "fondo",
+      valor: 55_000,
+      fechaAdquisicion: "2020-10-08",
+      costeAdquisicion: 53_000,
+      plusvaliaLatente: 2_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_SANT_INDEXADO,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Santander · Indexado mundial",
+      tipoFiscal: "fondo",
+      valor: 30_000,
+      fechaAdquisicion: "2022-06-01",
+      costeAdquisicion: 22_000,
+      plusvaliaLatente: 8_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: FONDO_BELTRAN_SANT_LIQUIDEZ,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Santander · Liquidez",
+      tipoFiscal: "fondo",
+      valor: 20_000,
+      fechaAdquisicion: "2025-01-15",
+      costeAdquisicion: 20_000,
+      plusvaliaLatente: 0,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 1 },
+      ],
+    },
+
+    /* ── Navarro ── */
+    {
+      id: FONDO_NAVARRO,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "Fondo mixto · perfil conservador",
+      tipoFiscal: "fondo",
+      valor: 220_000,
+      fechaAdquisicion: "2011-04-12",
+      costeAdquisicion: 150_000,
+      plusvaliaLatente: 70_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_RAMON }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_PILAR }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PLAN_RAMON,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "Plan de pensiones · Ramón",
+      tipoFiscal: "plan_pensiones",
+      valor: 90_000,
+      fechaAdquisicion: "1998-06-01",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_RAMON }, porcentaje: 1 },
+      ],
+    },
+
+    /* ── Requena ── */
+    {
+      id: FONDO_REQUENA_RV,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "Fondo · RV global",
+      tipoFiscal: "fondo",
+      valor: 180_000,
+      fechaAdquisicion: "2016-02-08",
+      costeAdquisicion: 120_000,
+      plusvaliaLatente: 60_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 0.6 },
+        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 0.4 },
+      ],
+    },
+    {
+      id: FONDO_REQUENA_RF,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "Fondo · RF mixta",
+      tipoFiscal: "fondo",
+      valor: 120_000,
+      fechaAdquisicion: "2020-03-02",
+      costeAdquisicion: 108_000,
+      plusvaliaLatente: 12_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 0.6 },
+        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 0.4 },
+      ],
+    },
+    {
+      id: FONDO_REQUENA_INDEXADO,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "Fondo · Indexado mundial",
+      tipoFiscal: "fondo",
+      valor: 80_000,
+      fechaAdquisicion: "2021-11-19",
+      costeAdquisicion: 58_000,
+      plusvaliaLatente: 22_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: PLAN_VICENT,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "Plan de pensiones · Vicent",
+      tipoFiscal: "plan_pensiones",
+      valor: 50_000,
+      fechaAdquisicion: "2012-12-20",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 1 },
+      ],
+    },
+
+    /* ── Server ── */
+    {
+      id: FONDO_SERVER,
+      clienteId: CLIENTE_SERVER,
+      nombre: "Fondo · Mixto defensivo",
+      tipoFiscal: "fondo",
+      valor: 200_000,
+      fechaAdquisicion: "2015-09-14",
+      costeAdquisicion: 155_000,
+      plusvaliaLatente: 45_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_CARMEN }, porcentaje: 1 },
+      ],
+    },
+
+    /* ── Tormo ── */
+    {
+      id: FONDO_TORMO,
+      clienteId: CLIENTE_TORMO,
+      nombre: "Fondo · RV europea",
+      tipoFiscal: "fondo",
+      valor: 180_000,
+      fechaAdquisicion: "2013-10-07",
+      costeAdquisicion: 130_000,
+      plusvaliaLatente: 50_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_AMPARO }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_LLUIS }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PLAN_LLUIS,
+      clienteId: CLIENTE_TORMO,
+      nombre: "Plan de pensiones · Lluís",
+      tipoFiscal: "plan_pensiones",
+      valor: 220_000,
+      fechaAdquisicion: "1996-02-01",
+      // Datos introducidos por el asesor (DT 12ª) · no calculados
+      fraccionPre2007: 0.45,
+      anioContingencia: 2026,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_LLUIS }, porcentaje: 1 },
+      ],
+    },
   ],
 
   inmuebles: [
@@ -286,6 +706,155 @@ export const seed: SeedData = {
         { owner: { kind: "persona", personaId: PERSONA_MARTA }, porcentaje: 0.5 },
       ],
     },
+
+    /* ── Beltrán ── */
+    {
+      id: INMUEBLE_BELTRAN_VIVIENDA,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Vivienda · Valencia",
+      valor: 400_000,
+      fechaAdquisicion: "2010-06-30",
+      costeAdquisicion: 265_000,
+      plusvaliaLatente: 135_000,
+      uso: "vivienda_habitual",
+      pasivoId: PASIVO_BELTRAN_HIPOTECA,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: INMUEBLE_BELTRAN_LOCAL,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Local comercial · Avinguda del Port",
+      valor: 220_000,
+      fechaAdquisicion: "2014-04-22",
+      costeAdquisicion: 150_000,
+      plusvaliaLatente: 70_000,
+      uso: "local",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 0.5 },
+      ],
+    },
+
+    /* ── Navarro ── */
+    {
+      id: INMUEBLE_NAVARRO_VIVIENDA,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "Vivienda · Madrid",
+      valor: 620_000,
+      fechaAdquisicion: "1992-03-16",
+      costeAdquisicion: 210_000,
+      plusvaliaLatente: 410_000,
+      uso: "vivienda_habitual",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_RAMON }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_PILAR }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: INMUEBLE_NAVARRO_COSTA,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "Segunda residencia · costa de Alicante",
+      valor: 180_000,
+      fechaAdquisicion: "2003-08-01",
+      costeAdquisicion: 96_000,
+      plusvaliaLatente: 84_000,
+      uso: "segunda_residencia",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_RAMON }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_PILAR }, porcentaje: 0.5 },
+      ],
+    },
+
+    /* ── Requena ── */
+    {
+      id: INMUEBLE_REQUENA_VIVIENDA,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "Vivienda · València",
+      valor: 280_000,
+      fechaAdquisicion: "2022-09-09",
+      costeAdquisicion: 245_000,
+      plusvaliaLatente: 35_000,
+      uso: "vivienda_habitual",
+      pasivoId: PASIVO_REQUENA_HIPOTECA,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 0.5 },
+      ],
+    },
+
+    /* ── Server · patrimonio casi todo inmobiliario ── */
+    {
+      id: INMUEBLE_SERVER_VIVIENDA,
+      clienteId: CLIENTE_SERVER,
+      nombre: "Vivienda · València",
+      valor: 720_000,
+      fechaAdquisicion: "1988-05-20",
+      costeAdquisicion: 190_000,
+      plusvaliaLatente: 530_000,
+      uso: "vivienda_habitual",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_CARMEN }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: INMUEBLE_SERVER_RUSSAFA,
+      clienteId: CLIENTE_SERVER,
+      nombre: "Piso en alquiler · Russafa",
+      valor: 480_000,
+      fechaAdquisicion: "2006-02-28",
+      costeAdquisicion: 300_000,
+      plusvaliaLatente: 180_000,
+      uso: "alquiler",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_CARMEN }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: INMUEBLE_SERVER_PUEBLO,
+      clienteId: CLIENTE_SERVER,
+      nombre: "Casa del pueblo · Ontinyent",
+      valor: 380_000,
+      fechaAdquisicion: "1995-11-03",
+      costeAdquisicion: 120_000,
+      plusvaliaLatente: 260_000,
+      uso: "segunda_residencia",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_CARMEN }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: INMUEBLE_SERVER_LOCAL,
+      clienteId: CLIENTE_SERVER,
+      nombre: "Solar y local · Ontinyent",
+      valor: 150_000,
+      fechaAdquisicion: "1995-11-03",
+      costeAdquisicion: 90_000,
+      plusvaliaLatente: 60_000,
+      uso: "local",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_CARMEN }, porcentaje: 1 },
+      ],
+    },
+
+    /* ── Tormo ── */
+    {
+      id: INMUEBLE_TORMO_VIVIENDA,
+      clienteId: CLIENTE_TORMO,
+      nombre: "Vivienda · Gandia",
+      valor: 420_000,
+      fechaAdquisicion: "2004-07-15",
+      costeAdquisicion: 300_000,
+      plusvaliaLatente: 120_000,
+      uso: "vivienda_habitual",
+      pasivoId: PASIVO_TORMO_HIPOTECA,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_AMPARO }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_LLUIS }, porcentaje: 0.5 },
+      ],
+    },
   ],
 
   otrosActivos: [
@@ -298,6 +867,61 @@ export const seed: SeedData = {
       fechaAdquisicion: "2022-04-10",
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: OTRO_BELTRAN_COCHE,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "Volvo XC60",
+      tipo: "vehiculo",
+      valor: 40_000,
+      fechaAdquisicion: "2023-03-02",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: OTRO_NAVARRO_EFECTIVO,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "Cuentas corrientes",
+      tipo: "efectivo",
+      valor: 40_000,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_RAMON }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_PILAR }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: OTRO_REQUENA_COCHE,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "Cupra Formentor",
+      tipo: "vehiculo",
+      valor: 40_000,
+      fechaAdquisicion: "2024-01-18",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: OTRO_TORMO_COCHE,
+      clienteId: CLIENTE_TORMO,
+      nombre: "Mercedes GLC",
+      tipo: "vehiculo",
+      valor: 55_000,
+      fechaAdquisicion: "2023-09-05",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_LLUIS }, porcentaje: 1 },
+      ],
+    },
+    {
+      id: OTRO_TORMO_COLECCION,
+      clienteId: CLIENTE_TORMO,
+      nombre: "Colección de pintura valenciana",
+      tipo: "coleccion",
+      valor: 75_000,
+      fechaAdquisicion: "2008-12-01",
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_AMPARO }, porcentaje: 1 },
       ],
     },
   ],
@@ -315,6 +939,48 @@ export const seed: SeedData = {
       titularidades: [
         { owner: { kind: "persona", personaId: PERSONA_CARLOS }, porcentaje: 0.5 },
         { owner: { kind: "persona", personaId: PERSONA_MARTA }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PASIVO_BELTRAN_HIPOTECA,
+      clienteId: CLIENTE_BELTRAN,
+      tipo: "hipoteca",
+      prestamista: "CaixaBank",
+      capitalPendiente: 180_000,
+      tipoInteres: 0.029,
+      cuotaMensual: 950,
+      inmuebleId: INMUEBLE_BELTRAN_VIVIENDA,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_JORGE }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_ELENA }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PASIVO_REQUENA_HIPOTECA,
+      clienteId: CLIENTE_REQUENA,
+      tipo: "hipoteca",
+      prestamista: "Banco Sabadell",
+      capitalPendiente: 140_000,
+      tipoInteres: 0.03,
+      cuotaMensual: 665,
+      inmuebleId: INMUEBLE_REQUENA_VIVIENDA,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_VICENT }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_NURIA }, porcentaje: 0.5 },
+      ],
+    },
+    {
+      id: PASIVO_TORMO_HIPOTECA,
+      clienteId: CLIENTE_TORMO,
+      tipo: "hipoteca",
+      prestamista: "Caixa Ontinyent",
+      capitalPendiente: 75_000,
+      tipoInteres: 0.028,
+      cuotaMensual: 720,
+      inmuebleId: INMUEBLE_TORMO_VIVIENDA,
+      titularidades: [
+        { owner: { kind: "persona", personaId: PERSONA_AMPARO }, porcentaje: 0.5 },
+        { owner: { kind: "persona", personaId: PERSONA_LLUIS }, porcentaje: 0.5 },
       ],
     },
   ],
@@ -353,6 +1019,56 @@ export const seed: SeedData = {
        */
       cotizacionesSS: 2_080,
     },
+
+    /* ── Beltrán ── */
+    {
+      id: "ing-jorge-trabajo",
+      clienteId: CLIENTE_BELTRAN,
+      personaId: PERSONA_JORGE,
+      fuente: "trabajo",
+      importeAnual: 92_000,
+      descripcion: "Trabajo (nómina de la sociedad)",
+      /**
+       * Cotizaciones SS del trabajador · ejercicio 2026.
+       * Sueldo por encima de la base máxima (5.101,20 €/mes × 12 = 61.214,40 €)
+       * → 6,50 % sobre base tope = 3.978,94 € + solidaridad (art. 17) sobre el
+       * exceso → total redondeado 4.050 €.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 17, 33.
+       */
+      cotizacionesSS: 4_050,
+    },
+    {
+      id: "ing-elena-trabajo",
+      clienteId: CLIENTE_BELTRAN,
+      personaId: PERSONA_ELENA,
+      fuente: "trabajo",
+      importeAnual: 48_000,
+      descripcion: "Trabajo",
+      /**
+       * Sueldo 48.000 €/año (4.000 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 48.000 = 3.120 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 3_120,
+    },
+
+    /* ── Navarro · hogar jubilado con un hijo trabajando ── */
+    {
+      id: "ing-ramon-pension",
+      clienteId: CLIENTE_NAVARRO,
+      personaId: PERSONA_RAMON,
+      fuente: "pension",
+      importeAnual: 15_500,
+      descripcion: "Pensión de jubilación",
+    },
+    {
+      id: "ing-pilar-pension",
+      clienteId: CLIENTE_NAVARRO,
+      personaId: PERSONA_PILAR,
+      fuente: "pension",
+      importeAnual: 11_500,
+      descripcion: "Pensión de jubilación",
+    },
     {
       id: "ing-hugo-trabajo",
       clienteId: CLIENTE_NAVARRO,
@@ -360,8 +1076,49 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 24_000,
       descripcion: "Trabajo",
+      /**
+       * Sueldo 24.000 €/año (2.000 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 24.000 = 1.560 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
       cotizacionesSS: 1_560,
     },
+
+    /* ── Requena ── */
+    {
+      id: "ing-vicent-aaee",
+      clienteId: CLIENTE_REQUENA,
+      personaId: PERSONA_VICENT,
+      fuente: "actividad_economica",
+      importeAnual: 68_000,
+      descripcion: "Actividad económica",
+    },
+    {
+      id: "ing-nuria-trabajo",
+      clienteId: CLIENTE_REQUENA,
+      personaId: PERSONA_NURIA,
+      fuente: "trabajo",
+      importeAnual: 38_000,
+      descripcion: "Trabajo",
+      /**
+       * Sueldo 38.000 €/año (3.166,67 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 38.000 = 2.470 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 2_470,
+    },
+
+    /* ── Server ── */
+    {
+      id: "ing-carmen-alquiler",
+      clienteId: CLIENTE_SERVER,
+      personaId: PERSONA_CARMEN,
+      fuente: "alquiler",
+      importeAnual: 24_000,
+      descripcion: "Alquiler del piso de Russafa",
+    },
+
+    /* ── Tormo ── */
     {
       id: "ing-amparo-pension",
       clienteId: CLIENTE_TORMO,
@@ -371,12 +1128,18 @@ export const seed: SeedData = {
       descripcion: "Pensión",
     },
     {
-      id: "ing-vicent-aaee",
-      clienteId: CLIENTE_REQUENA,
-      personaId: PERSONA_VICENT,
-      fuente: "actividad_economica",
-      importeAnual: 68_000,
-      descripcion: "Actividad económica",
+      id: "ing-lluis-trabajo",
+      clienteId: CLIENTE_TORMO,
+      personaId: PERSONA_LLUIS,
+      fuente: "trabajo",
+      importeAnual: 52_000,
+      descripcion: "Trabajo",
+      /**
+       * Sueldo 52.000 €/año (4.333,33 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 52.000 = 3.380 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 3_380,
     },
   ],
 
@@ -421,6 +1184,198 @@ export const seed: SeedData = {
       clienteId: CLIENTE_GL,
       categoria: "Otros",
       importeAnual: 6_000,
+      vinculadoA: null,
+    },
+
+    /* ── Beltrán ── */
+    {
+      id: "gas-beltran-intereses",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Intereses de deuda",
+      importeAnual: 5_220,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_BELTRAN_VIVIENDA },
+    },
+    {
+      id: "gas-beltran-suministros",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Suministros y comunidad",
+      importeAnual: 3_600,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_BELTRAN_VIVIENDA },
+    },
+    {
+      id: "gas-beltran-familiar",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Familia y estilo de vida",
+      importeAnual: 42_000,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-beltran-seguros",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Seguros",
+      importeAnual: 2_800,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-beltran-vehiculo",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Vehículo",
+      importeAnual: 2_400,
+      vinculadoA: { kind: "otro", otroId: OTRO_BELTRAN_COCHE },
+    },
+    {
+      id: "gas-beltran-otros",
+      clienteId: CLIENTE_BELTRAN,
+      categoria: "Otros",
+      importeAnual: 8_000,
+      vinculadoA: null,
+    },
+
+    /* ── Navarro · capacidad de ahorro negativa ── */
+    {
+      id: "gas-navarro-familiar",
+      clienteId: CLIENTE_NAVARRO,
+      categoria: "Familia y ayuda al hijo",
+      importeAnual: 48_000,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-navarro-suministros",
+      clienteId: CLIENTE_NAVARRO,
+      categoria: "Suministros y comunidad",
+      importeAnual: 6_000,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_NAVARRO_VIVIENDA },
+    },
+    {
+      id: "gas-navarro-seguros",
+      clienteId: CLIENTE_NAVARRO,
+      categoria: "Seguros",
+      importeAnual: 3_200,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-navarro-salud",
+      clienteId: CLIENTE_NAVARRO,
+      categoria: "Salud",
+      importeAnual: 4_800,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-navarro-otros",
+      clienteId: CLIENTE_NAVARRO,
+      categoria: "Otros",
+      importeAnual: 12_000,
+      vinculadoA: null,
+    },
+
+    /* ── Requena ── */
+    {
+      id: "gas-requena-intereses",
+      clienteId: CLIENTE_REQUENA,
+      categoria: "Intereses de deuda",
+      importeAnual: 4_200,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_REQUENA_VIVIENDA },
+    },
+    {
+      id: "gas-requena-familiar",
+      clienteId: CLIENTE_REQUENA,
+      categoria: "Familia y estilo de vida",
+      importeAnual: 28_000,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-requena-suministros",
+      clienteId: CLIENTE_REQUENA,
+      categoria: "Suministros y comunidad",
+      importeAnual: 2_400,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_REQUENA_VIVIENDA },
+    },
+    {
+      id: "gas-requena-vehiculo",
+      clienteId: CLIENTE_REQUENA,
+      categoria: "Vehículo",
+      importeAnual: 3_000,
+      vinculadoA: { kind: "otro", otroId: OTRO_REQUENA_COCHE },
+    },
+    {
+      id: "gas-requena-otros",
+      clienteId: CLIENTE_REQUENA,
+      categoria: "Otros",
+      importeAnual: 5_000,
+      vinculadoA: null,
+    },
+
+    /* ── Server ── */
+    {
+      id: "gas-server-alquiler",
+      clienteId: CLIENTE_SERVER,
+      categoria: "Suministros y comunidad",
+      importeAnual: 4_800,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_SERVER_RUSSAFA },
+    },
+    {
+      id: "gas-server-tributos",
+      clienteId: CLIENTE_SERVER,
+      categoria: "Tributos locales (IBI y tasas)",
+      importeAnual: 3_600,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-server-familiar",
+      clienteId: CLIENTE_SERVER,
+      categoria: "Familia y estilo de vida",
+      importeAnual: 18_000,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-server-seguros",
+      clienteId: CLIENTE_SERVER,
+      categoria: "Seguros",
+      importeAnual: 2_400,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-server-otros",
+      clienteId: CLIENTE_SERVER,
+      categoria: "Otros",
+      importeAnual: 6_000,
+      vinculadoA: null,
+    },
+
+    /* ── Tormo ── */
+    {
+      id: "gas-tormo-intereses",
+      clienteId: CLIENTE_TORMO,
+      categoria: "Intereses de deuda",
+      importeAnual: 2_100,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_TORMO_VIVIENDA },
+    },
+    {
+      id: "gas-tormo-familiar",
+      clienteId: CLIENTE_TORMO,
+      categoria: "Familia y estilo de vida",
+      importeAnual: 22_000,
+      vinculadoA: null,
+    },
+    {
+      id: "gas-tormo-suministros",
+      clienteId: CLIENTE_TORMO,
+      categoria: "Suministros y comunidad",
+      importeAnual: 3_000,
+      vinculadoA: { kind: "inmueble", inmuebleId: INMUEBLE_TORMO_VIVIENDA },
+    },
+    {
+      id: "gas-tormo-vehiculo",
+      clienteId: CLIENTE_TORMO,
+      categoria: "Vehículo",
+      importeAnual: 2_800,
+      vinculadoA: { kind: "otro", otroId: OTRO_TORMO_COCHE },
+    },
+    {
+      id: "gas-tormo-otros",
+      clienteId: CLIENTE_TORMO,
+      categoria: "Otros",
+      importeAnual: 5_000,
       vinculadoA: null,
     },
   ],
@@ -506,34 +1461,126 @@ export const seed: SeedData = {
         "evt-e-rescate-capital",
       ],
     },
-    // Clientes ligeros — stubs solo para la columna Escenarios de P1 (ANEXO F)
+
+    /* ── Beltrán ── */
     {
-      id: "esc-beltran-base",
-      clienteId: "cliente-beltran",
+      id: ESC_BELTRAN_BASE,
+      clienteId: CLIENTE_BELTRAN,
       nombre: "Situación actual",
       esPlanBase: true,
-      eventoIds: [],
+      impuestosPeriodo: 0,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-beltran-base-jubilacion-jorge",
+        "evt-beltran-base-jubilacion-elena",
+      ],
     },
     {
-      id: "esc-requena-base",
-      clienteId: "cliente-requena",
-      nombre: "Situación actual",
-      esPlanBase: true,
-      eventoIds: [],
-    },
-    {
-      id: "esc-requena-alt",
-      clienteId: "cliente-requena",
-      nombre: "A · Alternativa",
+      id: ESC_BELTRAN_A,
+      clienteId: CLIENTE_BELTRAN,
+      nombre: "A · Reparto de dividendo 2027",
       esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-beltran-a-jubilacion-jorge",
+        "evt-beltran-a-jubilacion-elena",
+        "evt-beltran-a-dividendo",
+      ],
+    },
+
+    /* ── Navarro ── */
+    {
+      id: ESC_NAVARRO_BASE,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "Situación actual",
+      esPlanBase: true,
+      impuestosPeriodo: 0,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      // Hogar ya jubilado: la situación actual no tiene hitos por delante.
+      // Su interés es la trayectoria — la capacidad es negativa y los líquidos se agotan.
       eventoIds: [],
     },
     {
-      id: "esc-server-base",
-      clienteId: "cliente-server",
+      id: ESC_NAVARRO_A,
+      clienteId: CLIENTE_NAVARRO,
+      nombre: "A · Venta de la segunda residencia 2032",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: ["evt-navarro-a-venta-costa"],
+    },
+
+    /* ── Requena ── */
+    {
+      id: ESC_REQUENA_BASE,
+      clienteId: CLIENTE_REQUENA,
       nombre: "Situación actual",
       esPlanBase: true,
+      impuestosPeriodo: 0,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: ["evt-requena-base-jubilacion-vicent"],
+    },
+    {
+      id: ESC_REQUENA_A,
+      clienteId: CLIENTE_REQUENA,
+      nombre: "A · Aportación al plan 2026",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-requena-a-jubilacion-vicent",
+        "evt-requena-a-aportacion",
+      ],
+    },
+
+    /* ── Server ── */
+    {
+      id: ESC_SERVER_BASE,
+      clienteId: CLIENTE_SERVER,
+      nombre: "Situación actual",
+      esPlanBase: true,
+      impuestosPeriodo: 0,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      // Carmen ya cobra pensión y alquiler: sin hitos pendientes en la foto actual.
       eventoIds: [],
+    },
+    {
+      id: ESC_SERVER_A,
+      clienteId: CLIENTE_SERVER,
+      nombre: "A · Venta del piso de Russafa 2030",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: ["evt-server-a-venta-russafa"],
+    },
+
+    /* ── Tormo ── */
+    {
+      id: ESC_TORMO_BASE,
+      clienteId: CLIENTE_TORMO,
+      nombre: "Situación actual",
+      esPlanBase: true,
+      impuestosPeriodo: 0,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: ["evt-tormo-base-jubilacion-lluis"],
+    },
+    {
+      id: ESC_TORMO_A,
+      clienteId: CLIENTE_TORMO,
+      nombre: "A · Rescate en capital del plan de Lluís",
+      esPlanBase: false,
+      rentabilidadEsperada: 0.04,
+      inflacion: 0.02,
+      eventoIds: [
+        "evt-tormo-a-jubilacion-lluis",
+        "evt-tormo-a-rescate-capital",
+      ],
     },
   ],
 
@@ -711,6 +1758,150 @@ export const seed: SeedData = {
       anioContingencia: 2026,
       notas: "DT 12ª · fraccionPre2007 55 % · contingencia 2026",
     },
+
+    /* ── Beltrán ── */
+    {
+      id: "evt-beltran-base-jubilacion-jorge",
+      escenarioId: ESC_BELTRAN_BASE,
+      tipo: "jubilarse",
+      anio: 2040,
+      etiqueta: "Jubilación de Jorge (65)",
+      targetId: PERSONA_JORGE,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 28.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-beltran-base-jubilacion-elena",
+      escenarioId: ESC_BELTRAN_BASE,
+      tipo: "jubilarse",
+      anio: 2042,
+      etiqueta: "Jubilación de Elena (65)",
+      targetId: PERSONA_ELENA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 18.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-beltran-a-jubilacion-jorge",
+      escenarioId: ESC_BELTRAN_A,
+      tipo: "jubilarse",
+      anio: 2040,
+      etiqueta: "Jubilación de Jorge (65)",
+      targetId: PERSONA_JORGE,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 28.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-beltran-a-jubilacion-elena",
+      escenarioId: ESC_BELTRAN_A,
+      tipo: "jubilarse",
+      anio: 2042,
+      etiqueta: "Jubilación de Elena (65)",
+      targetId: PERSONA_ELENA,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 18.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-beltran-a-dividendo",
+      escenarioId: ESC_BELTRAN_A,
+      tipo: "repartir_dividendo",
+      anio: 2027,
+      etiqueta: "Repartir dividendo · Beltrán Holding SL · 40.000 €",
+      targetId: SOCIEDAD_BELTRAN,
+      importe: 40_000,
+      notas: "Jorge 60 % · Elena 40 % · liquidación societaria pendiente de definir",
+    },
+
+    /* ── Navarro ── */
+    {
+      id: "evt-navarro-a-venta-costa",
+      escenarioId: ESC_NAVARRO_A,
+      tipo: "vender_inmueble",
+      anio: 2032,
+      etiqueta: "Vender Segunda residencia · costa de Alicante · 180.000 €",
+      targetId: INMUEBLE_NAVARRO_COSTA,
+      importe: 180_000,
+      notas:
+        "Ramón 78 · Pilar 75 · segunda residencia: la edad no exime (art. 33.4.b) es solo vivienda habitual)",
+    },
+
+    /* ── Requena ── */
+    {
+      id: "evt-requena-base-jubilacion-vicent",
+      escenarioId: ESC_REQUENA_BASE,
+      tipo: "jubilarse",
+      anio: 2045,
+      etiqueta: "Jubilación de Vicent (65)",
+      targetId: PERSONA_VICENT,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 22.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-requena-a-jubilacion-vicent",
+      escenarioId: ESC_REQUENA_A,
+      tipo: "jubilarse",
+      anio: 2045,
+      etiqueta: "Jubilación de Vicent (65)",
+      targetId: PERSONA_VICENT,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 22.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-requena-a-aportacion",
+      escenarioId: ESC_REQUENA_A,
+      tipo: "aportar_plan",
+      anio: 2026,
+      etiqueta: "Aportar al plan de Vicent · 1.500 €",
+      targetId: PLAN_VICENT,
+      importe: 1_500,
+      notas: "Límite individual art. 52 LIRPF",
+    },
+
+    /* ── Server ── */
+    {
+      id: "evt-server-a-venta-russafa",
+      escenarioId: ESC_SERVER_A,
+      tipo: "vender_inmueble",
+      anio: 2030,
+      etiqueta: "Vender Piso en alquiler · Russafa · 480.000 €",
+      targetId: INMUEBLE_SERVER_RUSSAFA,
+      importe: 480_000,
+      notas:
+        "Carmen 76 · uso alquiler: fuera del art. 33.4.b), la edad por sí sola no exime",
+    },
+
+    /* ── Tormo ── */
+    {
+      id: "evt-tormo-base-jubilacion-lluis",
+      escenarioId: ESC_TORMO_BASE,
+      tipo: "jubilarse",
+      anio: 2027,
+      etiqueta: "Jubilación de Lluís (66)",
+      targetId: PERSONA_LLUIS,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 22.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-tormo-a-jubilacion-lluis",
+      escenarioId: ESC_TORMO_A,
+      tipo: "jubilarse",
+      anio: 2027,
+      etiqueta: "Jubilación de Lluís (66)",
+      targetId: PERSONA_LLUIS,
+      introducidoPorAsesor: true,
+      notas: "Pensión estimada 22.000 €/año · introducida por el asesor",
+    },
+    {
+      id: "evt-tormo-a-rescate-capital",
+      escenarioId: ESC_TORMO_A,
+      tipo: "rescatar_plan",
+      anio: 2027,
+      etiqueta: "Rescatar plan · capital · 20.000 €",
+      targetId: PLAN_LLUIS,
+      importe: 20_000,
+      // Contingencia en 2026 → plazo DT 12ª hasta 2028 · reducción 40 % aplicable
+      anioContingencia: 2026,
+      notas: "DT 12ª · fraccionPre2007 45 % · contingencia 2026",
+    },
   ],
 };
 
@@ -718,27 +1909,95 @@ export const seed: SeedData = {
 export const ids = {
   cuenta: CUENTA_ID,
   clienteGarciaLlorente: CLIENTE_GL,
+  clienteBeltran: CLIENTE_BELTRAN,
+  clienteNavarro: CLIENTE_NAVARRO,
   clienteRequena: CLIENTE_REQUENA,
+  clienteServer: CLIENTE_SERVER,
   clienteTormo: CLIENTE_TORMO,
+
   personaCarlos: PERSONA_CARLOS,
   personaMarta: PERSONA_MARTA,
   personaLucia: PERSONA_LUCIA,
   personaHugo: PERSONA_HUGO,
   personaAmparo: PERSONA_AMPARO,
   personaVicent: PERSONA_VICENT,
+  personaJorge: PERSONA_JORGE,
+  personaElena: PERSONA_ELENA,
+  personaRamon: PERSONA_RAMON,
+  personaPilar: PERSONA_PILAR,
+  personaNuria: PERSONA_NURIA,
+  personaClara: PERSONA_CLARA,
+  personaCarmen: PERSONA_CARMEN,
+  personaLluis: PERSONA_LLUIS,
+
   sociedadGarciaConsulting: SOCIEDAD_GC,
+  sociedadBeltranHolding: SOCIEDAD_BELTRAN,
+
   fondoA: FONDO_A,
   planCarlos: PLAN_CARLOS,
   planMarta: PLAN_MARTA,
   inmuebleJavea: INMUEBLE_JAVEA,
   pasivoHipoteca: PASIVO_HIPOTECA,
   otroAudi: OTRO_AUDI,
+
+  fondoBeltranCaixaRv: FONDO_BELTRAN_CAIXA_RV,
+  fondoBeltranCaixaMixto: FONDO_BELTRAN_CAIXA_MIXTO,
+  fondoBeltranCaixaRf: FONDO_BELTRAN_CAIXA_RF,
+  fondoBeltranCaixaEmergentes: FONDO_BELTRAN_CAIXA_EMERGENTES,
+  fondoBeltranCaixaMonetario: FONDO_BELTRAN_CAIXA_MONETARIO,
+  fondoBeltranSantRvUsa: FONDO_BELTRAN_SANT_RV_USA,
+  fondoBeltranSantSmall: FONDO_BELTRAN_SANT_SMALL,
+  fondoBeltranSantRf: FONDO_BELTRAN_SANT_RF,
+  fondoBeltranSantIndexado: FONDO_BELTRAN_SANT_INDEXADO,
+  fondoBeltranSantLiquidez: FONDO_BELTRAN_SANT_LIQUIDEZ,
+  inmuebleBeltranVivienda: INMUEBLE_BELTRAN_VIVIENDA,
+  inmuebleBeltranLocal: INMUEBLE_BELTRAN_LOCAL,
+  otroBeltranCoche: OTRO_BELTRAN_COCHE,
+  pasivoBeltranHipoteca: PASIVO_BELTRAN_HIPOTECA,
+
+  inmuebleNavarroVivienda: INMUEBLE_NAVARRO_VIVIENDA,
+  inmuebleNavarroCosta: INMUEBLE_NAVARRO_COSTA,
+  fondoNavarro: FONDO_NAVARRO,
+  planRamon: PLAN_RAMON,
+  otroNavarroEfectivo: OTRO_NAVARRO_EFECTIVO,
+
+  inmuebleRequenaVivienda: INMUEBLE_REQUENA_VIVIENDA,
+  fondoRequenaRv: FONDO_REQUENA_RV,
+  fondoRequenaRf: FONDO_REQUENA_RF,
+  fondoRequenaIndexado: FONDO_REQUENA_INDEXADO,
+  planVicent: PLAN_VICENT,
+  otroRequenaCoche: OTRO_REQUENA_COCHE,
+  pasivoRequenaHipoteca: PASIVO_REQUENA_HIPOTECA,
+
+  inmuebleServerVivienda: INMUEBLE_SERVER_VIVIENDA,
+  inmuebleServerRussafa: INMUEBLE_SERVER_RUSSAFA,
+  inmuebleServerPueblo: INMUEBLE_SERVER_PUEBLO,
+  inmuebleServerLocal: INMUEBLE_SERVER_LOCAL,
+  fondoServer: FONDO_SERVER,
+
+  inmuebleTormoVivienda: INMUEBLE_TORMO_VIVIENDA,
+  fondoTormo: FONDO_TORMO,
+  planLluis: PLAN_LLUIS,
+  otroTormoCoche: OTRO_TORMO_COCHE,
+  otroTormoColeccion: OTRO_TORMO_COLECCION,
+  pasivoTormoHipoteca: PASIVO_TORMO_HIPOTECA,
+
   escBase: ESC_BASE,
   escA: ESC_A,
   escB: ESC_B,
   escC: ESC_C,
   escD: ESC_D,
   escE: ESC_E,
+  escBeltranBase: ESC_BELTRAN_BASE,
+  escBeltranA: ESC_BELTRAN_A,
+  escNavarroBase: ESC_NAVARRO_BASE,
+  escNavarroA: ESC_NAVARRO_A,
+  escRequenaBase: ESC_REQUENA_BASE,
+  escRequenaA: ESC_REQUENA_A,
+  escServerBase: ESC_SERVER_BASE,
+  escServerA: ESC_SERVER_A,
+  escTormoBase: ESC_TORMO_BASE,
+  escTormoA: ESC_TORMO_A,
 } as const;
 
 /** P7 · Informes emitidos (solo García-Llorente tiene historial en el seed). */

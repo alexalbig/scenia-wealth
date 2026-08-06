@@ -497,14 +497,11 @@ export function buildProyeccionSeriesFromBag(
  * Compat: serie genérica sin eventos (neto + capacidad).
  */
 export function buildProyeccionSeries(
-  clienteId: string,
-  opts?: { patrimonioNeto?: number; capacidad?: number; completo?: boolean },
+  _clienteId: string,
+  opts?: { patrimonioNeto?: number; capacidad?: number },
 ): YearPoint[] {
-  if (!opts?.completo && opts?.patrimonioNeto == null) return [];
-  return buildSeriesFromNeto(
-    opts?.patrimonioNeto ?? 0,
-    opts?.capacidad ?? 0,
-  );
+  if (opts?.patrimonioNeto == null) return [];
+  return buildSeriesFromNeto(opts.patrimonioNeto, opts.capacidad ?? 0);
 }
 
 /** Trayectoria patrimonial genérica · IRPF 0 (hueco). */

@@ -3,6 +3,8 @@ import {
   emptyExpediente,
   normalizeBag,
   syncClienteTotales,
+  seedClienteIds,
+  SEED_BAG_REVISION,
   type ExpedienteBag,
   newId,
 } from "@/lib/expediente";
@@ -16,12 +18,27 @@ function canUseStorage() {
   return typeof window !== "undefined" && !!window.localStorage;
 }
 
+function isSeedCliente(clienteId: string) {
+  return seedClienteIds().includes(clienteId);
+}
+
+/** Bag de seed obsoleto tras cambio de datos demo. */
+function seedBagStale(bag: ExpedienteBag): boolean {
+  if (!isSeedCliente(bag.cliente.id)) return false;
+  return bag.seedRevision !== SEED_BAG_REVISION;
+}
+
 export function readExpediente(clienteId: string): ExpedienteBag | null {
   if (!canUseStorage()) return null;
   try {
     const raw = localStorage.getItem(KEY_PREFIX + clienteId);
     if (!raw) return null;
-    return normalizeBag(JSON.parse(raw) as ExpedienteBag);
+    const bag = normalizeBag(JSON.parse(raw) as ExpedienteBag);
+    if (seedBagStale(bag)) {
+      localStorage.removeItem(KEY_PREFIX + clienteId);
+      return null;
+    }
+    return bag;
   } catch {
     return null;
   }
@@ -61,13 +78,16 @@ export function listCustomClientes(): Cliente[] {
     .filter((c): c is Cliente => !!c);
 }
 
-/** Carga bag: localStorage → clone seed → null. */
+/** Carga bag: localStorage (si no está obsoleto) → clone seed → null. */
 export function resolveExpediente(clienteId: string): ExpedienteBag | null {
   const stored = readExpediente(clienteId);
   if (stored) return stored;
   const fromSeed = cloneExpedienteFromSeed(clienteId);
   if (fromSeed) {
-    const normalized = normalizeBag(fromSeed);
+    const stamped: ExpedienteBag = isSeedCliente(clienteId)
+      ? { ...fromSeed, seedRevision: SEED_BAG_REVISION }
+      : fromSeed;
+    const normalized = normalizeBag(stamped);
     writeExpediente(normalized);
     return normalized;
   }
@@ -119,7 +139,6 @@ export function createExpedienteFromAlta(payload: {
       otros: 0,
     },
     ultimaRevisionMeses: 0,
-    completo: true,
     datosAFecha: new Date().toISOString().slice(0, 10),
   };
 
