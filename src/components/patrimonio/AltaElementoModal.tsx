@@ -101,7 +101,7 @@ function eyebrowFor(kind: AltaKind, editing: boolean): string {
 function helpFor(kind: AltaKind): string {
   switch (kind) {
     case "persona":
-      return "La fecha de nacimiento es necesaria para calcular edades y plazos fiscales (exención de vivienda a los 65, jubilación, DT 12ª).";
+      return "La fecha de nacimiento es necesaria para calcular edades y plazos fiscales (exención de vivienda a los 65, jubilación, DT 12ª). Las cotizaciones SS son de la persona y solo cuentan si las introduces.";
     case "instrumento":
       return "El coste y la fecha de adquisición permiten calcular la plusvalía. Sin ellos, el motor no podrá liquidar una venta o un reembolso.";
     case "inmueble":
@@ -113,7 +113,7 @@ function helpFor(kind: AltaKind): string {
     case "pasivo":
       return "Capital pendiente e intereses separan gasto (intereses) de ahorro (amortización de capital).";
     case "ingreso":
-      return "La fuente y el importe anual construyen la base liquidable del titular. Las cotizaciones SS solo cuentan si las introduces.";
+      return "La fuente y el importe anual construyen la base liquidable del titular. Las cotizaciones SS se informan en la persona, no en cada línea.";
     case "gasto":
       return "Los gastos restan de la capacidad de ahorro. Vincularlos a un inmueble o sociedad ayuda a leer el flujo. Los intereses de deuda se derivan del pasivo (capital × tipo): el importe no se teclea.";
   }
@@ -154,6 +154,7 @@ export function AltaElementoModal({
   const [pNombre, setPNombre] = useState("");
   const [pBirth, setPBirth] = useState("");
   const [pCcaa, setPCcaa] = useState<CCAA>(CCAA_CON_COBERTURA_FISCAL);
+  const [pCotizaciones, setPCotizaciones] = useState("");
 
   // Instrumento
   const [iNombre, setINombre] = useState("");
@@ -205,7 +206,6 @@ export function AltaElementoModal({
   const [ingPersonaId, setIngPersonaId] = useState("");
   const [ingFuente, setIngFuente] = useState<FuenteIngreso>("trabajo");
   const [ingImporte, setIngImporte] = useState("");
-  const [ingCotizaciones, setIngCotizaciones] = useState("");
 
   // Gasto
   const [gCat, setGCat] = useState<string>(GASTO_CATEGORIAS[0]);
@@ -253,6 +253,9 @@ export function AltaElementoModal({
       setPNombre(it ? `${it.nombre} ${it.apellidos}`.trim() : "");
       setPBirth(it ? `${it.birthYear}-01-01` : "");
       setPCcaa(it?.ccaa ?? CCAA_CON_COBERTURA_FISCAL);
+      setPCotizaciones(
+        it?.cotizacionesSS != null ? String(it.cotizacionesSS) : "",
+      );
     }
     if (target.kind === "instrumento") {
       const it = target.item;
@@ -325,9 +328,6 @@ export function AltaElementoModal({
       setIngPersonaId(it?.personaId ?? personas[0]?.id ?? "");
       setIngFuente(it?.fuente ?? "trabajo");
       setIngImporte(it ? String(it.importeAnual) : "");
-      setIngCotizaciones(
-        it?.cotizacionesSS != null ? String(it.cotizacionesSS) : "",
-      );
     }
     if (target.kind === "gasto") {
       const it = target.item;
@@ -430,12 +430,18 @@ export function AltaElementoModal({
 
     if (kind === "persona" && target?.kind === "persona") {
       const parts = pNombre.trim().split(/\s+/);
+      const cotizRaw = pCotizaciones.trim();
+      const cotiz =
+        cotizRaw !== "" && Number.isFinite(Number(cotizRaw))
+          ? Number(cotizRaw)
+          : undefined;
       onSavePersona({
         id: idOf(target.item, "persona"),
         nombre: parts[0] ?? "",
         apellidos: parts.slice(1).join(" "),
         birthYear: yearFromBirthDate(pBirth),
         ccaa: pCcaa,
+        cotizacionesSS: cotiz,
       });
     }
     if (kind === "instrumento" && target?.kind === "instrumento") {
@@ -542,21 +548,12 @@ export function AltaElementoModal({
       });
     }
     if (kind === "ingreso" && target?.kind === "ingreso") {
-      const cotizRaw = ingCotizaciones.trim();
-      const cotiz =
-        cotizRaw !== "" && Number.isFinite(Number(cotizRaw))
-          ? Number(cotizRaw)
-          : undefined;
       onSaveIngreso({
         id: idOf(target.item, "ing"),
         clienteId: "",
         personaId: ingPersonaId,
         fuente: ingFuente,
         importeAnual: Number(ingImporte) || 0,
-        cotizacionesSS:
-          ingFuente === "trabajo" || ingFuente === "pension"
-            ? cotiz
-            : undefined,
       });
     }
     if (kind === "gasto" && target?.kind === "gasto") {
@@ -676,6 +673,24 @@ export function AltaElementoModal({
               <span>{avisoCoberturaCcaa(pCcaa)}</span>
             </div>
           )}
+          <div className="field">
+            <label className="lbl">
+              Cotizaciones SS anuales (opcional)
+            </label>
+            <input
+              type="number"
+              value={pCotizaciones}
+              onChange={(e) => setPCotizaciones(e.target.value)}
+              placeholder="Art. 19.2.a · no se estima si falta"
+            />
+            <div className="tag-manual" style={{ marginTop: 4 }}>
+              ✎ introducido por el asesor, no calculado
+            </div>
+            <div className="tiny" style={{ marginTop: 4 }}>
+              Dato de la persona. Si no se informa, el motor resta 0 € (no inventa
+              cotizaciones). Solo aplica con rendimientos de trabajo.
+            </div>
+          </div>
         </>
       )}
 
@@ -1145,23 +1160,6 @@ export function AltaElementoModal({
               className={err("ingImporte") ? "err" : undefined}
             />
           </div>
-          {(ingFuente === "trabajo" || ingFuente === "pension") && (
-            <div className="field">
-              <label className="lbl">
-                Cotizaciones SS anuales (opcional)
-              </label>
-              <input
-                type="number"
-                value={ingCotizaciones}
-                onChange={(e) => setIngCotizaciones(e.target.value)}
-                placeholder="Art. 19.2.a · no se estima si falta"
-              />
-              <div className="tiny" style={{ marginTop: 4 }}>
-                Dato del asesor. Si no se informa, el motor resta 0 € (no inventa
-                cotizaciones).
-              </div>
-            </div>
-          )}
         </>
       )}
 

@@ -65,7 +65,7 @@ export interface ExpedienteBag {
  * Subir cuando el seed de un cliente demo cambia de forma incompatible
  * con bags cacheados (ingresos, personas, gastos…).
  */
-export const SEED_BAG_REVISION = 6;
+export const SEED_BAG_REVISION = 7;
 
 export type AltaKind =
   | "persona"
@@ -325,16 +325,43 @@ export function ingresosPersonaFromBag(bag: ExpedienteBag, personaId: string) {
     .reduce((s, i) => s + i.importeAnual, 0);
 }
 
+/**
+ * Cotizaciones SS de la persona (PE5).
+ * Preferencia: campo en Persona. Fallback: suma legacy en líneas de ingreso.
+ */
+export function cotizacionesSSDePersona(
+  persona: Persona | undefined,
+  ingresos: Array<{ fuente?: string; cotizacionesSS?: number }>,
+): number | null {
+  if (
+    persona?.cotizacionesSS != null &&
+    Number.isFinite(persona.cotizacionesSS)
+  ) {
+    return persona.cotizacionesSS;
+  }
+  let sum: number | null = null;
+  for (const i of ingresos) {
+    if (
+      i.fuente === "trabajo" &&
+      i.cotizacionesSS != null &&
+      Number.isFinite(i.cotizacionesSS)
+    ) {
+      sum = (sum ?? 0) + i.cotizacionesSS;
+    }
+  }
+  return sum;
+}
+
 /** Base liquidable (arts. 19/20) usada por P4 / motor — no el bruto. */
 export function baseLiquidablePersonaFromBag(
   bag: ExpedienteBag,
   personaId: string,
 ) {
+  const persona = bag.personas.find((p) => p.id === personaId);
   const lineas = bag.ingresos.filter((i) => i.personaId === personaId);
   let trabajo = 0;
   let pension = 0;
   let otras = 0;
-  let cotiz: number | null = null;
   const fuentesNoContempladas: import("@/lib/types").FuenteIngreso[] = [];
   for (const i of lineas) {
     if (i.fuente === "actividad_economica") {
@@ -345,9 +372,6 @@ export function baseLiquidablePersonaFromBag(
     }
     if (i.fuente === "trabajo") {
       trabajo += i.importeAnual;
-      if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
-        cotiz = (cotiz ?? 0) + i.cotizacionesSS;
-      }
     } else if (i.fuente === "pension") {
       pension += i.importeAnual;
     } else {
@@ -358,7 +382,7 @@ export function baseLiquidablePersonaFromBag(
     trabajoBruto: trabajo,
     pensionBruta: pension,
     otrasRentasBrutas: otras,
-    cotizacionesSS: cotiz,
+    cotizacionesSS: cotizacionesSSDePersona(persona, lineas),
     fuentesNoContempladas,
   });
 }
@@ -378,6 +402,25 @@ export function titularidadAgregadaFromBag(
   bag.inmuebles.forEach((i) => add(i.valor, i.titularidades));
   bag.otrosActivos.forEach((a) => add(a.valor, a.titularidades));
   return total;
+}
+
+/** True si la persona aparece como titular de algún activo (mismo universo que patrimonio atribuido). */
+export function personaTieneTitularidadFromBag(
+  bag: ExpedienteBag,
+  personaId: string,
+): boolean {
+  const has = (titularidades: Titularidad[]) =>
+    titularidades.some(
+      (t) =>
+        t.owner.kind === "persona" &&
+        t.owner.personaId === personaId &&
+        t.porcentaje > 0,
+    );
+  return (
+    bag.instrumentos.some((i) => has(i.titularidades)) ||
+    bag.inmuebles.some((i) => has(i.titularidades)) ||
+    bag.otrosActivos.some((a) => has(a.titularidades))
+  );
 }
 
 export function planBaseFromBag(bag: ExpedienteBag): Escenario | undefined {
@@ -626,8 +669,30 @@ export function normalizeBag(bag: ExpedienteBag): ExpedienteBag {
     bag.escenarios?.length > 0
       ? bag.escenarios
       : [makePlanBase(bag.cliente.id)];
+
+  // PE5: cotizaciones SS → Persona; limpiar el campo legacy en ingresos.
+  const personas = (bag.personas ?? []).map((p) => {
+    if (p.cotizacionesSS != null && Number.isFinite(p.cotizacionesSS)) {
+      return p;
+    }
+    const fromLines = cotizacionesSSDePersona(
+      undefined,
+      (bag.ingresos ?? []).filter((i) => i.personaId === p.id),
+    );
+    if (fromLines == null) return p;
+    return { ...p, cotizacionesSS: fromLines };
+  });
+
+  const ingresos = (bag.ingresos ?? []).map((i) => {
+    if (i.cotizacionesSS == null) return i;
+    const { cotizacionesSS: _drop, ...rest } = i;
+    return rest;
+  });
+
   const deduped = dedupeJubilacionesBag({
     ...bag,
+    personas,
+    ingresos,
     escenarios,
     eventos: bag.eventos ?? [],
     historial: bag.historial ?? [],

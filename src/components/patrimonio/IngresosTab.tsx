@@ -91,8 +91,8 @@ export function IngresosTab({
       </Table>
       <div className="tiny" style={{ marginTop: 10 }}>
         Los importes de la tabla son brutos. El motor liquida sobre la base
-        liquidable (arts. 19/20 · cotizaciones solo si las informas) — el
-        rescate del plan se apila ahí, no sobre el bruto.
+        liquidable (arts. 19/20 · cotizaciones SS en la persona, solo si las
+        informas) — el rescate del plan se apila ahí, no sobre el bruto.
       </div>
     </>
   );

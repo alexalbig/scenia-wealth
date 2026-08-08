@@ -154,11 +154,11 @@ export function desgloseBaseLiquidablePersona(
   clienteId: string,
   personaId: string,
 ): DesgloseBaseLiquidable {
+  const persona = getPersonasDeCliente(clienteId).find((p) => p.id === personaId);
   const lineas = getIngresos(clienteId).filter((i) => i.personaId === personaId);
   let trabajo = 0;
   let pension = 0;
   let otras = 0;
-  let cotiz: number | null = null;
   const fuentesNoContempladas: import("./types").FuenteIngreso[] = [];
   for (const i of lineas) {
     if (i.fuente === "actividad_economica") {
@@ -169,13 +169,25 @@ export function desgloseBaseLiquidablePersona(
     }
     if (i.fuente === "trabajo") {
       trabajo += i.importeAnual;
-      if (i.cotizacionesSS != null && Number.isFinite(i.cotizacionesSS)) {
-        cotiz = (cotiz ?? 0) + i.cotizacionesSS;
-      }
     } else if (i.fuente === "pension") {
       pension += i.importeAnual;
     } else {
       otras += i.importeAnual;
+    }
+  }
+  let cotiz: number | null =
+    persona?.cotizacionesSS != null && Number.isFinite(persona.cotizacionesSS)
+      ? persona.cotizacionesSS
+      : null;
+  if (cotiz == null) {
+    for (const i of lineas) {
+      if (
+        i.fuente === "trabajo" &&
+        i.cotizacionesSS != null &&
+        Number.isFinite(i.cotizacionesSS)
+      ) {
+        cotiz = (cotiz ?? 0) + i.cotizacionesSS;
+      }
     }
   }
   return desgloseBaseLiquidable({

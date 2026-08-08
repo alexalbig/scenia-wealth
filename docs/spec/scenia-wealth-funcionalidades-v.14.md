@@ -293,10 +293,10 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 
 | Funcionalidad | Nº | Detalle | Fase |
 |---|---|---|---|
-| Lista de personas | 52 | Nombre · edad · CCAA · ingresos del año · patrimonio atribuido | CORE |
+| Lista de personas | 52 | Nombre · edad · CCAA · estado · jubilación prevista · ingresos del año · patrimonio atribuido. Sin ingresos o sin titularidades → «—», no 0 € | CORE |
 | **Estado de cálculo por persona** | 53 | Cada persona se marca como *con renta calculable* o *sin cálculo*, con el motivo. Es lo que alimenta el selector de P4 y las guardas del motor | CORE |
 | Drill-down a la ficha | 54 | Pinchar abre F1 · Persona | CORE |
-| Alta de persona | 55 | Botón «+ Añadir»: nombre · fecha de nacimiento · CCAA | CORE |
+| Alta de persona | 55 | Botón «+ Añadir»: nombre · fecha de nacimiento · CCAA · cotizaciones SS (opcional) | CORE |
 | Edición y borrado | 56 | Modificar o eliminar. Al borrar, avisa de titularidades e ingresos asociados y los limpia | MVP |
 | Patrimonio atribuido | 57 | Suma de lo que le corresponde según los repartos de titularidad | MVP |
 | Rol en el expediente | 58 | Titular · cónyuge · hijo. Hoy se suple con el estado de cálculo | V2 |
@@ -402,7 +402,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 |---|---|---|---|
 | Desglose por Persona y fuente | 84 | Trabajo · alquiler · dividendo · pensión · actividad económica · otros | CORE |
 | Alta de línea de ingreso | 85 | Botón «+ Añadir»: persona · fuente · importe anual | CORE |
-| **Cotizaciones a la Seguridad Social** | 86 | Campo del asesor. **No se estiman**: si no se informan, no se restan, y la base sale más alta | CORE |
+| **Cotizaciones a la Seguridad Social** | 86 | Campo de la **persona** (alta/edición y F1), no de la línea de ingreso. **No se estiman**: si no se informan, no se restan, y la base sale más alta | CORE |
 | **Etiquetas según la fuente** | 87 | El desglose de base liquidable adapta sus conceptos: un pensionista no tiene cotizaciones de trabajador, así que no se muestra "− Cotizaciones SS: 0 €" como si faltara el dato | MVP |
 | **Fuente "actividad económica" declarada** | 88 | Los autónomos llegan a la base de otra forma (RETA, gastos propios) que el motor **no modela**. La fuente existe y devuelve `sin_calculo` con su aviso, para que nadie cargue a un autónomo como "trabajo" | CORE |
 | Edición y borrado | 89 | Modificar o eliminar cualquier línea | MVP |
@@ -488,6 +488,7 @@ Sin el alta, la carga por capas no tiene por dónde entrar: el alta de cliente (
 | Datos básicos | 109 | Nombre · fecha de nacimiento · edad calculada | CORE |
 | **CCAA por persona, con efecto real** | 110 | La comunidad vive en la persona, no en el expediente. **La cobertura se comprueba al liquidar a cada uno** | CORE |
 | Ingresos del año | 111 | Calculado desde la pestaña Ingresos. Input del motor para la base general | CORE |
+| **Cotizaciones SS** | 111b | Dato de la persona · introducido por el asesor · alimenta arts. 19/20 | CORE |
 | **Estado de cálculo** | 112 | Con renta calculable · sin cálculo, con su motivo | CORE |
 | Jubilación prevista | 113 | Año/pensión del **evento del plan base** (misma verdad que Escenarios). Sin evento, estimación por edad (65). **F1 no elige escenario:** una hipótesis alternativa se monta en Escenarios. Al borrar el evento, la ficha vuelve a la estimación por edad | MVP |
 | Patrimonio atribuido | 114 | Desglose de qué parte de cada activo le corresponde según titularidad | MVP |

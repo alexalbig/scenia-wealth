@@ -135,6 +135,16 @@ export const seed: SeedData = {
       apellidos: "García Llorente",
       birthYear: 1968,
       ccaa: "Comunitat Valenciana",
+      /**
+       * Cotizaciones SS del trabajador · ejercicio 2026.
+       * Base tope 5.101,20 €/mes (Orden PJC/297/2026 art. 2.1) × 12 = 61.214,40 €.
+       * Tipos trabajador: CC 4,70 % + desempleo 1,55 % + FP 0,10 % + MEI 0,15 % = 6,50 %
+       * → 3.978,94 € sobre base tope.
+       * + cotización adicional de solidaridad (art. 17) sobre retribución > tope
+       *   (sueldo mensual 7.916,67 €) ≈ 70,68 € → total redondeado 4.050 €.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026.
+       */
+      cotizacionesSS: 4_050,
     },
     {
       id: PERSONA_MARTA,
@@ -142,6 +152,13 @@ export const seed: SeedData = {
       apellidos: "García Llorente",
       birthYear: 1971,
       ccaa: "Comunitat Valenciana",
+      /**
+       * Cotizaciones SS del trabajador · ejercicio 2026.
+       * Sueldo 32.000 €/año (2.666,67 €/mes) < base máxima 5.101,20 €/mes
+       * → cotiza por el íntegro: 6,50 % × 32.000 = 2.080 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 2_080,
     },
     // Lucía · sin ingresos · demo estado P4 «sin ingresos informados».
     // SIN titularidad sobre activos hasta que las guardas v14 estén en motor.ts/CT1.
@@ -159,6 +176,14 @@ export const seed: SeedData = {
       apellidos: "Beltrán Ortiz",
       birthYear: 1975,
       ccaa: "Comunitat Valenciana",
+      /**
+       * Cotizaciones SS del trabajador · ejercicio 2026.
+       * Sueldo por encima de la base máxima (5.101,20 €/mes × 12 = 61.214,40 €)
+       * → 6,50 % sobre base tope = 3.978,94 € + solidaridad (art. 17) sobre el
+       * exceso → total redondeado 4.050 €.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 17, 33.
+       */
+      cotizacionesSS: 4_050,
     },
     {
       id: PERSONA_ELENA,
@@ -166,6 +191,12 @@ export const seed: SeedData = {
       apellidos: "Ortiz Ruiz",
       birthYear: 1977,
       ccaa: "Comunitat Valenciana",
+      /**
+       * Sueldo 48.000 €/año (4.000 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 48.000 = 3.120 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 3_120,
     },
     /* ── Navarro Sanchís ── */
     {
@@ -191,6 +222,12 @@ export const seed: SeedData = {
       apellidos: "Navarro Sanchís",
       birthYear: 2001,
       ccaa: "Comunidad de Madrid",
+      /**
+       * Sueldo 24.000 €/año (2.000 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 24.000 = 1.560 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 1_560,
     },
     /* ── Requena Poveda ── */
     // Vicent · actividad económica · fuente no contemplada por el motor.
@@ -207,6 +244,12 @@ export const seed: SeedData = {
       apellidos: "Poveda Llopis",
       birthYear: 1983,
       ccaa: "Comunitat Valenciana",
+      /**
+       * Sueldo 38.000 €/año (3.166,67 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 38.000 = 2.470 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 2_470,
     },
     // Clara · menor sin ingresos · sin titularidad sobre activos (igual que Lucía).
     {
@@ -224,6 +267,12 @@ export const seed: SeedData = {
       apellidos: "Requena Soler",
       birthYear: 1978,
       ccaa: "Comunidad de Madrid",
+      /**
+       * Sueldo 36.000 €/año (3.000 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 36.000 = 2.340 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 2_340,
     },
     /* ── Server Alcaraz ── */
     // Carmen · titular única · 72 años en 2026 (umbral art. 33.4.b).
@@ -250,6 +299,12 @@ export const seed: SeedData = {
       apellidos: "Gisbert Ferrer",
       birthYear: 1961,
       ccaa: "Comunitat Valenciana",
+      /**
+       * Sueldo 52.000 €/año (4.333,33 €/mes) < base máxima 5.101,20 €/mes
+       * → 6,50 % × 52.000 = 3.380 €. Sin solidaridad.
+       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
+       */
+      cotizacionesSS: 3_380,
     },
   ],
 
@@ -1072,16 +1127,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 95_000,
       descripcion: "Trabajo",
-      /**
-       * Cotizaciones SS del trabajador · ejercicio 2026.
-       * Base tope 5.101,20 €/mes (Orden PJC/297/2026 art. 2.1) × 12 = 61.214,40 €.
-       * Tipos trabajador: CC 4,70 % + desempleo 1,55 % + FP 0,10 % + MEI 0,15 % = 6,50 %
-       * → 3.978,94 € sobre base tope.
-       * + cotización adicional de solidaridad (art. 17) sobre retribución > tope
-       *   (sueldo mensual 7.916,67 €) ≈ 70,68 € → total redondeado 4.050 €.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026.
-       */
-      cotizacionesSS: 4_050,
     },
     {
       id: "ing-marta-trabajo",
@@ -1090,13 +1135,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 32_000,
       descripcion: "Trabajo",
-      /**
-       * Cotizaciones SS del trabajador · ejercicio 2026.
-       * Sueldo 32.000 €/año (2.666,67 €/mes) < base máxima 5.101,20 €/mes
-       * → cotiza por el íntegro: 6,50 % × 32.000 = 2.080 €. Sin solidaridad.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
-       */
-      cotizacionesSS: 2_080,
     },
 
     /* ── Beltrán ── */
@@ -1107,14 +1145,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 92_000,
       descripcion: "Trabajo (nómina de la sociedad)",
-      /**
-       * Cotizaciones SS del trabajador · ejercicio 2026.
-       * Sueldo por encima de la base máxima (5.101,20 €/mes × 12 = 61.214,40 €)
-       * → 6,50 % sobre base tope = 3.978,94 € + solidaridad (art. 17) sobre el
-       * exceso → total redondeado 4.050 €.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 17, 33.
-       */
-      cotizacionesSS: 4_050,
     },
     {
       id: "ing-elena-trabajo",
@@ -1123,12 +1153,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 48_000,
       descripcion: "Trabajo",
-      /**
-       * Sueldo 48.000 €/año (4.000 €/mes) < base máxima 5.101,20 €/mes
-       * → 6,50 % × 48.000 = 3.120 €. Sin solidaridad.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
-       */
-      cotizacionesSS: 3_120,
     },
 
     /* ── Navarro · hogar jubilado con un hijo trabajando ── */
@@ -1155,12 +1179,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 24_000,
       descripcion: "Trabajo",
-      /**
-       * Sueldo 24.000 €/año (2.000 €/mes) < base máxima 5.101,20 €/mes
-       * → 6,50 % × 24.000 = 1.560 €. Sin solidaridad.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
-       */
-      cotizacionesSS: 1_560,
     },
 
     /* ── Requena ── */
@@ -1179,12 +1197,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 38_000,
       descripcion: "Trabajo",
-      /**
-       * Sueldo 38.000 €/año (3.166,67 €/mes) < base máxima 5.101,20 €/mes
-       * → 6,50 % × 38.000 = 2.470 €. Sin solidaridad.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
-       */
-      cotizacionesSS: 2_470,
     },
     {
       id: "ing-andreu-trabajo",
@@ -1193,12 +1205,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 36_000,
       descripcion: "Trabajo (Madrid)",
-      /**
-       * Sueldo 36.000 €/año (3.000 €/mes) < base máxima 5.101,20 €/mes
-       * → 6,50 % × 36.000 = 2.340 €. Sin solidaridad.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
-       */
-      cotizacionesSS: 2_340,
     },
 
     /* ── Server ── */
@@ -1227,12 +1233,6 @@ export const seed: SeedData = {
       fuente: "trabajo",
       importeAnual: 52_000,
       descripcion: "Trabajo",
-      /**
-       * Sueldo 52.000 €/año (4.333,33 €/mes) < base máxima 5.101,20 €/mes
-       * → 6,50 % × 52.000 = 3.380 €. Sin solidaridad.
-       * Fuente: BOE-A-2026-7296 Orden PJC/297/2026 arts. 2, 4, 16, 33.
-       */
-      cotizacionesSS: 3_380,
     },
   ],
 

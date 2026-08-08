@@ -228,6 +228,13 @@ export function PersonaFicha({
                   </div>
                 ))}
               </div>
+              {desglose.trabajoBruto > 0 &&
+                !desglose.cotizacionesInformadas && (
+                  <div className="tiny" style={{ marginTop: 6 }}>
+                    Cotizaciones SS no informadas · se restan 0 € ·{" "}
+                    <span className="mut">editar persona para informarlas</span>
+                  </div>
+                )}
             </>
           ) : (
             <>
@@ -298,7 +305,10 @@ export function PersonaFicha({
       </div>
 
       <div className="lbl" style={{ margin: "18px 0 6px" }}>
-        Patrimonio atribuido · {formatEUR(totalAtribuido)}
+        Patrimonio atribuido
+        {filas.length === 0
+          ? " · sin titularidades"
+          : ` · ${formatEUR(totalAtribuido)}`}
       </div>
       <Table>
         <THead>

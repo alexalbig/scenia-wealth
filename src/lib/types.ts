@@ -116,6 +116,12 @@ export interface Persona {
   apellidos: string;
   birthYear: number;
   ccaa: CCAA;
+  /**
+   * Cotizaciones a la Seguridad Social del año (art. 19.2.a LIRPF).
+   * Dato de la persona · introducido por el asesor · el motor no las estima.
+   * Solo restan si hay rendimientos de trabajo asalariado.
+   */
+  cotizacionesSS?: number;
 }
 
 /** Persona jurídica dentro de un Cliente. */
@@ -235,8 +241,8 @@ export interface Ingreso {
   importeAnual: number;
   descripcion?: string;
   /**
-   * Cotizaciones a la Seguridad Social del año (art. 19.2.a LIRPF).
-   * Solo si las informa el asesor — el motor no las estima.
+   * @deprecated PE5 · las cotizaciones viven en `Persona.cotizacionesSS`.
+   * Se conserva solo para migrar bags antiguos en `normalizeBag`.
    */
   cotizacionesSS?: number;
 }

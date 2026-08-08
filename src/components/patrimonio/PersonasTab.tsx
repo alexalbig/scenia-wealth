@@ -15,10 +15,16 @@ import {
 } from "@/components/ui";
 import { RowCrud } from "@/components/patrimonio/RowCrud";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
+import {
+  jubilacionDePersonaEnEscenario,
+  personaTieneTitularidadFromBag,
+} from "@/lib/expediente";
 import { estadoFiscalPersona } from "@/lib/fiscal/estado-persona";
 import { ageFromBirthYear, formatEUR } from "@/lib/format";
 import { personaLabel } from "@/lib/patrimonio";
 import type { Persona } from "@/lib/types";
+
+const RETIREMENT_AGE = 65;
 
 function motivoCorto(
   motivo: "ccaa_sin_cobertura" | "fuente_no_contemplada" | "sin_ingresos",
@@ -51,7 +57,7 @@ export function PersonasTab({
   onDelete: (id: string) => void;
 }) {
   const router = useRouter();
-  const { bag } = useExpediente();
+  const { bag, planBase } = useExpediente();
 
   const estados = useMemo(() => {
     const map: Record<string, ReturnType<typeof estadoFiscalPersona>> = {};
@@ -86,6 +92,7 @@ export function PersonasTab({
             <TH>Edad</TH>
             <TH>CCAA</TH>
             <TH>Estado</TH>
+            <TH>Jubilación</TH>
             <TH className="right">Ingresos del año</TH>
             <TH className="right">Patrimonio atribuido</TH>
             <TH />
@@ -94,7 +101,7 @@ export function PersonasTab({
         <TBody>
           {personas.length === 0 && (
             <TR>
-              <TD colSpan={7} className="mut">
+              <TD colSpan={8} className="mut">
                 Sin personas. Usa «+ Añadir» para cargar la primera.
               </TD>
             </TR>
@@ -102,6 +109,14 @@ export function PersonasTab({
           {personas.map((p) => {
             const label = personaLabel(p);
             const est = estados[p.id];
+            const sinIngresos =
+              est?.kind === "sin_calculo" && est.motivo === "sin_ingresos";
+            const sinTitularidad = !personaTieneTitularidadFromBag(bag, p.id);
+            const jubEvento = planBase
+              ? jubilacionDePersonaEnEscenario(bag, planBase.id, p.id)
+              : undefined;
+            const jubAnio = jubEvento?.anio ?? p.birthYear + RETIREMENT_AGE;
+            const jubDesdeEvento = !!jubEvento;
             return (
               <TR
                 key={p.id}
@@ -130,11 +145,28 @@ export function PersonasTab({
                     </span>
                   )}
                 </TD>
+                <TD className="num">
+                  {jubAnio}
+                  {!jubDesdeEvento ? (
+                    <span className="mut" title="Estimación por edad · sin evento en el plan base">
+                      {" "}
+                      · est.
+                    </span>
+                  ) : null}
+                </TD>
                 <TD className="right num strong">
-                  {formatEUR(ingresosOf(p.id))}
+                  {sinIngresos ? (
+                    <span className="mut">—</span>
+                  ) : (
+                    formatEUR(ingresosOf(p.id))
+                  )}
                 </TD>
                 <TD className="right num">
-                  {formatEUR(patrimonioOf(p.id))}
+                  {sinTitularidad ? (
+                    <span className="mut">—</span>
+                  ) : (
+                    formatEUR(patrimonioOf(p.id))
+                  )}
                 </TD>
                 <TD className="right">
                   <RowCrud
@@ -148,7 +180,8 @@ export function PersonasTab({
         </TBody>
       </Table>
       <div className="tiny" style={{ marginTop: 10 }}>
-        El estado de cálculo alimenta Fiscalidad y las guardas del motor.
+        El estado de cálculo alimenta Fiscalidad y las guardas del motor. «—»
+        indica dato sin informar (ingresos) o sin titularidades (patrimonio).
       </div>
     </>
   );
