@@ -21,6 +21,8 @@ import {
 } from "@/lib/expediente";
 import { esGastoInteresDeuda, interesDerivadoParaGasto } from "@/lib/patrimonio";
 import { formatEUR } from "@/lib/format";
+import { AVISO_IMPORTE_ATIPICO } from "@/lib/ingresos-fiscal";
+import { PARAMETROS } from "@/lib/fiscal/parametros";
 import {
   CCAAS,
   CCAA_CON_COBERTURA_FISCAL,
@@ -1159,6 +1161,12 @@ export function AltaElementoModal({
               onChange={(e) => setIngImporte(e.target.value)}
               className={err("ingImporte") ? "err" : undefined}
             />
+            {Number(ingImporte) >
+              PARAMETROS.avisoImporteIngresoAtipicoDesde.valor && (
+              <div className="hint-info" style={{ marginTop: 6 }}>
+                <span>{AVISO_IMPORTE_ATIPICO}</span>
+              </div>
+            )}
           </div>
         </>
       )}

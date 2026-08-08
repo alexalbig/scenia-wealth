@@ -7,6 +7,7 @@
  * los ingresos de trabajo se sustituyen por la pensión estimada del asesor.
  */
 
+import { fuenteExcluidaDeBaseGeneral } from "@/lib/ingresos-fiscal";
 import type { Evento, FuenteIngreso, Persona, Titularidad } from "@/lib/types";
 import {
   desgloseBaseLiquidable,
@@ -171,6 +172,8 @@ export function basePersonaEnAnio(
         if (!fuentesNoContempladas.includes(f)) fuentesNoContempladas.push(f);
         continue;
       }
+      // Dividendo: pertenece a base del ahorro · no se apila en general.
+      if (fuenteExcluidaDeBaseGeneral(f)) continue;
       if (f === "trabajo") {
         trabajoBruto += i.importeAnual;
       } else if (f === "pension") {
@@ -188,6 +191,7 @@ export function basePersonaEnAnio(
         if (!fuentesNoContempladas.includes(f)) fuentesNoContempladas.push(f);
         continue;
       }
+      if (fuenteExcluidaDeBaseGeneral(f)) continue;
       if (f === "trabajo") continue; // sustituido por pensión
       if (f === "pension") {
         pensionBruta += i.importeAnual;

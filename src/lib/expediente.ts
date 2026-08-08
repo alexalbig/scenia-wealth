@@ -12,6 +12,7 @@ import {
   esGastoInteresDeuda,
   personaLabel,
 } from "@/lib/patrimonio";
+import { fuenteExcluidaDeBaseGeneral } from "@/lib/ingresos-fiscal";
 import {
   getCliente,
   getEscenariosDeCliente,
@@ -370,6 +371,8 @@ export function baseLiquidablePersonaFromBag(
       }
       continue;
     }
+    // Dividendo → base del ahorro · no se apila en general.
+    if (fuenteExcluidaDeBaseGeneral(i.fuente)) continue;
     if (i.fuente === "trabajo") {
       trabajo += i.importeAnual;
     } else if (i.fuente === "pension") {

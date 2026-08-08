@@ -9,6 +9,11 @@ import { RecorridoMarginal } from "@/components/fiscalidad/RecorridoMarginal";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
 import { formatEUR } from "@/lib/format";
 import {
+  NOTA_AHORRO_DIVIDENDOS_SIN_CALCULO,
+  NOTA_AHORRO_SIN_RENTAS,
+  NOTA_ALQUILER_SIMPLIFICACION,
+} from "@/lib/ingresos-fiscal";
+import {
   anioPorDefecto,
   aniosToolbarFiscal,
   avisoCoberturaCcaa,
@@ -23,6 +28,16 @@ import {
   type EstadoFiscalPersona,
 } from "@/lib/fiscal";
 import type { CCAA, Cliente } from "@/lib/types";
+
+function notaBaseAhorro(
+  baseA: number | null,
+  cuotaAhorro: number | undefined,
+  tieneDividendosSinCalculo: boolean,
+): string {
+  if (tieneDividendosSinCalculo) return NOTA_AHORRO_DIVIDENDOS_SIN_CALCULO;
+  if (baseA == null) return NOTA_AHORRO_SIN_RENTAS;
+  return `Base del ahorro ${formatEUR(baseA)} → cuota ${formatEUR(cuotaAhorro ?? 0)} · orientativo`;
+}
 
 /**
  * P4 · Fiscalidad — foto del plan base (porte de fiscalidad-d-zona).
@@ -128,7 +143,15 @@ function PersonaSoloAhorro({
   clienteId: string;
   anio: number;
 }) {
+  const { bag } = useExpediente();
   const baseA = baseAhorroPersona(clienteId, persona.id);
+  const tieneDividendos = bag.ingresos.some(
+    (i) => i.personaId === persona.id && i.fuente === "dividendo",
+  );
+  const tieneAlquiler = bag.ingresos.some(
+    (i) => i.personaId === persona.id && i.fuente === "alquiler",
+  );
+  const edad = anio - (bag.personas.find((p) => p.id === persona.id)?.birthYear ?? anio);
   const liq =
     baseA != null
       ? liquidacionEjercicio({
@@ -136,6 +159,7 @@ function PersonaSoloAhorro({
           baseAhorro: baseA,
           anio,
           ccaa: persona.ccaa,
+          edad,
         })
       : null;
 
@@ -163,11 +187,15 @@ function PersonaSoloAhorro({
         <div className="nrow">
           <span className="lbl">Base del ahorro</span>
           <span>
-            {baseA == null
-              ? "Sin rentas del ahorro en el expediente — hueco. Las plusvalías latentes no tributan hasta que un evento las realice."
-              : `Base del ahorro ${formatEUR(baseA)} → cuota ${formatEUR(liq?.cuotaAhorro ?? 0)} · orientativo`}
+            {notaBaseAhorro(baseA, liq?.cuotaAhorro, tieneDividendos)}
           </span>
         </div>
+        {tieneAlquiler && (
+          <div className="nrow">
+            <span className="lbl">Simplificación declarada</span>
+            <span>{NOTA_ALQUILER_SIMPLIFICACION}</span>
+          </div>
+        )}
       </section>
     </>
   );
@@ -211,6 +239,13 @@ function PersonaCalculable({
   const activoEst = tramoDeBase(baseG, "estatal", anio);
   const activoAut = tramoDeBase(baseG, "autonomica", anio);
   const recorrido = recorridoMarginalGeneral(baseG, anio, ccaa);
+
+  const tieneDividendos = bag.ingresos.some(
+    (i) => i.personaId === personaId && i.fuente === "dividendo",
+  );
+  const tieneAlquiler = bag.ingresos.some(
+    (i) => i.personaId === personaId && i.fuente === "alquiler",
+  );
 
   const baseSub =
     desg.conceptos.length > 0
@@ -276,11 +311,15 @@ function PersonaCalculable({
         <div className="nrow">
           <span className="lbl">Base del ahorro</span>
           <span>
-            {baseA == null
-              ? "Sin rentas del ahorro en el expediente — hueco. Las plusvalías latentes no tributan hasta que un evento las realice."
-              : `Base del ahorro ${formatEUR(baseA)} → cuota ${formatEUR(liq.cuotaAhorro)} · orientativo`}
+            {notaBaseAhorro(baseA, liq.cuotaAhorro, tieneDividendos)}
           </span>
         </div>
+        {tieneAlquiler && (
+          <div className="nrow">
+            <span className="lbl">Simplificación declarada</span>
+            <span>{NOTA_ALQUILER_SIMPLIFICACION}</span>
+          </div>
+        )}
         {liq.minimoAutonomicoSimplificado && (
           <div className="nrow">
             <span className="lbl">Simplificación declarada</span>
@@ -292,7 +331,9 @@ function PersonaCalculable({
         {!liq.minimoAutonomicoSimplificado && (
           <div className="nrow">
             <span className="lbl">Simplificación declarada</span>
-            <span>Cálculo individual · la tributación conjunta no está contemplada.</span>
+            <span>
+              Cálculo individual · la tributación conjunta no está contemplada.
+            </span>
           </div>
         )}
       </section>

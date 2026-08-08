@@ -6,6 +6,7 @@
 
 import { getCliente, getPersonasDeCliente } from "./seed";
 import { getIngresos, ingresosPorPersona } from "./patrimonio";
+import { fuenteExcluidaDeBaseGeneral } from "./ingresos-fiscal";
 import type { CCAA } from "./types";
 import { esRegimenForal } from "./types";
 import {
@@ -167,6 +168,8 @@ export function desgloseBaseLiquidablePersona(
       }
       continue;
     }
+    // Dividendo → base del ahorro · no se apila en general.
+    if (fuenteExcluidaDeBaseGeneral(i.fuente)) continue;
     if (i.fuente === "trabajo") {
       trabajo += i.importeAnual;
     } else if (i.fuente === "pension") {

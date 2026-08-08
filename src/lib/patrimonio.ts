@@ -177,6 +177,10 @@ export function fuenteIngresoLabel(fuente: Ingreso["fuente"]) {
       return "Dividendo";
     case "pension":
       return "Pensión";
+    case "actividad_economica":
+      return "Actividad económica";
+    case "otros":
+      return "Otros";
     default:
       return "Otros";
   }

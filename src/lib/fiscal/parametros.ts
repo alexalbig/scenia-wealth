@@ -107,11 +107,28 @@ const FUENTE_CV_G =
 const FUENTE_AHORRO =
   "Ley 35/2006 arts. 66 y 76 · Ley 7/2024 DF 7ª (efectos 1-ene-2025) · AEAT novedades normativa 2024";
 
+/** Tope del penúltimo tramo de la escala estatal (art. 63.1) — ancla del aviso de importe atípico. */
+const TOPE_PENULTIMO_TRAMO_ESTATAL = (() => {
+  let last: number | null = null;
+  for (const t of ESCALA_ESTATAL_GENERAL) {
+    if (t.hasta != null) last = t.hasta;
+  }
+  return last ?? 300_000;
+})();
+
 export const PARAMETROS = {
   escalaEstatalGeneral: p(ESCALA_ESTATAL_GENERAL, FUENTE_ESTATAL_G),
   escalaAutonomicaCV: p(ESCALA_CV_GENERAL, FUENTE_CV_G),
   escalaAhorroEstatal: p(ESCALA_AHORRO_ESTATAL, FUENTE_AHORRO),
   escalaAhorroAutonomica: p(ESCALA_AHORRO_AUTONOMICA, FUENTE_AHORRO),
+  /**
+   * Aviso suave en alta de ingreso (no bloquea). Anclado al tope del penúltimo
+   * tramo de `escalaEstatalGeneral` (hoy 300.000 € · art. 63.1), no a un número suelto.
+   */
+  avisoImporteIngresoAtipicoDesde: p(
+    TOPE_PENULTIMO_TRAMO_ESTATAL,
+    "Ley 35/2006 art. 63.1 · tope del penúltimo tramo de la escala estatal (base general) · umbral de aviso de importe atípico en ingresos",
+  ),
   minimoContribuyente: p(
     5_550,
     "Ley 35/2006 art. 57.1 · AEAT Manual Renta 2025 (mínimo del contribuyente)",
