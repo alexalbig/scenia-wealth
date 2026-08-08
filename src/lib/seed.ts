@@ -2203,14 +2203,16 @@ export function getEscenariosDeCliente(clienteId: string) {
 }
 
 /**
- * Escenarios con trabajo montado (al menos un evento).
- * El plan base vacío no cuenta: en P1 la columna es «alternativas montadas».
+ * Alternativas montadas (P1): escenarios con al menos un evento.
+ * El plan base ("Situación actual") no cuenta nunca — tenga eventos o no.
+ * Las jubilaciones del expediente viven ahí; la columna mide exploración del asesor.
  */
 export function countEscenariosConEventos(
-  escenarios: Array<{ id: string; eventoIds: string[] }>,
+  escenarios: Array<{ id: string; eventoIds: string[]; esPlanBase?: boolean }>,
   eventos: Array<{ escenarioId: string }> = [],
 ): number {
   return escenarios.filter((e) => {
+    if (e.esPlanBase) return false;
     if (e.eventoIds.length > 0) return true;
     return eventos.some((ev) => ev.escenarioId === e.id);
   }).length;
