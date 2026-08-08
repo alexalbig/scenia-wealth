@@ -8,7 +8,7 @@ import {
   textoMotivoComparacion,
   type ComparacionAmortizarVsInvertir,
 } from "@/lib/amortizar-vs-invertir";
-import { formatEUR, formatIntegerES, ageFromBirthYear, formatPercent } from "@/lib/format";
+import { formatEUR, formatIntegerES, ageFromBirthYear, formatPercent, formatTipo } from "@/lib/format";
 import { PROYECCION_START_YEAR } from "@/lib/proyeccion";
 import { simularMotorEvento } from "@/lib/fiscal/motor";
 import {
@@ -1343,73 +1343,98 @@ function ComparacionAmortizarBlock({
 }: {
   c: Extract<ComparacionAmortizarVsInvertir, { kind: "comparacion" }>;
 }) {
-  const pctTipo = formatPercent(c.tipoInteres);
+  const [abierta, setAbierta] = useState(false);
+  const pctTipo = formatTipo(c.tipoInteres);
   const pctR = formatPercent(c.rentabilidadEscenario);
   const nLabel = formatAniosComparacion(c.nEfectivoAnios);
   const nDeclaradoLabel = formatAniosComparacion(c.nDeclaradoAnios);
-  const acorta =
-    c.nEfectivoAnios < c.nDeclaradoAnios - 0.05;
+  const acorta = c.nEfectivoAnios < c.nDeclaradoAnios - 0.05;
+
   return (
     <div style={{ marginTop: 10 }}>
-      <div
+      <button
+        type="button"
+        className="tiny"
+        onClick={() => setAbierta((v) => !v)}
+        aria-expanded={abierta}
         style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 10,
-          border: "1px solid var(--line-2)",
-          borderRadius: 8,
-          padding: 10,
-          background: "var(--paper)",
+          background: "none",
+          border: "none",
+          padding: 0,
+          color: "var(--slate)",
+          cursor: "pointer",
+          textDecoration: "underline",
+          textUnderlineOffset: 2,
         }}
       >
-        <div>
-          <div className="lbl">Amortizar</div>
-          <div className="num strong" style={{ fontSize: 16, marginTop: 4 }}>
-            {formatEUR(Math.round(c.interesContractualAhorrado))}
+        {abierta
+          ? "Ocultar comparación con invertir"
+          : "¿Qué renuncias al amortizar?"}
+      </button>
+      {abierta ? (
+        <div style={{ marginTop: 8 }}>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 10,
+              border: "1px solid var(--line-2)",
+              borderRadius: 8,
+              padding: 10,
+              background: "var(--paper)",
+            }}
+          >
+            <div>
+              <div className="lbl">Amortizar</div>
+              <div className="num strong" style={{ fontSize: 16, marginTop: 4 }}>
+                {formatEUR(Math.round(c.interesContractualAhorrado))}
+              </div>
+              <div className="tiny" style={{ marginTop: 6 }}>
+                Interés contractual que deja de pagarse · orientativo
+              </div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                <b>Hecho contractual</b> · tipo {pctTipo} · plazo efectivo{" "}
+                {nLabel} años
+              </div>
+              <div className="tiny mut" style={{ marginTop: 4 }}>
+                Dato del pasivo
+              </div>
+            </div>
+            <div>
+              <div className="lbl">Invertir la misma cantidad</div>
+              <div className="num strong" style={{ fontSize: 16, marginTop: 4 }}>
+                {formatEUR(Math.round(c.rendimientoEsperado))}
+              </div>
+              <div className="tiny" style={{ marginTop: 6 }}>
+                Rendimiento esperado · orientativo
+              </div>
+              <div className="tiny" style={{ marginTop: 4 }}>
+                <b>Expectativa</b> · rentabilidad del escenario {pctR} · mismo
+                plazo
+              </div>
+              <div className="tiny mut" style={{ marginTop: 4 }}>
+                Supuesto del asesor · como la pensión estimada
+              </div>
+            </div>
           </div>
-          <div className="tiny" style={{ marginTop: 6 }}>
-            Interés contractual que deja de pagarse · orientativo
-          </div>
-          <div className="tiny" style={{ marginTop: 4 }}>
-            <b>Hecho contractual</b> · tipo {pctTipo} · plazo efectivo {nLabel}{" "}
-            años
+          {acorta ? (
+            <div className="tiny" style={{ marginTop: 8 }}>
+              La hipoteca pasa de {nDeclaradoLabel} a {nLabel} años al amortizar{" "}
+              {formatEUR(Math.round(c.importe))}. La comparación se hace sobre
+              ese plazo.
+            </div>
+          ) : null}
+          <div className="tiny" style={{ marginTop: acorta ? 6 : 8 }}>
+            No se señala ganador: una pata es certeza del contrato; la otra es la
+            hipótesis que tú has puesto en el escenario.
           </div>
           <div className="tiny mut" style={{ marginTop: 4 }}>
-            Dato del pasivo
+            Antes de impuestos sobre el rendimiento · la fiscalidad al realizar
+            la inversión no está liquidada · capitalización X×((1+tasa)^n−1) · n
+            = plazo efectivo tras amortizar ({nLabel} años, cuota constante).
           </div>
-        </div>
-        <div>
-          <div className="lbl">Invertir la misma cantidad</div>
-          <div className="num strong" style={{ fontSize: 16, marginTop: 4 }}>
-            {formatEUR(Math.round(c.rendimientoEsperado))}
-          </div>
-          <div className="tiny" style={{ marginTop: 6 }}>
-            Rendimiento esperado · orientativo
-          </div>
-          <div className="tiny" style={{ marginTop: 4 }}>
-            <b>Expectativa</b> · rentabilidad del escenario {pctR} · mismo plazo
-          </div>
-          <div className="tiny mut" style={{ marginTop: 4 }}>
-            Supuesto del asesor · como la pensión estimada
-          </div>
-        </div>
-      </div>
-      {acorta ? (
-        <div className="tiny" style={{ marginTop: 8 }}>
-          La hipoteca pasa de {nDeclaradoLabel} a {nLabel} años al amortizar{" "}
-          {formatEUR(Math.round(c.importe))}. La comparación se hace sobre ese
-          plazo.
         </div>
       ) : null}
-      <div className="tiny" style={{ marginTop: acorta ? 6 : 8 }}>
-        No se señala ganador: una pata es certeza del contrato; la otra es la
-        hipótesis que tú has puesto en el escenario.
-      </div>
-      <div className="tiny mut" style={{ marginTop: 4 }}>
-        Antes de impuestos sobre el rendimiento · la fiscalidad al realizar la
-        inversión no está liquidada · capitalización X×((1+tasa)^n−1) · n = plazo
-        efectivo tras amortizar ({nLabel} años, cuota constante).
-      </div>
     </div>
   );
 }

@@ -54,6 +54,7 @@ const RESUMEN_KIND: Record<string, AltaTarget["kind"]> = {
   inmobiliario: "inmueble",
   empresarial: "sociedad",
   otros: "otro",
+  ingresos: "ingreso",
 };
 
 export function PatrimonioView() {

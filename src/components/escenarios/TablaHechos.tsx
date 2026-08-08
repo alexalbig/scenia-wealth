@@ -9,7 +9,7 @@ import {
   COMPARADOR_HORIZONTE,
   type SostenibilidadCamino,
 } from "@/lib/escenarios";
-import { formatEUR, formatPercent } from "@/lib/format";
+import { formatEUR, formatPercent, formatTipo } from "@/lib/format";
 import type { Evento } from "@/lib/types";
 
 export interface FilaHechos {
@@ -189,7 +189,7 @@ function celdaAmortizarVsInvertir(
         <span className="num">
           {formatEUR(Math.round(c.interesContractualAhorrado))}
         </span>{" "}
-        · hecho contractual ({formatPercent(c.tipoInteres)})
+        · hecho contractual ({formatTipo(c.tipoInteres)})
       </div>
       <div style={{ marginTop: 4 }}>
         Invertir:{" "}

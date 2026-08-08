@@ -55,6 +55,10 @@ export function ResumenTab({
 }: ResumenTabProps) {
   const router = useRouter();
   const a = ahorroDetalle;
+  const sinFoto =
+    totales.bruto <= 0 &&
+    totales.pasivos <= 0 &&
+    !totales.empresarialSinValorar;
 
   return (
     <div className="grid3">
@@ -72,230 +76,310 @@ export function ResumenTab({
               </div>
             )}
           </div>
-          <div className="toolbar">
-            <Button variant="primary" onClick={onInforme}>
-              Generar informe
-            </Button>
-          </div>
+          {!sinFoto && (
+            <div className="toolbar">
+              <Button variant="primary" onClick={onInforme}>
+                Generar informe
+              </Button>
+            </div>
+          )}
         </div>
 
-        <div className="treemap">
-          <div className="tm-col" style={{ flex: 2.05 }}>
-            <div
-              className="tm-block tm-fin"
-              style={{ flex: 1 }}
-              role="button"
-              tabIndex={0}
-              onClick={() => onTab("activos")}
-              onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
-            >
-              <div>
-                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
-                  Financiero
-                </div>
-                <div className="tm-v num">{formatEUR(totales.financiero)}</div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                }}
-              >
-                <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
-                  {labels.financiero ?? "Activos financieros"}
-                </span>
-                <button
-                  type="button"
-                  className="tm-add"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAdd("financiero");
-                  }}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="tm-col" style={{ flex: 2.05 }}>
-            <div
-              className="tm-block tm-inm"
-              style={{ flex: 1 }}
-              role="button"
-              tabIndex={0}
-              onClick={() => onTab("activos")}
-              onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
-            >
-              <div>
-                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
-                  Inmobiliario
-                </div>
-                <div className="tm-v num">{formatEUR(totales.inmobiliario)}</div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                }}
-              >
-                <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
-                  {labels.inmobiliario ?? "Inmuebles"}
-                </span>
-                <button
-                  type="button"
-                  className="tm-add"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAdd("inmobiliario");
-                  }}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <div className="tm-col" style={{ flex: 1 }}>
-            <div
-              className="tm-block tm-emp"
-              style={{ flex: 1.1 }}
-              role="button"
-              tabIndex={0}
-              onClick={() => {
-                if (sociedadId) {
-                  router.push(
-                    `/clientes/${clienteId}/fichas/sociedad/${sociedadId}`,
-                  );
-                } else onTab("activos");
-              }}
-              onKeyDown={(e) => {
-                if (e.key !== "Enter") return;
-                if (sociedadId) {
-                  router.push(
-                    `/clientes/${clienteId}/fichas/sociedad/${sociedadId}`,
-                  );
-                } else onTab("activos");
+        {sinFoto ? (
+          <div
+            style={{
+              border: "1px solid var(--line-2)",
+              borderRadius: 8,
+              background: "var(--paper)",
+              padding: "18px 16px",
+            }}
+          >
+            <div className="lbl">Por dónde empezar</div>
+            <p
+              className="tiny"
+              style={{
+                margin: "8px 0 0",
+                color: "var(--ink-3)",
+                fontSize: 12.5,
+                lineHeight: 1.45,
               }}
             >
-              <div>
-                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
-                  Empresarial
-                </div>
+              Primero los activos: sin ellos no hay foto. Después los ingresos,
+              que es lo que el motor necesita para la fiscalidad.
+            </p>
+            <div
+              className="toolbar"
+              style={{ marginTop: 14, gap: 8, flexWrap: "wrap" }}
+            >
+              <Button
+                size="sm"
+                variant="primary"
+                onClick={() => onAdd("financiero")}
+              >
+                + Añadir activo
+              </Button>
+              <Button size="sm" onClick={() => onAdd("ingresos")}>
+                + Añadir ingreso
+              </Button>
+            </div>
+            <p
+              className="tiny"
+              style={{
+                margin: "16px 0 0",
+                color: "var(--slate)",
+                lineHeight: 1.45,
+              }}
+            >
+              El expediente se completa por capas. No hace falta tenerlo todo el
+              primer día: carga lo mínimo, mira el resultado y sigue otro día.
+            </p>
+          </div>
+        ) : (
+          <>
+            <div className="treemap">
+              <div className="tm-col" style={{ flex: 2.05 }}>
                 <div
-                  className={
-                    totales.empresarialSinValorar || totales.empresarial <= 0
-                      ? "tm-v"
-                      : "tm-v num"
-                  }
-                  style={{ fontSize: 13 }}
+                  className="tm-block tm-fin"
+                  style={{ flex: 1 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onTab("activos")}
+                  onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
                 >
-                  {totales.empresarialSinValorar
-                    ? "no valorada"
-                    : totales.empresarial > 0
-                      ? formatEUR(totales.empresarial)
-                      : "—"}
+                  <div>
+                    <div
+                      className="lbl"
+                      style={{ color: "inherit", opacity: 0.75 }}
+                    >
+                      Financiero
+                    </div>
+                    <div className="tm-v num">
+                      {formatEUR(totales.financiero)}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <span
+                      className="tiny"
+                      style={{ color: "inherit", opacity: 0.8 }}
+                    >
+                      {labels.financiero ?? "Activos financieros"}
+                    </span>
+                    <button
+                      type="button"
+                      className="tm-add"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAdd("financiero");
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               </div>
-              <span className="tiny" style={{ color: "inherit", opacity: 0.8 }}>
-                {labels.empresarial ?? "Sin sociedades"}
+
+              <div className="tm-col" style={{ flex: 2.05 }}>
+                <div
+                  className="tm-block tm-inm"
+                  style={{ flex: 1 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onTab("activos")}
+                  onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
+                >
+                  <div>
+                    <div
+                      className="lbl"
+                      style={{ color: "inherit", opacity: 0.75 }}
+                    >
+                      Inmobiliario
+                    </div>
+                    <div className="tm-v num">
+                      {formatEUR(totales.inmobiliario)}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <span
+                      className="tiny"
+                      style={{ color: "inherit", opacity: 0.8 }}
+                    >
+                      {labels.inmobiliario ?? "Inmuebles"}
+                    </span>
+                    <button
+                      type="button"
+                      className="tm-add"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAdd("inmobiliario");
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <div className="tm-col" style={{ flex: 1 }}>
+                <div
+                  className="tm-block tm-emp"
+                  style={{ flex: 1.1 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (sociedadId) {
+                      router.push(
+                        `/clientes/${clienteId}/fichas/sociedad/${sociedadId}`,
+                      );
+                    } else onTab("activos");
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key !== "Enter") return;
+                    if (sociedadId) {
+                      router.push(
+                        `/clientes/${clienteId}/fichas/sociedad/${sociedadId}`,
+                      );
+                    } else onTab("activos");
+                  }}
+                >
+                  <div>
+                    <div
+                      className="lbl"
+                      style={{ color: "inherit", opacity: 0.75 }}
+                    >
+                      Empresarial
+                    </div>
+                    <div
+                      className={
+                        totales.empresarialSinValorar || totales.empresarial <= 0
+                          ? "tm-v"
+                          : "tm-v num"
+                      }
+                      style={{ fontSize: 13 }}
+                    >
+                      {totales.empresarialSinValorar
+                        ? "no valorada"
+                        : totales.empresarial > 0
+                          ? formatEUR(totales.empresarial)
+                          : "—"}
+                    </div>
+                  </div>
+                  <span
+                    className="tiny"
+                    style={{ color: "inherit", opacity: 0.8 }}
+                  >
+                    {labels.empresarial ?? "Sin sociedades"}
+                  </span>
+                </div>
+
+                <div
+                  className="tm-block tm-otr"
+                  style={{ flex: 0.9 }}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onTab("activos")}
+                  onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
+                >
+                  <div>
+                    <div
+                      className="lbl"
+                      style={{ color: "inherit", opacity: 0.75 }}
+                    >
+                      Otros
+                    </div>
+                    <div className="tm-v num" style={{ fontSize: 14 }}>
+                      {formatEUR(totales.otros)}
+                    </div>
+                  </div>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "flex-end",
+                    }}
+                  >
+                    <span
+                      className="tiny"
+                      style={{ color: "inherit", opacity: 0.85 }}
+                    >
+                      {labels.otros ?? "Otros"}
+                    </span>
+                    <button
+                      type="button"
+                      className="tm-add"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAdd("otros");
+                      }}
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Pasivos fuera del treemap de activos: restan del neto. */}
+            <div
+              className="tm-pasivos"
+              role="button"
+              tabIndex={0}
+              onClick={() => onTab("pasivos")}
+              onKeyDown={(e) => e.key === "Enter" && onTab("pasivos")}
+            >
+              <div>
+                <div className="lbl">Pasivos</div>
+                <div className="tiny" style={{ marginTop: 2 }}>
+                  Restan del patrimonio neto
+                </div>
+              </div>
+              <div className="tm-v num" style={{ fontSize: 16 }}>
+                −{formatEUR(totales.pasivos)}
+              </div>
+            </div>
+
+            <div className="legend">
+              <span>
+                <i className="c-fin" />
+                Financiero
+              </span>
+              <span>
+                <i className="c-inm" />
+                Inmobiliario
+              </span>
+              <span>
+                <i className="c-emp" />
+                Empresarial
+              </span>
+              <span>
+                <i className="c-otr" />
+                Otros
+              </span>
+              <span style={{ marginLeft: "auto" }} className="tiny">
+                Pincha un bloque para bajar al detalle · «+» da de alta en esa
+                categoría
               </span>
             </div>
-
-            <div
-              className="tm-block tm-otr"
-              style={{ flex: 0.9 }}
-              role="button"
-              tabIndex={0}
-              onClick={() => onTab("activos")}
-              onKeyDown={(e) => e.key === "Enter" && onTab("activos")}
-            >
-              <div>
-                <div className="lbl" style={{ color: "inherit", opacity: 0.75 }}>
-                  Otros
-                </div>
-                <div className="tm-v num" style={{ fontSize: 14 }}>
-                  {formatEUR(totales.otros)}
-                </div>
-              </div>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "flex-end",
-                }}
-              >
-                <span
-                  className="tiny"
-                  style={{ color: "inherit", opacity: 0.85 }}
-                >
-                  {labels.otros ?? "Otros"}
-                </span>
-                <button
-                  type="button"
-                  className="tm-add"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onAdd("otros");
-                  }}
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pasivos fuera del treemap de activos: restan del neto. */}
-        <div
-          className="tm-pasivos"
-          role="button"
-          tabIndex={0}
-          onClick={() => onTab("pasivos")}
-          onKeyDown={(e) => e.key === "Enter" && onTab("pasivos")}
-        >
-          <div>
-            <div className="lbl">Pasivos</div>
-            <div className="tiny" style={{ marginTop: 2 }}>
-              Restan del patrimonio neto
-            </div>
-          </div>
-          <div className="tm-v num" style={{ fontSize: 16 }}>
-            −{formatEUR(totales.pasivos)}
-          </div>
-        </div>
-
-        <div className="legend">
-          <span>
-            <i className="c-fin" />
-            Financiero
-          </span>
-          <span>
-            <i className="c-inm" />
-            Inmobiliario
-          </span>
-          <span>
-            <i className="c-emp" />
-            Empresarial
-          </span>
-          <span>
-            <i className="c-otr" />
-            Otros
-          </span>
-          <span style={{ marginLeft: "auto" }} className="tiny">
-            Pincha un bloque para bajar al detalle · «+» da de alta en esa
-            categoría
-          </span>
-        </div>
+          </>
+        )}
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         <div className="darkcard">
           <div className="lbl">Capacidad de ahorro anual</div>
           <div className="big num">{formatEUR(capacidad)} / año</div>
-          {a && (
+          {a && !sinFoto && (
             <div style={{ marginTop: 10 }}>
               <div className="row">
                 <span>Ingresos</span>

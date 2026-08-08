@@ -159,6 +159,7 @@ export function AltaClienteModal({
             <div className="field">
               <input
                 type="date"
+                aria-label="Fecha de nacimiento"
                 className={
                   submitted &&
                   errors.includes("personas") &&
@@ -174,6 +175,10 @@ export function AltaClienteModal({
             </div>
           </div>
         ))}
+        <div className="tiny" style={{ marginBottom: 8 }}>
+          La fecha de nacimiento es necesaria para calcular edades y plazos
+          fiscales.
+        </div>
         <Button
           size="sm"
           onClick={() => setPersonas((prev) => [...prev, emptyPersona()])}
