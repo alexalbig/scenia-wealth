@@ -242,7 +242,7 @@ function posicionEnEscala(
 
 /**
  * Margen hasta el siguiente salto de tipo combinado (estatal + autonómico).
- * Salta la escala cuyo tope llega antes. Alimenta la frase de lectura de P4.
+ * Salta la escala cuyo tope llega antes. Conservado para tests / compat.
  * null si CCAA sin cobertura o sin tramos.
  */
 export function margenSiguienteSaltoGeneral(
@@ -298,6 +298,169 @@ export function margenSiguienteSaltoGeneral(
     margen: primero.margen,
     escalaQueSalta: primero.escala,
   };
+}
+
+/** Umbral bajo el cual el primer peldaño se presenta como «sin margen». */
+export const MARGEN_TRIVIAL_EUR = 500;
+
+/**
+ * Tope de recorrido cerrado acumulado: tras superarlo no se añaden más peldaños
+ * (el que lo cruza sí se muestra).
+ */
+export const RECORRIDO_MAX_SPAN_EUR = 50_000;
+
+/** Máximo de peldaños visibles (incluye «sin margen» si aplica). */
+export const RECORRIDO_MAX_PELDANOS = 3;
+
+export type PeldañoRecorrido =
+  | {
+      kind: "cerrado";
+      /** Tipo combinado (fracción) vigente en este tramo. */
+      tipo: number;
+      /** Euros que dura este tipo desde la base (o desde el umbral previo). */
+      tramoEuros: number;
+      /** true = primer peldaño cerrado («los primeros»); false = «los siguientes». */
+      primeros: boolean;
+    }
+  | {
+      kind: "abierto";
+      tipo: number;
+      /** Umbral absoluto a partir del cual rige este tipo. */
+      desdeUmbral: number;
+    }
+  | {
+      kind: "sin_margen";
+      /** Tipo combinado del siguiente euro (segundo peldaño). */
+      tipoSiguiente: number;
+    };
+
+export type RecorridoMarginalGeneral = {
+  peldaños: PeldañoRecorrido[];
+  /** true cuando el primer tramo cerrado era &lt; 500 €. */
+  sensibilidad: boolean;
+  /**
+   * Umbral donde la escalera se cortó con pasos por encima aún.
+   * null si se agotaron ambos techos (o no hay truncado).
+   */
+  continuaDesde: number | null;
+};
+
+function tipoCombinadoEn(
+  base: number,
+  est: TramoEscala[],
+  aut: TramoEscala[],
+): number | null {
+  const posEst = posicionEnEscala(base, est);
+  const posAut = posicionEnEscala(base, aut);
+  if (!posEst || !posAut) return null;
+  // Evita 0,15+0,175 → 0,324999… en IEEE.
+  return Number((posEst.tipo + posAut.tipo).toFixed(6));
+}
+
+/**
+ * Recorrido marginal combinado (estatal + autonómico) desde la base liquidable.
+ * Fusiona los umbrales de ambas escalas: en cada punto manda el que llega antes.
+ * Hasta 3 peldaños cerrados (o «sin margen» + cerrados). Abierto solo si no queda
+ * ningún umbral en ninguna escala. Si se trunca, `continuaDesde` señala el corte.
+ * null si CCAA sin cobertura o sin tramos.
+ */
+export function recorridoMarginalGeneral(
+  base: number,
+  anio: number,
+  ccaa: string,
+): RecorridoMarginalGeneral | null {
+  if (ccaa !== "Comunitat Valenciana") return null;
+  const est = getEscalaEstatalGeneral(anio).valor;
+  const aut = getEscalaAutonomicaGeneral(anio, ccaa)?.valor;
+  if (!aut || est.length === 0) return null;
+
+  const umbrales = [
+    ...new Set(
+      [...est, ...aut]
+        .map((t) => t.hasta)
+        .filter((h): h is number => h != null),
+    ),
+  ].sort((a, b) => a - b);
+
+  type Paso = { tipo: number; tramoEuros: number; fin: number };
+  const pasos: Paso[] = [];
+  let cursor = base;
+  for (;;) {
+    const siguiente = umbrales.find((u) => u > cursor);
+    if (siguiente == null) break;
+    const tipo = tipoCombinadoEn(cursor, est, aut);
+    if (tipo == null) break;
+    pasos.push({
+      tipo,
+      tramoEuros: siguiente - cursor,
+      fin: siguiente,
+    });
+    cursor = siguiente;
+  }
+
+  if (pasos.length === 0) {
+    const tipo = tipoCombinadoEn(base, est, aut);
+    if (tipo == null) return null;
+    return {
+      peldaños: [{ kind: "abierto", tipo, desdeUmbral: base }],
+      sensibilidad: false,
+      continuaDesde: null,
+    };
+  }
+
+  const primerPaso = pasos[0]!;
+  const sensibilidad = primerPaso.tramoEuros < MARGEN_TRIVIAL_EUR;
+  const peldaños: PeldañoRecorrido[] = [];
+  let idx = 0;
+  let acumulado = 0;
+  let primeros = true;
+
+  if (sensibilidad) {
+    const tipoSiguiente =
+      pasos[1] != null
+        ? pasos[1].tipo
+        : (tipoCombinadoEn(primerPaso.fin, est, aut) ?? primerPaso.tipo);
+    peldaños.push({ kind: "sin_margen", tipoSiguiente });
+    idx = 1;
+    primeros = false;
+  }
+
+  while (idx < pasos.length && peldaños.length < RECORRIDO_MAX_PELDANOS) {
+    if (acumulado > RECORRIDO_MAX_SPAN_EUR) break;
+    const p = pasos[idx]!;
+    peldaños.push({
+      kind: "cerrado",
+      tipo: p.tipo,
+      tramoEuros: p.tramoEuros,
+      primeros,
+    });
+    acumulado += p.tramoEuros;
+    primeros = false;
+    idx += 1;
+  }
+
+  if (idx < pasos.length) {
+    const continuaDesde =
+      idx > 0
+        ? pasos[idx - 1]!.fin
+        : sensibilidad
+          ? primerPaso.fin
+          : base;
+    return { peldaños, sensibilidad, continuaDesde };
+  }
+
+  // Agotados todos los umbrales finitos: el tipo del techo es abierto de verdad.
+  const desdeUmbral = pasos[pasos.length - 1]!.fin;
+  const tipoAbierto = tipoCombinadoEn(desdeUmbral, est, aut);
+  if (tipoAbierto == null) return null;
+  if (peldaños.length < RECORRIDO_MAX_PELDANOS) {
+    peldaños.push({
+      kind: "abierto",
+      tipo: tipoAbierto,
+      desdeUmbral,
+    });
+  }
+  return { peldaños, sensibilidad, continuaDesde: null };
 }
 
 /** Liquidación de un ejercicio: cuota general + cuota del ahorro. */

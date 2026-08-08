@@ -5,8 +5,9 @@ import { SheetPad } from "@/components/ui";
 import { FiscalControls } from "@/components/fiscalidad/FiscalControls";
 import { EscalaColumna } from "@/components/fiscalidad/EscalaColumna";
 import { EstadoPersonaPanel } from "@/components/fiscalidad/EstadoPersonaPanel";
+import { RecorridoMarginal } from "@/components/fiscalidad/RecorridoMarginal";
 import { useExpediente } from "@/components/expediente/ExpedienteProvider";
-import { formatEUR, formatTipo } from "@/lib/format";
+import { formatEUR } from "@/lib/format";
 import {
   anioPorDefecto,
   aniosToolbarFiscal,
@@ -17,7 +18,7 @@ import {
   estadoFiscalPersona,
   getTramos,
   liquidacionEjercicio,
-  margenSiguienteSaltoGeneral,
+  recorridoMarginalGeneral,
   tramoDeBase,
   type EstadoFiscalPersona,
 } from "@/lib/fiscal";
@@ -209,7 +210,7 @@ function PersonaCalculable({
   const tramosAut = getTramos("autonomica", anio);
   const activoEst = tramoDeBase(baseG, "estatal", anio);
   const activoAut = tramoDeBase(baseG, "autonomica", anio);
-  const margen = margenSiguienteSaltoGeneral(baseG, anio, ccaa);
+  const recorrido = recorridoMarginalGeneral(baseG, anio, ccaa);
 
   const baseSub =
     desg.conceptos.length > 0
@@ -246,6 +247,8 @@ function PersonaCalculable({
         </div>
       </div>
 
+      <RecorridoMarginal recorrido={recorrido} />
+
       <div className="cols">
         <EscalaColumna
           nombre="Escala autonómica CV · Ley 13/1997"
@@ -260,26 +263,6 @@ function PersonaCalculable({
           base={baseG}
         />
       </div>
-
-      {margen && (
-        <section className="notes" style={{ marginBottom: 14 }}>
-          <div className="nrow">
-            <span className="lbl">Lectura · orientativo</span>
-            <span>
-              Una renta adicional en base general —por ejemplo, un rescate del
-              plan— tributa al{" "}
-              <strong className="num">{formatTipo(margen.tipoCombinado)}</strong>{" "}
-              combinado hasta agotar{" "}
-              <strong className="num">{formatEUR(margen.margen)}</strong>; a
-              partir de ahí, al{" "}
-              <strong className="num">
-                {formatTipo(margen.tipoCombinadoTrasSalto)}
-              </strong>
-              .
-            </span>
-          </div>
-        </section>
-      )}
 
       <section className="notes">
         <div className="nrow">

@@ -6,7 +6,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { estadoFiscalPersona } from "./estado-persona";
-import { margenSiguienteSaltoGeneral } from "./escalas";
+import { margenSiguienteSaltoGeneral, recorridoMarginalGeneral } from "./escalas";
 import { desgloseBaseLiquidable } from "./base-liquidable";
 import type { Ingreso, Persona } from "@/lib/types";
 
@@ -141,6 +141,110 @@ describe("margenSiguienteSaltoGeneral", () => {
       margenSiguienteSaltoGeneral(88_950, 2026, "Comunidad de Madrid"),
       null,
     );
+  });
+});
+
+describe("recorridoMarginalGeneral", () => {
+  const cv = "Comunitat Valenciana";
+
+  it("Marisa 29.790 → tres cerrados + continúa en 42.000", () => {
+    const r = recorridoMarginalGeneral(29_790, 2026, cv);
+    assert.ok(r);
+    assert.equal(r!.sensibilidad, false);
+    assert.equal(r!.continuaDesde, 42_000);
+    assert.equal(r!.peldaños.length, 3);
+    assert.deepEqual(r!.peldaños[0], {
+      kind: "cerrado",
+      tipo: 0.3,
+      tramoEuros: 2_210,
+      primeros: true,
+    });
+    assert.deepEqual(r!.peldaños[1], {
+      kind: "cerrado",
+      tipo: 0.325,
+      tramoEuros: 3_200,
+      primeros: false,
+    });
+    assert.deepEqual(r!.peldaños[2], {
+      kind: "cerrado",
+      tipo: 0.36,
+      tramoEuros: 6_800,
+      primeros: false,
+    });
+  });
+
+  it("Andreu 71.950 → sin margen · 49 % / 28.000 · 50 % / 50.000 + continúa en 150.000", () => {
+    const r = recorridoMarginalGeneral(71_950, 2026, cv);
+    assert.ok(r);
+    assert.equal(r!.sensibilidad, true);
+    assert.equal(r!.continuaDesde, 150_000);
+    assert.equal(r!.peldaños.length, 3);
+    assert.deepEqual(r!.peldaños[0], {
+      kind: "sin_margen",
+      tipoSiguiente: 0.49,
+    });
+    assert.deepEqual(r!.peldaños[1], {
+      kind: "cerrado",
+      tipo: 0.49,
+      tramoEuros: 28_000,
+      primeros: false,
+    });
+    assert.deepEqual(r!.peldaños[2], {
+      kind: "cerrado",
+      tipo: 0.5,
+      tramoEuros: 50_000,
+      primeros: false,
+    });
+  });
+
+  it("Andreu 73.000 → 49 % / 27.000 · 50 % / 50.000 + continúa en 150.000", () => {
+    const r = recorridoMarginalGeneral(73_000, 2026, cv);
+    assert.ok(r);
+    assert.equal(r!.sensibilidad, false);
+    assert.equal(r!.continuaDesde, 150_000);
+    assert.equal(r!.peldaños.length, 2);
+    assert.deepEqual(r!.peldaños[0], {
+      kind: "cerrado",
+      tipo: 0.49,
+      tramoEuros: 27_000,
+      primeros: true,
+    });
+    assert.deepEqual(r!.peldaños[1], {
+      kind: "cerrado",
+      tipo: 0.5,
+      tramoEuros: 50_000,
+      primeros: false,
+    });
+  });
+
+  it("base 33.000 → manda el umbral estatal (2.200 €, no 9.000)", () => {
+    const r = recorridoMarginalGeneral(33_000, 2026, cv);
+    assert.ok(r);
+    assert.equal(r!.sensibilidad, false);
+    assert.equal(r!.continuaDesde, 52_000);
+    assert.equal(r!.peldaños.length, 3);
+    assert.deepEqual(r!.peldaños[0], {
+      kind: "cerrado",
+      tipo: 0.325,
+      tramoEuros: 2_200,
+      primeros: true,
+    });
+    assert.deepEqual(r!.peldaños[1], {
+      kind: "cerrado",
+      tipo: 0.36,
+      tramoEuros: 6_800,
+      primeros: false,
+    });
+    assert.deepEqual(r!.peldaños[2], {
+      kind: "cerrado",
+      tipo: 0.385,
+      tramoEuros: 10_000,
+      primeros: false,
+    });
+  });
+
+  it("Madrid → null", () => {
+    assert.equal(recorridoMarginalGeneral(71_950, 2026, "Comunidad de Madrid"), null);
   });
 });
 

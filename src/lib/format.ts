@@ -43,7 +43,7 @@ export function formatTipo(tipo: number): string {
     new Intl.NumberFormat("es-ES", {
       maximumFractionDigits: 1,
       minimumFractionDigits: 0,
-    }).format(tipo * 100) + " %"
+    }).format(tipo * 100) + "\u00A0%"
   );
 }
 

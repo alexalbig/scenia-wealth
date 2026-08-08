@@ -239,7 +239,14 @@ export {
 } from "./fiscal/motor";
 export { rollupImpuestosEscenario, periodoFilaFiscal } from "./fiscal/rollup";
 export { PARAMETROS, algunParametroAVerificar } from "./fiscal/parametros";
-export { liquidacionEjercicio, margenSiguienteSaltoGeneral } from "./fiscal/escalas";
+export {
+  liquidacionEjercicio,
+  margenSiguienteSaltoGeneral,
+  recorridoMarginalGeneral,
+  MARGEN_TRIVIAL_EUR,
+  type PeldañoRecorrido,
+  type RecorridoMarginalGeneral,
+} from "./fiscal/escalas";
 export {
   estadoFiscalPersona,
   esFuenteNoContemplada,
